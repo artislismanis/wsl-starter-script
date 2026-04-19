@@ -65,6 +65,36 @@ ensure_line() {
   printf '%s\n' "$line" >> "$file"
 }
 
+# strip_unmanaged_ini_section <file> <section>
+#   Remove an INI section (e.g. [boot]) and its body from <file>, but only if
+#   it lives outside any "# >>> wsl-starter:* >>>" fenced block. Used to clear
+#   pre-existing unmanaged keys before ensure_block writes a managed version,
+#   preventing duplicate-key warnings (e.g. WSL's /etc/wsl.conf parser).
+strip_unmanaged_ini_section() {
+  local file="$1" section="$2"
+  [ -f "$file" ] || return 0
+  if ! grep -qE "^\[${section}\][[:space:]]*$" "$file" 2>/dev/null; then
+    return 0
+  fi
+  if [ "$DRY_RUN" = "1" ]; then
+    printf "  (would strip unmanaged [%s] section from %s)\n" "$section" "$file"
+    return 0
+  fi
+  awk -v sec="[$section]" '
+    /^# >>> wsl-starter:/ { in_managed=1; print; next }
+    /^# <<< wsl-starter:/ { in_managed=0; print; next }
+    {
+      if (!in_managed && in_strip) {
+        if ($0 ~ /^\[/) { in_strip=0; print; next }
+        next
+      }
+      if (!in_managed && $0 == sec) { in_strip=1; next }
+      print
+    }
+  ' "$file" > "$file.tmp" && mv "$file.tmp" "$file"
+  log "stripped unmanaged [$section] from $file"
+}
+
 # ensure_block "marker" "file" "content..." — idempotent multi-line block.
 ensure_block() {
   local marker="$1" file="$2" content="$3"

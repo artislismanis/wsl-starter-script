@@ -1,9 +1,33 @@
 # wsl-starter-script
 
-Modular bootstrap for a fresh Ubuntu WSL image. Replaces my older
+Modular bootstrap for a fresh Ubuntu WSL image. I use the daily rootfs builds from [cloud-images.ubuntu.com/wsl](https://cloud-images.ubuntu.com/wsl/) — they come with only `root` and auto-login as root, which is exactly what `install.sh --base` expects on first run. Replaces my older
 [base](https://gist.github.com/artislismanis/ac78234ef067e782e38ceb6d0e48f4a4) and
 [dev-tools](https://gist.github.com/artislismanis/680562783a3594ddbc6b193367aa5508) gists
 with one re-runnable, idempotent installer.
+
+## Creating the WSL environment
+
+Download a rootfs tarball from [cloud-images.ubuntu.com/wsl](https://cloud-images.ubuntu.com/wsl/), then import it from a PowerShell prompt:
+
+```powershell
+wsl --import <EnvName> <EnvDestinationFolder> <DistroImageFileName>
+```
+
+Example — create `UbuntuNobleExample` under `C:\WSL\environments\` from an image in `C:\WSL\images\` (the current daily builds ship as `noble-wsl-amd64.wsl`):
+
+```powershell
+wsl --import UbuntuNobleExample C:\WSL\environments\UbuntuNobleExample C:\WSL\images\noble-wsl-amd64.wsl
+```
+
+Launch it (defaults to `root` on first boot):
+
+```powershell
+# List environments: wsl --list
+# --cd ~ starts in the home folder instead of the PowerShell cwd
+wsl --distribution UbuntuNobleExample --cd ~
+```
+
+If you use Windows Terminal, restart it so the new distro appears in the dropdown.
 
 ## Quick start
 

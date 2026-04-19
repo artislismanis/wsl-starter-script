@@ -14,6 +14,7 @@ fi
 
 apt_install sudo systemd ca-certificates
 
+strip_unmanaged_ini_section /etc/wsl.conf boot
 ensure_block "wsl-starter:boot" /etc/wsl.conf "[boot]
 systemd=true"
 
@@ -34,10 +35,12 @@ else
   unset PASS
 fi
 
+strip_unmanaged_ini_section /etc/wsl.conf user
 ensure_block "wsl-starter:user" /etc/wsl.conf "[user]
 default=$USER_NAME"
 
 HOST_NAME="${WSL_HOSTNAME:-$(ask "Hostname" "$(hostname)")}"
+strip_unmanaged_ini_section /etc/wsl.conf network
 ensure_block "wsl-starter:network" /etc/wsl.conf "[network]
 generateResolvConf=false
 hostname=$HOST_NAME"
@@ -64,14 +67,41 @@ if [ -n "$DNS_CHOICE" ]; then
 fi
 
 if confirm "Disable Windows PATH appending (cleaner \$PATH)?" n; then
+  strip_unmanaged_ini_section /etc/wsl.conf interop
   ensure_block "wsl-starter:interop" /etc/wsl.conf "[interop]
 appendWindowsPath=false"
 fi
 
 if confirm "Set metadata automount options on /mnt/* (proper file perms)?" y; then
+  strip_unmanaged_ini_section /etc/wsl.conf automount
   ensure_block "wsl-starter:automount" /etc/wsl.conf "[automount]
 enabled=true
 options=\"metadata,umask=22,fmask=11\""
 fi
 
+# If the repo lives under /root (bootstrap's default when run as root), copy it
+# into the new user's home so they can re-invoke ./install.sh after reopen.
+USER_HOME="$(getent passwd "$USER_NAME" | cut -d: -f6)"
+if [ -n "$USER_HOME" ] && [ -d "$USER_HOME" ]; then
+  case "$REPO_ROOT" in
+    /root/*)
+      DEST="$USER_HOME/$(basename "$REPO_ROOT")"
+      if [ -e "$DEST" ] && [ ! -d "$DEST/.git" ]; then
+        warn "$DEST exists and is not a git clone; leaving it alone."
+      else
+        log "Placing repo in $DEST for $USER_NAME"
+        run "cp -a '$REPO_ROOT/.' '$DEST/'"
+        run "chown -R '$USER_NAME:$USER_NAME' '$DEST'"
+      fi
+      HANDOFF_DIR="$DEST"
+      ;;
+    *)
+      HANDOFF_DIR="$REPO_ROOT"
+      ;;
+  esac
+else
+  HANDOFF_DIR="$REPO_ROOT"
+fi
+
 ok "WSL base configured. Run 'wsl --shutdown' in Windows, then reopen."
+log "Next step as $USER_NAME: cd $HANDOFF_DIR && ./install.sh --dev --claude"
