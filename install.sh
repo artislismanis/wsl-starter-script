@@ -138,10 +138,12 @@ case "$MODE" in
     for m in "${CLEANUP_MODULES[@]}"; do run_module "$m"; done
     ;;
   guided)
+    WANT_DEV=0; WANT_CLAUDE=0
     if confirm "Run base setup (systemd, user, hostname, DNS)?" y; then
       for m in "${BASE_MODULES[@]}"; do run_module "$m"; done
     fi
     if confirm "Install dev tools (CLI modern, zsh, history, mise)?" y; then
+      WANT_DEV=1
       for m in "${DEV_ROOT_MODULES[@]}"; do run_module "$m"; done
       if [ "$(id -u)" != "0" ]; then
         for m in "${DEV_USER_MODULES[@]}"; do run_module "$m"; done
@@ -151,11 +153,22 @@ case "$MODE" in
       for m in "${DOCKER_MODULES[@]}"; do run_module "$m"; done
     fi
     if confirm "Install Claude Code?" y; then
-      if [ "$(id -u)" = "0" ]; then
-        warn "Skipping Claude modules: must run as your non-root user."
-      else
+      WANT_CLAUDE=1
+      if [ "$(id -u)" != "0" ]; then
         for m in "${CLAUDE_MODULES[@]}"; do run_module "$m"; done
       fi
+    fi
+
+    if [ "$(id -u)" = "0" ] && { [ "$WANT_DEV" = "1" ] || [ "$WANT_CLAUDE" = "1" ]; }; then
+      PENDING=()
+      [ "$WANT_DEV" = "1" ]    && PENDING+=("--dev")
+      [ "$WANT_CLAUDE" = "1" ] && PENDING+=("--claude")
+      echo
+      warn "Root-phase done. User-phase modules (${PENDING[*]}) need to run as your new user."
+      warn "From Windows PowerShell:  wsl --shutdown"
+      warn "Reopen your distro (it will log you in as the user 00-wsl-base just created), then:"
+      warn "  cd ~/$(basename "$REPO_ROOT") && ./install.sh ${PENDING[*]}"
+      warn "(00-wsl-base copies this repo into the new user's \$HOME so it's already there.)"
     fi
     ;;
   base)
