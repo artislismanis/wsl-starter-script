@@ -24,14 +24,15 @@ command -v mise >/dev/null 2>&1 && eval "$("$HOME/.local/bin/mise" activate zsh)
 
 # ---- Runtimes ---------------------------------------------------------------
 # MISE_LANGUAGES env var overrides the prompts (comma-separated).
+# Per-language version overrides via env: MISE_<LANG>_VERSION (e.g. MISE_NODE_VERSION=22).
 declare -A SPECS=(
-  [node]="node@lts"
-  [python]="python@3.12"
-  [ruby]="ruby@3.3"
-  [java]="java@temurin-21"
-  [go]="go@latest"
-  [deno]="deno@latest"
-  [bun]="bun@latest"
+  [node]="node@${MISE_NODE_VERSION:-lts}"
+  [python]="python@${MISE_PYTHON_VERSION:-3.12}"
+  [ruby]="ruby@${MISE_RUBY_VERSION:-3.3}"
+  [java]="java@${MISE_JAVA_VERSION:-temurin-21}"
+  [go]="go@${MISE_GO_VERSION:-latest}"
+  [deno]="deno@${MISE_DENO_VERSION:-latest}"
+  [bun]="bun@${MISE_BUN_VERSION:-latest}"
 )
 
 if [ -n "${MISE_LANGUAGES:-}" ]; then
