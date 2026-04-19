@@ -7,17 +7,21 @@ source "$(dirname "${BASH_SOURCE[0]}")/../lib/idempotent.sh"
 require_user
 
 # ---- atuin ------------------------------------------------------------------
+# Install non-interactively:
+#   * redirect stdin from /dev/null so nothing can prompt us
+#   * CI=1 is the conventional "don't prompt" signal many install scripts read
+#   * --no-modify-path leaves PATH wiring to the rc-file block we write below
 if ! command_exists atuin; then
-  log "Installing atuin"
-  run "curl --proto '=https' --tlsv1.2 -LsSf https://setup.atuin.sh | sh -s -- --no-modify-path"
+  log "Installing atuin (non-interactive)"
+  run "CI=1 curl --proto '=https' --tlsv1.2 -LsSf https://setup.atuin.sh | sh -s -- --no-modify-path </dev/null"
 else
   skip "atuin already installed"
 fi
 
 # ---- zoxide -----------------------------------------------------------------
 if ! command_exists zoxide; then
-  log "Installing zoxide"
-  run "curl -sSfL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | bash"
+  log "Installing zoxide (non-interactive)"
+  run "CI=1 curl -sSfL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | bash </dev/null"
 else
   skip "zoxide already installed"
 fi

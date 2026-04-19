@@ -22,10 +22,25 @@ else
 fi
 
 ZSH_CUSTOM="${ZSH_CUSTOM:-$ZSH_DIR/custom}"
-for entry in \
-  "zsh-autosuggestions:https://github.com/zsh-users/zsh-autosuggestions" \
-  "zsh-syntax-highlighting:https://github.com/zsh-users/zsh-syntax-highlighting.git"; do
-  name="${entry%%:*}"; url="${entry#*:}"
+
+# ZSH_PLUGINS: space-separated list. If unset, we additively append the two
+# third-party plugins we clone (preserving whatever omz put in plugins=(...)).
+# If set in the env, we replace the full plugins=() line — caller is in charge.
+# ZSH_THEME: if set, replaces the ZSH_THEME="..." line omz wrote.
+PLUGINS_OVERRIDE=0
+if [ -n "${ZSH_PLUGINS+set}" ]; then
+  PLUGINS_OVERRIDE=1
+else
+  ZSH_PLUGINS="git zsh-autosuggestions zsh-syntax-highlighting"
+fi
+
+declare -A PLUGIN_REPOS=(
+  [zsh-autosuggestions]="https://github.com/zsh-users/zsh-autosuggestions"
+  [zsh-syntax-highlighting]="https://github.com/zsh-users/zsh-syntax-highlighting.git"
+)
+for name in $ZSH_PLUGINS; do
+  url="${PLUGIN_REPOS[$name]:-}"
+  [ -z "$url" ] && continue   # bundled plugin, nothing to clone
   dest="$ZSH_CUSTOM/plugins/$name"
   if [ -d "$dest" ]; then
     skip "plugin $name present"
@@ -35,11 +50,19 @@ for entry in \
   fi
 done
 
-# Wire the plugins into .zshrc (non-destructive — only adds the line if missing).
 ZSHRC="$HOME/.zshrc"
-if [ -f "$ZSHRC" ] && ! grep -q "zsh-autosuggestions zsh-syntax-highlighting" "$ZSHRC"; then
-  log "Enabling plugins in ~/.zshrc"
-  run "sed -i 's/^plugins=(\\(.*\\))/plugins=(\\1 zsh-autosuggestions zsh-syntax-highlighting)/' '$ZSHRC'"
+if [ -f "$ZSHRC" ]; then
+  if [ "$PLUGINS_OVERRIDE" = "1" ]; then
+    log "Setting plugins=($ZSH_PLUGINS) in ~/.zshrc"
+    run "sed -i 's/^plugins=(.*)/plugins=($ZSH_PLUGINS)/' '$ZSHRC'"
+  elif ! grep -q "zsh-autosuggestions zsh-syntax-highlighting" "$ZSHRC"; then
+    log "Enabling plugins in ~/.zshrc"
+    run "sed -i 's/^plugins=(\\(.*\\))/plugins=(\\1 zsh-autosuggestions zsh-syntax-highlighting)/' '$ZSHRC'"
+  fi
+  if [ -n "${ZSH_THEME:-}" ]; then
+    log "Setting ZSH_THEME=\"$ZSH_THEME\" in ~/.zshrc"
+    run "sed -i 's|^ZSH_THEME=.*|ZSH_THEME=\"$ZSH_THEME\"|' '$ZSHRC'"
+  fi
 fi
 
 if confirm "Make zsh the default shell?" y; then

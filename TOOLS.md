@@ -60,6 +60,13 @@ Both modes include `docker-buildx-plugin` (multi-arch builds, BuildKit) and `doc
 
 Both plugins get auto-registered in `~/.zshrc`. With your permission the module also runs `chsh -s $(command -v zsh)` so new sessions start in zsh.
 
+**Overrides for non-interactive runs:**
+
+- `ZSH_THEME=agnoster` — replaces the omz-written `ZSH_THEME="..."` line with your choice.
+- `ZSH_PLUGINS="git docker kubectl zsh-autosuggestions"` — replaces the entire `plugins=(...)` line. Plugins not known to the installer are assumed to be bundled with omz; unknown external plugins won't be cloned (add them to the module's `PLUGIN_REPOS` map if you need cloning).
+
+Leave either var unset to keep the defaults (`robbyrussell` theme, additively append the two zsh-users plugins).
+
 ---
 
 ## Module `31-shell-history` — history & navigation upgrades *(user)*
