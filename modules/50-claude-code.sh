@@ -6,18 +6,11 @@ source "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/idempotent.sh"
 require_user
 
-# npm may live in a mise-managed node install that needs activation first.
-if ! command_exists npm; then
-  if [ -x "$HOME/.local/bin/mise" ]; then
-    eval "$("$HOME/.local/bin/mise" activate bash)"
-    hash -r
-  fi
-fi
-command_exists npm || die "npm not found. Install node via module 40-mise.sh first (or open a new shell)."
-
-if ! command_exists claude; then
-  log "Installing @anthropic-ai/claude-code (global npm)"
-  run "npm install -g @anthropic-ai/claude-code"
+# Native installer drops a standalone binary into ~/.local/bin/claude, independent
+# of any mise-managed node version's per-prefix npm globals.
+if ! command_exists claude && [ ! -x "$HOME/.local/bin/claude" ]; then
+  log "Installing Claude Code (native installer)"
+  run "curl -fsSL https://claude.ai/install.sh | bash"
 else
   skip "claude-code already installed ($(claude --version 2>/dev/null || echo unknown))"
 fi
