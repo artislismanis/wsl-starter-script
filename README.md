@@ -19,13 +19,10 @@ Example — create `UbuntuNobleExample` under `C:\WSL\environments\` from an ima
 wsl --import UbuntuNobleExample C:\WSL\environments\UbuntuNobleExample C:\WSL\images\noble-wsl-amd64.wsl
 ```
 
-Launch it (defaults to `root` on first boot):
+Launch it (defaults to `root` on first boot). Quote the tilde so PowerShell passes it through literally:
 
 ```powershell
 # List environments: wsl --list
-# --cd '~' starts in the Linux home folder instead of the PowerShell cwd.
-# Quote the tilde so PowerShell passes it through literally — unquoted, it
-# gets expanded to your Windows profile path before wsl ever sees it.
 wsl --distribution UbuntuNobleExample --cd '~'
 ```
 
