@@ -36,6 +36,17 @@ sudo ./install.sh --base          # systemd, user, hostname, DNS
 
 Or just `./install.sh` for the interactive menu.
 
+**Optional: Docker Engine** — not part of `--dev` by default. Run explicitly:
+
+```bash
+sudo ./install.sh --module 25-docker-engine
+# or non-interactively:
+sudo DOCKER_MODE=classic DOCKER_USER=$USER ./install.sh --module 25-docker-engine --non-interactive
+# DOCKER_MODE = classic | rootless | skip
+```
+
+Requires systemd (enabled by `00-wsl-base`, so reopen your WSL distro after `--base`).
+
 ### 3. Offline / airgapped
 
 Download the tarball (`https://github.com/artislismanis/wsl-starter-script/archive/main.tar.gz`), extract, run `./install.sh` as above. No network calls until individual modules fetch packages.

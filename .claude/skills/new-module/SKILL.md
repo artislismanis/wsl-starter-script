@@ -23,7 +23,7 @@ Current numeric map (do not collide):
 |-------|-------|
 | 00-09 | WSL base setup (root) |
 | 10-19 | Core apt packages (root) |
-| 20-29 | Modern CLI repos/packages (root) |
+| 20-29 | Modern CLI repos/packages (root) — 25 = docker-engine |
 | 30-39 | Shell setup (user) |
 | 40-49 | Language runtimes (user) |
 | 50-59 | Claude Code + agent tooling (user) |
