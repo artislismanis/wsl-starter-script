@@ -187,11 +187,48 @@ case "$MODE" in
     ;;
 esac
 
+_deferred_target_user() {
+  # Prefer the name the operator passed in, fall back to the managed [user]
+  # block in /etc/wsl.conf that 00-wsl-base just wrote.
+  if [ -n "${WSL_USER:-}" ] && id "$WSL_USER" >/dev/null 2>&1; then
+    printf '%s\n' "$WSL_USER"; return 0
+  fi
+  [ -f /etc/wsl.conf ] || return 1
+  awk '
+    /^# >>> wsl-starter:user >>>/ { m=1; next }
+    /^# <<< wsl-starter:user <<</ { m=0 }
+    m && /^default=/ { sub(/^default=/,""); print; exit }
+  ' /etc/wsl.conf
+}
+
 if [ "$(id -u)" = "0" ] && [ ${#DEFERRED[@]} -gt 0 ]; then
   echo
-  warn "Root-phase done. User-phase modules (${DEFERRED[*]}) need to run as your new user."
-  warn "From Windows PowerShell:  wsl --terminate ${WSL_DISTRO_NAME:-<your-distro>}"
-  warn "Reopen the distro (it will log you in as the user 00-wsl-base just created), then:"
-  warn "  cd ~/$(basename "$REPO_ROOT") && ./install.sh ${DEFERRED[*]}"
-  warn "(00-wsl-base copies this repo into the new user's \$HOME so it's already there.)"
+  warn "Root-phase done. User-phase modules (${DEFERRED[*]}) still need to run as your new user."
+
+  TARGET_USER="$(_deferred_target_user || true)"
+  TARGET_HOME=""
+  [ -n "$TARGET_USER" ] && TARGET_HOME="$(getent passwd "$TARGET_USER" 2>/dev/null | cut -d: -f6 || true)"
+  TARGET_REPO=""
+  [ -n "$TARGET_HOME" ] && TARGET_REPO="$TARGET_HOME/$(basename "$REPO_ROOT")"
+
+  CAN_CONTINUE=0
+  if [ -n "$TARGET_USER" ] && [ -d "$TARGET_REPO" ] && [ -x "$TARGET_REPO/install.sh" ]; then
+    CAN_CONTINUE=1
+  fi
+
+  if [ "$CAN_CONTINUE" = "1" ] && confirm "Continue as '$TARGET_USER' now in this WSL session (skips reopen for ${DEFERRED[*]})?" y; then
+    log "Handing off to $TARGET_USER via sudo -iu"
+    # sudo -i gives a login shell so PATH, HOME, rc files are right.
+    # bash -lc re-sources login files so mise/atuin wiring added mid-run is picked up.
+    sudo -iu "$TARGET_USER" bash -lc "cd '$TARGET_REPO' && ./install.sh ${DEFERRED[*]}"
+    echo
+    warn "In-session handoff complete. You're still root in *this* shell, though."
+    warn "Finish up from Windows PowerShell so the distro default user takes effect:"
+    warn "  wsl --terminate ${WSL_DISTRO_NAME:-<your-distro>}"
+  else
+    warn "From Windows PowerShell:  wsl --terminate ${WSL_DISTRO_NAME:-<your-distro>}"
+    warn "Reopen the distro (it will log you in as the user 00-wsl-base just created), then:"
+    warn "  cd ~/$(basename "$REPO_ROOT") && ./install.sh ${DEFERRED[*]}"
+    warn "(00-wsl-base copies this repo into the new user's \$HOME so it's already there.)"
+  fi
 fi

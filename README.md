@@ -60,6 +60,8 @@ sudo ./install.sh --base          # systemd, user, hostname, DNS
 
 Or just `./install.sh` for the interactive menu.
 
+**Skip the reopen for the dev/claude phase**: when the root phase finishes and user-phase modules are still pending, the installer now offers to continue as the newly-created user in the *same* WSL session via `sudo -iu`. Accept it and `--dev`/`--claude` run right away; you still want to `wsl --terminate <distro>` at the end so new shell sessions land as the default user and any systemd-user services (e.g. rootless Docker) come up cleanly.
+
 **Optional: Docker Engine** — not part of `--dev` by default. Run explicitly:
 
 ```bash
