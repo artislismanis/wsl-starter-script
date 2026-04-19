@@ -83,6 +83,24 @@ fi
 log "Enabling linger for $TARGET_USER (user systemd units run without a login session)"
 run "loginctl enable-linger '$TARGET_USER'"
 
+# Write rootless daemon.json before first start: pin cgroupfs driver so
+# dockerd doesn't require a live per-user D-Bus session to apply cgroups
+# (systemd driver fails in WSL with "Interactive authentication required").
+DAEMON_JSON="$TARGET_HOME/.config/docker/daemon.json"
+if [ -f "$DAEMON_JSON" ]; then
+  skip "Preserving existing $DAEMON_JSON"
+else
+  log "Writing $DAEMON_JSON (cgroupfs driver for rootless in WSL)"
+  if [ "$DRY_RUN" != "1" ]; then
+    sudo -u "$TARGET_USER" mkdir -p "$TARGET_HOME/.config/docker"
+    sudo -u "$TARGET_USER" tee "$DAEMON_JSON" >/dev/null <<'JSON'
+{
+  "exec-opts": ["native.cgroupdriver=cgroupfs"]
+}
+JSON
+  fi
+fi
+
 # Run the rootless setuptool as the target user. It creates
 # ~/.config/systemd/user/docker.service and starts the user-level daemon.
 log "Running dockerd-rootless-setuptool.sh as $TARGET_USER"
