@@ -121,14 +121,32 @@ claude/
 | `WSL_PASSWORD`            | Password for that user |
 | `WSL_HOSTNAME`            | Hostname in `/etc/wsl.conf` |
 | `WSL_DNS`                 | Space-separated nameservers (empty = keep existing) |
-| `MISE_LANGUAGES`          | CSV, e.g. `node,python,go` |
+| `WSL_APT_UPGRADE`         | `1` to run `apt upgrade` during `--base` (default: skip) |
+| `MISE_LANGUAGES`          | CSV of runtimes to install, e.g. `node,python,go` |
+| `MISE_<LANG>_VERSION`     | Pin a specific version per runtime — see defaults below |
+| `DOCKER_MODE`             | `classic` / `rootless` / `skip` (only for `25-docker-engine`) |
+| `DOCKER_USER`             | User to add to the `docker` group (classic mode) |
 | `CLAUDE_PERMISSION_MODE`  | `default` / `acceptEdits` / `plan` |
 
-Example:
+Per-runtime version pins (override any of these; defaults shown):
+
+| Var | Default |
+|-----|---------|
+| `MISE_NODE_VERSION`   | `lts` |
+| `MISE_PYTHON_VERSION` | `3.12` |
+| `MISE_RUBY_VERSION`   | `3.3` |
+| `MISE_JAVA_VERSION`   | `temurin-21` |
+| `MISE_GO_VERSION`     | `latest` |
+| `MISE_DENO_VERSION`   | `latest` |
+| `MISE_BUN_VERSION`    | `latest` |
+
+Example — full install with pinned Node/Python versions:
 
 ```bash
 WSL_USER=artis WSL_PASSWORD='...' WSL_HOSTNAME=box \
-MISE_LANGUAGES=node,python CLAUDE_PERMISSION_MODE=acceptEdits \
+MISE_LANGUAGES=node,python,go \
+MISE_NODE_VERSION=22 MISE_PYTHON_VERSION=3.13 MISE_GO_VERSION=1.23 \
+CLAUDE_PERMISSION_MODE=acceptEdits \
 sudo -E ./install.sh --all --non-interactive
 ```
 
