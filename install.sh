@@ -224,7 +224,26 @@ if [ "$(id -u)" = "0" ] && [ ${#DEFERRED[@]} -gt 0 ]; then
     log "Handing off to $TARGET_USER via sudo -iu"
     # sudo -i gives a login shell so PATH, HOME, rc files are right.
     # bash -lc re-sources login files so mise/atuin wiring added mid-run is picked up.
-    sudo -iu "$TARGET_USER" bash -lc "cd '$TARGET_REPO' && ./install.sh ${DEFERRED[*]}"
+    # Forward non-interactive / tuning env vars across the privilege drop — sudo strips
+    # them by default, and the user-phase modules (mise pins, claude perm mode, etc.)
+    # need to see the same values the root invocation did.
+    FORWARD_VARS=(
+      NON_INTERACTIVE DRY_RUN
+      WSL_USER WSL_PASSWORD WSL_HOSTNAME WSL_DNS WSL_APT_UPGRADE
+      MISE_LANGUAGES
+      MISE_NODE_VERSION MISE_PYTHON_VERSION MISE_RUBY_VERSION
+      MISE_JAVA_VERSION MISE_GO_VERSION MISE_DENO_VERSION MISE_BUN_VERSION
+      DOCKER_MODE DOCKER_USER
+      CLAUDE_PERMISSION_MODE
+      ZSH_PLUGINS ZSH_THEME
+    )
+    FORWARD_ASSIGNS=()
+    for v in "${FORWARD_VARS[@]}"; do
+      if [ -n "${!v+set}" ]; then
+        FORWARD_ASSIGNS+=("$v=$(printf '%q' "${!v}")")
+      fi
+    done
+    sudo -iu "$TARGET_USER" bash -lc "cd '$TARGET_REPO' && env ${FORWARD_ASSIGNS[*]} ./install.sh ${DEFERRED[*]}"
     echo
     warn "In-session handoff complete. You're still root in *this* shell, though."
     warn "Finish up from Windows PowerShell so the distro default user takes effect:"
