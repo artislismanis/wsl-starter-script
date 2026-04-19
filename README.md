@@ -23,8 +23,10 @@ Launch it (defaults to `root` on first boot):
 
 ```powershell
 # List environments: wsl --list
-# --cd ~ starts in the home folder instead of the PowerShell cwd
-wsl --distribution UbuntuNobleExample --cd ~
+# --cd '~' starts in the Linux home folder instead of the PowerShell cwd.
+# Quote the tilde so PowerShell passes it through literally — unquoted, it
+# gets expanded to your Windows profile path before wsl ever sees it.
+wsl --distribution UbuntuNobleExample --cd '~'
 ```
 
 If you use Windows Terminal, restart it so the new distro appears in the dropdown.
