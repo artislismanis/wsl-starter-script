@@ -87,7 +87,7 @@ interactive_menu() {
   echo "  7) Single module"
   echo "  8) List modules"
   echo "  q) Quit"
-  read -r -p "> " sel
+  read -r -p "$(_fmt_prompt "Choice >")" sel
   case "$sel" in
     1) MODE=guided ;;
     2) MODE=all ;;
@@ -95,7 +95,7 @@ interactive_menu() {
     4) MODE=dev ;;
     5) MODE=docker ;;
     6) MODE=claude ;;
-    7) list_modules; read -r -p "Module name: " SINGLE; MODE=single ;;
+    7) list_modules; read -r -p "$(_fmt_prompt "Module name:")" SINGLE; MODE=single ;;
     8) list_modules; exit 0 ;;
     q|Q) exit 0 ;;
     *) die "Invalid selection" ;;

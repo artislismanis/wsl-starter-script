@@ -5,9 +5,16 @@
 if [ -t 1 ]; then
   C_BLUE='\033[0;94m'; C_GREEN='\033[0;92m'; C_YELLOW='\033[0;93m'
   C_RED='\033[0;91m'; C_DIM='\033[0;90m'; C_RESET='\033[0m'
+  C_PROMPT='\033[1;95m'   # bold bright magenta — input prompts stand out
+  C_BOLD='\033[1m'
 else
   C_BLUE=''; C_GREEN=''; C_YELLOW=''; C_RED=''; C_DIM=''; C_RESET=''
+  C_PROMPT=''; C_BOLD=''
 fi
+
+# Render a prompt string with a neon tag. Uses printf to interpret escapes,
+# then passes the baked string to `read -p` (which does not expand escapes).
+_fmt_prompt() { printf "${C_PROMPT} ??${C_RESET} ${C_BOLD}%s${C_RESET} " "$*"; }
 
 log()     { printf "${C_BLUE}==>${C_RESET} %s\n" "$*"; }
 ok()      { printf "${C_GREEN} ok${C_RESET} %s\n" "$*"; }
@@ -34,10 +41,10 @@ ask() {
     return 0
   fi
   if [ -n "$default" ]; then
-    read -r -p "$prompt [$default]: " reply || true
+    read -r -p "$(_fmt_prompt "$prompt [$default]:")" reply || true
     printf "%s\n" "${reply:-$default}"
   else
-    read -r -p "$prompt: " reply || true
+    read -r -p "$(_fmt_prompt "$prompt:")" reply || true
     printf "%s\n" "$reply"
   fi
 }
@@ -49,7 +56,7 @@ confirm() {
     [ "$default" = "y" ]; return
   fi
   local hint="[y/N]"; [ "$default" = "y" ] && hint="[Y/n]"
-  read -r -p "$prompt $hint " reply || true
+  read -r -p "$(_fmt_prompt "$prompt $hint")" reply || true
   reply="${reply:-$default}"
   case "$reply" in y|Y|yes|YES) return 0;; *) return 1;; esac
 }
@@ -62,8 +69,8 @@ ask_secret() {
     return 0
   fi
   while :; do
-    read -r -s -p "$prompt: " p1; echo >&2
-    read -r -s -p "Confirm: "   p2; echo >&2
+    read -r -s -p "$(_fmt_prompt "$prompt:")" p1; echo >&2
+    read -r -s -p "$(_fmt_prompt "Confirm:")" p2; echo >&2
     [ "$p1" = "$p2" ] && { printf "%s\n" "$p1"; return 0; }
     warn "Passwords don't match, try again."
   done
