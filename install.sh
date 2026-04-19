@@ -111,11 +111,15 @@ run_group() {
   case "$1" in
     base)    for m in "${BASE_MODULES[@]}"; do run_module "$m"; done ;;
     dev)
-      for m in "${DEV_ROOT_MODULES[@]}"; do run_module "$m"; done
-      if [ "$(id -u)" != "0" ]; then
-        for m in "${DEV_USER_MODULES[@]}"; do run_module "$m"; done
-      else
+      # Root runs the root-phase modules and defers the user-phase to the
+      # new user (via in-session handoff or reopen). Non-root runs only the
+      # user-phase modules — the root-phase packages must have been installed
+      # earlier by `sudo ./install.sh --dev` (or --all / --base then --dev).
+      if [ "$(id -u)" = "0" ]; then
+        for m in "${DEV_ROOT_MODULES[@]}"; do run_module "$m"; done
         DEFERRED+=("--dev")
+      else
+        for m in "${DEV_USER_MODULES[@]}"; do run_module "$m"; done
       fi
       ;;
     docker)  for m in "${DOCKER_MODULES[@]}"; do run_module "$m"; done ;;
