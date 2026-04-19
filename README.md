@@ -7,19 +7,38 @@ with one re-runnable, idempotent installer.
 
 ## Quick start
 
+Three options, pick what suits you:
+
+### 1. Fastest — one-liner on a fresh WSL image
+
 ```bash
-# On a fresh Ubuntu WSL import, as root:
-git clone <this repo>   # or scp it in
-cd wsl-starter-script
-
-sudo ./install.sh --base          # systemd, user, hostname, DNS
-# Then from Windows: wsl --shutdown; reopen as the new user.
-
-./install.sh --dev                # CLI, zsh+omz, atuin+zoxide, mise, runtimes
-./install.sh --claude             # Claude Code CLI + ~/.claude/* starter
+bash <(curl -fsSL https://raw.githubusercontent.com/artislismanis/wsl-starter-script/main/bootstrap.sh)
 ```
 
-Or just `./install.sh` for an interactive menu.
+Installs `git`/`curl` if missing, clones this repo to `$HOME/wsl-starter-script` (or `/root/wsl-starter-script` if you're root), then drops you into the interactive menu. All flags pass through, so you can do:
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/artislismanis/wsl-starter-script/main/bootstrap.sh) --base
+```
+
+Re-runs are safe: subsequent invocations `git pull --ff-only` before handing off.
+
+### 2. Reviewable — clone first, run locally
+
+```bash
+git clone https://github.com/artislismanis/wsl-starter-script
+cd wsl-starter-script
+sudo ./install.sh --base          # systemd, user, hostname, DNS
+# then from Windows PowerShell: wsl --shutdown; reopen as the new user
+./install.sh --dev                # CLI tools, zsh+omz, atuin+zoxide, mise
+./install.sh --claude             # Claude Code + ~/.claude/* starter
+```
+
+Or just `./install.sh` for the interactive menu.
+
+### 3. Offline / airgapped
+
+Download the tarball (`https://github.com/artislismanis/wsl-starter-script/archive/main.tar.gz`), extract, run `./install.sh` as above. No network calls until individual modules fetch packages.
 
 ## Layout
 
