@@ -71,6 +71,8 @@ sudo DOCKER_MODE=classic DOCKER_USER=$USER ./install.sh --module 25-docker-engin
 
 Requires systemd (enabled by `00-wsl-base`, so reopen your WSL distro after `--base`).
 
+**What's actually installed?** See [TOOLS.md](TOOLS.md) for a per-module rundown of every package, what it replaces, and why it earns a slot on your `$PATH`.
+
 ### 3. Offline / airgapped
 
 Download the tarball (`https://github.com/artislismanis/wsl-starter-script/archive/main.tar.gz`), extract, run `./install.sh` as above. No network calls until individual modules fetch packages.
