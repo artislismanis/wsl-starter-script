@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "for f in $CLAUDE_FILE_PATHS; do case \"$f\" in *.sh) bash -n \"$f\" || exit 2; command -v shellcheck >/dev/null 2>&1 && shellcheck -S warning \"$f\" || true ;; esac; done"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "for f in $CLAUDE_FILE_PATHS; do case \"$f\" in \"$HOME/.claude/\"*|~/.claude/*) echo \"Refuse: '$f' is a rendered user-global Claude config. Edit the source template under claude/*.tmpl in this repo instead.\" >&2; exit 2 ;; esac; done"
+          }
+        ]
+      }
+    ]
+  }
+}

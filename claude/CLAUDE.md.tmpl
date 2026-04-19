@@ -1,0 +1,35 @@
+# CLAUDE.md — user-global
+
+User-wide instructions loaded into every Claude Code conversation on this machine. Keep it short; put project-specific rules in each project's own `CLAUDE.md`.
+
+## Tone
+
+- Terse. Short sentences, no filler.
+- Skip trailing "here's what I did" summaries — the diff is self-evident.
+- State decisions directly rather than narrating deliberation.
+- Only use emoji when I ask for them.
+
+## Defaults
+
+- Prefer editing existing files over creating new ones.
+- Don't add speculative abstractions, feature flags, or backwards-compat shims.
+- Don't write comments that re-state what the code does — only WHY when non-obvious.
+- For UI/frontend changes, actually test in a browser before reporting success.
+
+## Destructive actions
+
+Ask before: deleting files/branches, force-pushing, `git reset --hard`, dropping tables, killing processes, removing dependencies, anything visible to others (Slack, GitHub comments, pushes).
+
+Local reversible edits — just do them.
+
+## Memory
+
+Auto-memory lives under `~/.claude/projects/<project>/memory/`. Save user facts, feedback, and project context there using the system described in the main prompt. Don't save code patterns, git history, or ephemeral task state.
+
+## Tiers
+
+1. **User-global** (this file, `~/.claude/`) — preferences and defaults for every project.
+2. **Project** (`./CLAUDE.md`, `./.claude/`) — shared rules committed to the repo.
+3. **Local** (`./.claude/settings.local.json`) — per-machine overrides, gitignored.
+
+Put new rules in the right tier and promote upward when they prove useful.

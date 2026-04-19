@@ -1,0 +1,20 @@
+{
+  "_comment": "Copy to <project>/.mcp.json and uncomment the servers you want. Docs: https://modelcontextprotocol.io",
+  "mcpServers": {
+    "_memory": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"],
+      "instructions": "Persistent knowledge graph. Enable for projects where cross-session memory matters."
+    },
+    "_filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/absolute/path/to/allowed/dir"],
+      "instructions": "Read/write a specific directory. Scope tightly — do not point at $HOME."
+    },
+    "_github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": { "GITHUB_PERSONAL_ACCESS_TOKEN": "set-in-settings.local.json-not-here" }
+    }
+  }
+}
