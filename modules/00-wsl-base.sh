@@ -103,5 +103,5 @@ else
   HANDOFF_DIR="$REPO_ROOT"
 fi
 
-ok "WSL base configured. Run 'wsl --shutdown' in Windows, then reopen."
+ok "WSL base configured. Run 'wsl --terminate ${WSL_DISTRO_NAME:-<your-distro>}' in Windows, then reopen."
 log "Next step as $USER_NAME: cd $HANDOFF_DIR && ./install.sh --dev --claude"

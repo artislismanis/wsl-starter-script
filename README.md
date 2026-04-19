@@ -53,7 +53,7 @@ Re-runs are safe: subsequent invocations `git pull --ff-only` before handing off
 git clone https://github.com/artislismanis/wsl-starter-script
 cd wsl-starter-script
 sudo ./install.sh --base          # systemd, user, hostname, DNS
-# then from Windows PowerShell: wsl --shutdown; reopen as the new user
+# then from Windows PowerShell: wsl --terminate <your-distro>; reopen as the new user
 ./install.sh --dev                # CLI tools, zsh+omz, atuin+zoxide, mise
 ./install.sh --claude             # Claude Code + ~/.claude/* starter
 ```
@@ -139,7 +139,7 @@ sudo -E ./install.sh --all --non-interactive
 
 ## Rollback
 
-- WSL base: remove the `# >>> wsl-starter:* >>>` blocks from `/etc/wsl.conf`, then `wsl --shutdown`.
+- WSL base: remove the `# >>> wsl-starter:* >>>` blocks from `/etc/wsl.conf`, then `wsl --terminate <your-distro>` (or `wsl --shutdown` to stop all distros).
 - Shell wiring: remove the `# >>> wsl-starter:* >>>` blocks from `~/.bashrc` / `~/.zshrc`.
 - Packages: `sudo apt-get remove <pkg>`; `mise uninstall <lang>`; `npm uninstall -g @anthropic-ai/claude-code`.
 - Claude config: delete `~/.claude/settings.json` / `~/.claude/CLAUDE.md` (or edit in place).

@@ -11,7 +11,7 @@ require_root
 # and reopen before this module can succeed.
 if ! systemctl is-system-running --quiet 2>/dev/null && ! systemctl is-active --quiet default.target 2>/dev/null; then
   if ! pidof systemd >/dev/null 2>&1; then
-    die "systemd is not running. Run 00-wsl-base.sh, then 'wsl --shutdown' from Windows, reopen, and re-run this module."
+    die "systemd is not running. Run 00-wsl-base.sh, then 'wsl --terminate ${WSL_DISTRO_NAME:-<your-distro>}' from Windows, reopen, and re-run this module."
   fi
 fi
 
@@ -68,7 +68,7 @@ if [ "$MODE" = "classic" ]; then
   log "Enabling docker.service"
   run "systemctl enable --now docker.service"
   run "systemctl enable --now containerd.service"
-  ok "Classic Docker installed. $TARGET_USER must log out and back in (or 'wsl --shutdown') for group membership to take effect."
+  ok "Classic Docker installed. $TARGET_USER must log out and back in (or 'wsl --terminate ${WSL_DISTRO_NAME:-<your-distro>}') for group membership to take effect."
   exit 0
 fi
 

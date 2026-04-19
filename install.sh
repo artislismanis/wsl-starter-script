@@ -129,7 +129,7 @@ case "$MODE" in
     for m in "${DEV_ROOT_MODULES[@]}"; do run_module "$m"; done
     for m in "${DOCKER_MODULES[@]}"; do run_module "$m"; done
     warn "Root-phase done. The remaining modules run as your non-root user."
-    warn "Exit, run 'wsl --shutdown' in Windows, reopen your distro, then:"
+    warn "Exit, run 'wsl --terminate ${WSL_DISTRO_NAME:-<your-distro>}' in Windows, reopen, then:"
     warn "  cd ~/$(basename "$REPO_ROOT") && ./install.sh --dev --claude"
     warn "(00-wsl-base copies this repo into the new user's \$HOME when bootstrapped as root.)"
     if [ "$(id -u)" = "0" ]; then exit 0; fi
@@ -165,8 +165,8 @@ case "$MODE" in
       [ "$WANT_CLAUDE" = "1" ] && PENDING+=("--claude")
       echo
       warn "Root-phase done. User-phase modules (${PENDING[*]}) need to run as your new user."
-      warn "From Windows PowerShell:  wsl --shutdown"
-      warn "Reopen your distro (it will log you in as the user 00-wsl-base just created), then:"
+      warn "From Windows PowerShell:  wsl --terminate ${WSL_DISTRO_NAME:-<your-distro>}"
+      warn "Reopen the distro (it will log you in as the user 00-wsl-base just created), then:"
       warn "  cd ~/$(basename "$REPO_ROOT") && ./install.sh ${PENDING[*]}"
       warn "(00-wsl-base copies this repo into the new user's \$HOME so it's already there.)"
     fi
