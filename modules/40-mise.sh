@@ -38,10 +38,15 @@ if [ -n "${MISE_LANGUAGES:-}" ]; then
   IFS=',' read -r -a choices <<<"$MISE_LANGUAGES"
 else
   choices=()
-  for lang in node python ruby java go deno bun; do
-    case "$lang" in node|python) default=y ;; *) default=n ;; esac
-    confirm "Install ${lang} (${SPECS[$lang]})?" "$default" && choices+=("$lang")
+  # Default prompts: only node + python. Everything else is an "advanced" opt-in.
+  for lang in node python; do
+    confirm "Install ${lang} (${SPECS[$lang]})?" y && choices+=("$lang")
   done
+  if confirm "Show other runtimes (ruby/java/go/deno/bun)?" n; then
+    for lang in ruby java go deno bun; do
+      confirm "Install ${lang} (${SPECS[$lang]})?" n && choices+=("$lang")
+    done
+  fi
 fi
 
 for lang in "${choices[@]:-}"; do

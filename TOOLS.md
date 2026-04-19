@@ -78,19 +78,80 @@ Both tools get wired into `~/.bashrc` and `~/.zshrc` through a `wsl-starter:atui
 
 [`mise`](https://mise.jdx.dev/) is a modern replacement for asdf / nvm / pyenv / rbenv / chruby / goenv — one tool, one `.mise.toml` per project, auto-activates runtimes on `cd`. The module wires `mise activate` into both shells.
 
-Optional language runtimes (interactive prompts, defaults shown; override with `MISE_LANGUAGES="node,python,go"`):
+### What the installer asks about
 
-| Language | Default version | Default prompt |
+By default the installer prompts for **node** and **python** only; everything else is gated behind a "Show other runtimes?" prompt to keep onboarding snappy. Override with `MISE_LANGUAGES="node,python,go"` for non-interactive use.
+
+| Language | Default version | Prompted by default |
 |---|---|---|
-| Node.js | `node@lts` | **yes** |
-| Python  | `python@3.12` | **yes** |
-| Ruby    | `ruby@3.3` | no |
-| Java    | `java@temurin-21` | no |
-| Go      | `go@latest` | no |
-| Deno    | `deno@latest` | no |
-| Bun     | `bun@latest` | no |
+| Node.js | `node@lts`           | **yes** |
+| Python  | `python@3.12`        | **yes** |
+| Ruby    | `ruby@3.3`           | on request |
+| Java    | `java@temurin-21`    | on request |
+| Go      | `go@latest`          | on request |
+| Deno    | `deno@latest`        | on request |
+| Bun     | `bun@latest`         | on request |
 
-Also optional: [`uv`](https://github.com/astral-sh/uv) — Astral's ultra-fast Python package/project/env manager (Rust-built). Complements mise-managed Python: mise picks the interpreter, uv manages per-project venvs + lockfiles.
+> **Note on the Python install**: mise may print a `Cannot parse Rekor public key … unknown/unsupported algorithm OID` warning while fetching the precompiled build from `astral-sh/python-build-standalone`. This is a [known benign Rekor verification quirk](https://github.com/jdx/mise/issues) — the download still succeeds (look for the `✔` after `python@3.12.x Python 3.12.x`). If you'd rather compile Python from source, run `mise settings python.compile=1` before re-installing.
+
+### How to use mise day-to-day
+
+```bash
+# Install a new runtime globally (puts shims on PATH, doesn't change project)
+mise use -g node@lts
+mise use -g python@3.13
+
+# Pin a version for the current project (writes ./.mise.toml)
+cd myproj && mise use node@20
+
+# See what's installed and what's active here
+mise ls              # installed versions
+mise current         # active versions in this directory
+
+# Swap versions temporarily in the current shell
+mise shell go@1.22
+
+# Upgrade everything installed
+mise upgrade
+
+# Remove a version you don't need
+mise uninstall node@18
+```
+
+A project `.mise.toml` looks like this — commit it so collaborators get the same runtimes on `cd`:
+
+```toml
+[tools]
+node = "lts"
+python = "3.12"
+```
+
+mise also manages **env vars** and **tasks** per project — see `mise set KEY=value` and `mise tasks`. Worth a read of [the mise docs](https://mise.jdx.dev/getting-started.html) once you've used the basics.
+
+### mise + uv — who does what
+
+Also optional (prompted during install): [`uv`](https://github.com/astral-sh/uv) — Astral's ultra-fast Python package/project/env manager (Rust-built). It's *complementary* to mise, not a replacement. Think of it this way:
+
+| Concern                           | Tool    |
+|-----------------------------------|---------|
+| **Which Python interpreter** is on `$PATH` (3.11 vs 3.12 vs 3.13, per-project) | mise |
+| **Per-project venv** + `pyproject.toml` / `uv.lock` | uv  |
+| **Installing packages** (replaces `pip install`, much faster) | uv  |
+| **Running tools in isolated envs** (like `pipx`) | `uvx` (ships with uv) |
+| **System-wide Python** for ad-hoc scripting | system `python3` from apt |
+
+Typical flow in a new Python project:
+
+```bash
+cd myproj
+mise use python@3.12        # pin the interpreter version for this project
+uv init                     # creates pyproject.toml + .python-version
+uv add httpx pydantic       # dependency + lockfile + venv in one step
+uv run python app.py        # runs inside the project venv
+uvx ruff check .            # runs ruff in a throwaway env — no install needed
+```
+
+uv *can* download its own Python builds if you skip the `mise use python@...` step; both approaches work. Using mise for the interpreter keeps the version-manager story consistent across Python / Node / Go / etc., which is why this installer prompts for both.
 
 ---
 
