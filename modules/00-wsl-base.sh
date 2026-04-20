@@ -8,7 +8,7 @@ require_root
 is_wsl || warn "This doesn't look like WSL — continuing anyway."
 
 apt_update_once
-if [ "${WSL_APT_UPGRADE:-}" = "1" ] || confirm "Run 'apt upgrade' now? (slow on a fresh image)" n; then
+if [ "${WSL_APT_UPGRADE:-}" = "1" ] || confirm "Run 'apt upgrade' now? (slow on a fresh image)" y; then
   run "DEBIAN_FRONTEND=noninteractive apt-get upgrade -y"
 fi
 
@@ -66,7 +66,7 @@ if [ -n "$DNS_CHOICE" ]; then
   fi
 fi
 
-if confirm "Disable Windows PATH appending (cleaner \$PATH)?" n; then
+if confirm "Disable Windows PATH appending (cleaner \$PATH)?" y; then
   strip_unmanaged_ini_section /etc/wsl.conf interop
   ensure_block "wsl-starter:interop" /etc/wsl.conf "[interop]
 appendWindowsPath=false"
