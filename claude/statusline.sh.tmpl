@@ -1,14 +1,42 @@
-#!/usr/bin/env bash
-# Minimal Claude Code statusline. Reads the JSON payload on stdin.
+#!/bin/sh
+# Claude Code statusline. Reads the JSON payload on stdin.
 # Docs: https://docs.claude.com/en/docs/claude-code/statusline
-set -eu
-payload="$(cat)"
-model=$(printf '%s' "$payload" | jq -r '.model.display_name // "claude"' 2>/dev/null || echo claude)
-cwd=$(printf '%s' "$payload"   | jq -r '.workspace.current_dir // .cwd // ""' 2>/dev/null || pwd)
-short_cwd="${cwd/#$HOME/~}"
-branch=""
-if command -v git >/dev/null 2>&1 && [ -n "$cwd" ] && [ -d "$cwd" ]; then
-  branch=$(git -C "$cwd" symbolic-ref --short HEAD 2>/dev/null || true)
-  [ -n "$branch" ] && branch=" ⎇ $branch"
+input=$(cat)
+
+model=$(echo "$input" | jq -r '.model.display_name // empty')
+used=$(echo "$input" | jq -r '.context_window.used_percentage // empty')
+total_in=$(echo "$input" | jq -r '.context_window.total_input_tokens // empty')
+total_out=$(echo "$input" | jq -r '.context_window.total_output_tokens // empty')
+five_pct=$(echo "$input" | jq -r '.rate_limits.five_hour.used_percentage // empty')
+five_resets=$(echo "$input" | jq -r '.rate_limits.five_hour.resets_at // empty')
+
+[ -n "$model" ] && printf '\033[00;33m[%s]\033[00m' "$model"
+
+[ -n "$used" ] && printf ' \033[00;36mctx:%s%%\033[00m' "$(printf '%.0f' "$used")"
+
+if [ -n "$total_in" ] || [ -n "$total_out" ]; then
+    in_val=${total_in:-0}
+    out_val=${total_out:-0}
+    in_fmt=$(awk "BEGIN { v=$in_val; if(v>=1000) printf \"%.1fk\", v/1000; else printf \"%d\", v }")
+    out_fmt=$(awk "BEGIN { v=$out_val; if(v>=1000) printf \"%.1fk\", v/1000; else printf \"%d\", v }")
+    printf ' \033[02;37min:%s out:%s\033[00m' "$in_fmt" "$out_fmt"
 fi
-printf '\033[2m%s\033[0m  \033[36m%s\033[0m\033[33m%s\033[0m' "$model" "$short_cwd" "$branch"
+
+if [ -n "$five_pct" ]; then
+    pct_fmt=$(printf '%.0f' "$five_pct")
+    printf ' \033[00;35m5h:%s%%\033[00m' "$pct_fmt"
+    if [ -n "$five_resets" ]; then
+        now=$(date +%s)
+        secs_left=$(( five_resets - now ))
+        if [ "$secs_left" -le 0 ]; then
+            printf ' \033[02;35m(now)\033[00m'
+        elif [ "$secs_left" -lt 3600 ]; then
+            mins=$(( secs_left / 60 ))
+            printf ' \033[02;35m(%dm)\033[00m' "$mins"
+        else
+            hrs=$(( secs_left / 3600 ))
+            mins=$(( (secs_left % 3600) / 60 ))
+            printf ' \033[02;35m(%dh%dm)\033[00m' "$hrs" "$mins"
+        fi
+    fi
+fi
