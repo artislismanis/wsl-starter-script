@@ -83,19 +83,33 @@ fi
 log "Enabling linger for $TARGET_USER (user systemd units run without a login session)"
 run "loginctl enable-linger '$TARGET_USER'"
 
-# Write rootless daemon.json before first start: pin cgroupfs driver so
-# dockerd doesn't require a live per-user D-Bus session to apply cgroups
-# (systemd driver fails in WSL with "Interactive authentication required").
+# Delegate all cgroup v2 controllers to user sessions. By default systemd only
+# delegates memory+pids to user@.service, which leaves rootless dockerd unable
+# to apply cpu/io limits.
+DELEGATE_DIR="/etc/systemd/system/user@.service.d"
+DELEGATE_CONF="$DELEGATE_DIR/delegate.conf"
+log "Writing $DELEGATE_CONF (delegate cpu cpuset io memory pids to user sessions)"
+run "mkdir -p '$DELEGATE_DIR'"
+if [ "$DRY_RUN" != "1" ]; then
+  tee "$DELEGATE_CONF" >/dev/null <<'EOF'
+[Service]
+Delegate=cpu cpuset io memory pids
+EOF
+fi
+run "systemctl daemon-reload"
+
+# Write rootless daemon.json before first start: use the systemd cgroup driver
+# (now viable thanks to the controller delegation above).
 DAEMON_JSON="$TARGET_HOME/.config/docker/daemon.json"
 if [ -f "$DAEMON_JSON" ]; then
   skip "Preserving existing $DAEMON_JSON"
 else
-  log "Writing $DAEMON_JSON (cgroupfs driver for rootless in WSL)"
+  log "Writing $DAEMON_JSON (systemd cgroup driver)"
   if [ "$DRY_RUN" != "1" ]; then
     sudo -u "$TARGET_USER" mkdir -p "$TARGET_HOME/.config/docker"
     sudo -u "$TARGET_USER" tee "$DAEMON_JSON" >/dev/null <<'JSON'
 {
-  "exec-opts": ["native.cgroupdriver=cgroupfs"]
+  "exec-opts": ["native.cgroupdriver=systemd"]
 }
 JSON
   fi
