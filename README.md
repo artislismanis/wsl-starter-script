@@ -72,6 +72,13 @@ sudo DOCKER_MODE=classic DOCKER_USER=$USER ./install.sh --module 25-docker-engin
 
 Requires systemd (enabled by `00-wsl-base`, so reopen your WSL distro after `--base`).
 
+**Rootless + WSL mirrored networking:** by default containers can't reach services on the WSL host. The rootless installer offers to wire up `host.docker.internal` natively by stamping eth0's IPv4 into dockerd's `host-gateway-ip` (via a user-systemd oneshot that runs before `docker.service`). Opt in at the prompt, or set `DOCKER_HOST_GATEWAY=1` for non-interactive runs. Then in any compose file:
+
+```yaml
+extra_hosts:
+  - "host.docker.internal:host-gateway"
+```
+
 **What's actually installed?** See [TOOLS.md](TOOLS.md) for a per-module rundown of every package, what it replaces, and why it earns a slot on your `$PATH`.
 
 ### 3. Offline / airgapped
@@ -126,6 +133,7 @@ claude/
 | `MISE_<LANG>_VERSION`     | Pin a specific version per runtime — see defaults below |
 | `DOCKER_MODE`             | `classic` / `rootless` / `skip` (only for `25-docker-engine`) |
 | `DOCKER_USER`             | User to add to the `docker` group (classic mode) |
+| `DOCKER_HOST_GATEWAY`     | `1` to stamp eth0 IP into rootless dockerd as `host-gateway-ip` (rootless only) |
 | `CLAUDE_PERMISSION_MODE`  | `default` / `acceptEdits` / `plan` |
 
 Per-runtime version pins (override any of these; defaults shown):
