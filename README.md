@@ -72,7 +72,7 @@ sudo DOCKER_MODE=classic DOCKER_USER=$USER ./install.sh --module 25-docker-engin
 
 Requires systemd (enabled by `00-wsl-base`, so reopen your WSL distro after `--base`).
 
-**Rootless + WSL mirrored networking:** by default containers can't reach services on the WSL host. The rootless installer offers to wire up `host.docker.internal` natively by stamping eth0's IPv4 into dockerd's `host-gateway-ip` (via a user-systemd oneshot that runs before `docker.service`). Opt in at the prompt, or set `DOCKER_HOST_GATEWAY=1` for non-interactive runs. Then in any compose file:
+**Rootless + WSL mirrored networking:** the default `slirp4netns` rootlesskit driver doesn't route to the WSL host, so `host.docker.internal` / `host-gateway` don't resolve to anything useful. The installer offers to swap in `pasta` (newer rootlesskit backend, installs the `passt` package and drops a systemd user override setting `DOCKERD_ROOTLESS_ROOTLESSKIT_FLAGS=--net=pasta`). Opt in at the prompt, or set `DOCKER_ROOTLESS_PASTA=1` non-interactively. Then in any compose file:
 
 ```yaml
 extra_hosts:
@@ -133,7 +133,7 @@ claude/
 | `MISE_<LANG>_VERSION`     | Pin a specific version per runtime — see defaults below |
 | `DOCKER_MODE`             | `classic` / `rootless` / `skip` (only for `25-docker-engine`) |
 | `DOCKER_USER`             | User to add to the `docker` group (classic mode) |
-| `DOCKER_HOST_GATEWAY`     | `1` to stamp eth0 IP into rootless dockerd as `host-gateway-ip` (rootless only) |
+| `DOCKER_ROOTLESS_PASTA`   | `1` to use pasta as the rootlesskit network driver (rootless only) |
 | `CLAUDE_PERMISSION_MODE`  | `default` / `acceptEdits` / `plan` |
 
 Per-runtime version pins (override any of these; defaults shown):

@@ -52,7 +52,7 @@ apt_add_signed_repo "docker" \
 # ---- Install packages -------------------------------------------------------
 CORE_PKGS=(docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin)
 if [ "$MODE" = "rootless" ]; then
-  apt_install "${CORE_PKGS[@]}" docker-ce-rootless-extras uidmap dbus-user-session slirp4netns fuse-overlayfs
+  apt_install "${CORE_PKGS[@]}" docker-ce-rootless-extras uidmap dbus-user-session slirp4netns passt fuse-overlayfs
 else
   apt_install "${CORE_PKGS[@]}"
 fi
@@ -142,66 +142,35 @@ for rc in "$TARGET_HOME/.bashrc" "$TARGET_HOME/.zshrc"; do
   fi
 done
 
-# ---- Optional: host.docker.internal via host-gateway ------------------------
-# In WSL mirrored networking, containers can't reach the host by default.
-# Setting daemon.json's `host-gateway-ip` to eth0's IP makes compose files
-# using `extra_hosts: ["host.docker.internal:host-gateway"]` work natively.
-HOST_GW="${DOCKER_HOST_GATEWAY:-}"
-if [ -z "$HOST_GW" ]; then
-  if confirm "Wire up host.docker.internal via host-gateway-ip? (helps WSL mirrored networking)" y; then
-    HOST_GW=1
+# ---- Optional: pasta rootlesskit network driver -----------------------------
+# slirp4netns (rootless default) doesn't route to the WSL host under mirrored
+# networking, so host.docker.internal / host-gateway don't work. pasta is the
+# newer rootlesskit backend and fixes host loopback reachability.
+USE_PASTA="${DOCKER_ROOTLESS_PASTA:-}"
+if [ -z "$USE_PASTA" ]; then
+  if confirm "Use pasta as rootlesskit network driver? (fixes host.docker.internal under WSL mirrored networking)" y; then
+    USE_PASTA=1
   else
-    HOST_GW=0
+    USE_PASTA=0
   fi
 fi
-case "$HOST_GW" in 1|yes|true) HOST_GW=1 ;; *) HOST_GW=0 ;; esac
+case "$USE_PASTA" in 1|yes|true) USE_PASTA=1 ;; *) USE_PASTA=0 ;; esac
 
-if [ "$HOST_GW" = "1" ]; then
-  REFRESH_BIN="$TARGET_HOME/.local/bin/docker-host-gateway-refresh"
-  UNIT_DIR="$TARGET_HOME/.config/systemd/user"
-  UNIT_FILE="$UNIT_DIR/docker-host-gateway.service"
-
-  log "Writing $REFRESH_BIN"
+if [ "$USE_PASTA" = "1" ]; then
+  OVERRIDE_DIR="$TARGET_HOME/.config/systemd/user/docker.service.d"
+  OVERRIDE_FILE="$OVERRIDE_DIR/pasta.conf"
+  log "Writing $OVERRIDE_FILE (DOCKERD_ROOTLESS_ROOTLESSKIT_FLAGS=--net=pasta)"
   if [ "$DRY_RUN" != "1" ]; then
-    sudo -u "$TARGET_USER" mkdir -p "$TARGET_HOME/.local/bin" "$UNIT_DIR"
-    sudo -u "$TARGET_USER" tee "$REFRESH_BIN" >/dev/null <<'SH'
-#!/bin/sh
-# Stamp eth0's current IPv4 into the rootless dockerd daemon.json as
-# `host-gateway-ip`, so containers can reach the WSL host via
-# `extra_hosts: ["host.docker.internal:host-gateway"]` in compose files.
-set -eu
-DAEMON="$HOME/.config/docker/daemon.json"
-IP=$(ip -4 -o addr show eth0 2>/dev/null | awk '{print $4}' | cut -d/ -f1 | head -n1)
-[ -n "$IP" ] || exit 0
-mkdir -p "$(dirname "$DAEMON")"
-[ -f "$DAEMON" ] || echo '{}' > "$DAEMON"
-tmp=$(mktemp)
-jq --arg ip "$IP" '.["host-gateway-ip"]=$ip' "$DAEMON" > "$tmp" && mv "$tmp" "$DAEMON"
-SH
-    chmod +x "$REFRESH_BIN"
-    chown "$TARGET_USER:$TARGET_USER" "$REFRESH_BIN"
-
-    sudo -u "$TARGET_USER" tee "$UNIT_FILE" >/dev/null <<'UNIT'
-[Unit]
-Description=Stamp eth0 IP into rootless dockerd host-gateway-ip
-Before=docker.service
-PartOf=docker.service
-
+    sudo -u "$TARGET_USER" mkdir -p "$OVERRIDE_DIR"
+    sudo -u "$TARGET_USER" tee "$OVERRIDE_FILE" >/dev/null <<'UNIT'
 [Service]
-Type=oneshot
-ExecStart=%h/.local/bin/docker-host-gateway-refresh
-
-[Install]
-WantedBy=docker.service
+Environment="DOCKERD_ROOTLESS_ROOTLESSKIT_FLAGS=--net=pasta"
 UNIT
-    chown "$TARGET_USER:$TARGET_USER" "$UNIT_FILE"
+    chown "$TARGET_USER:$TARGET_USER" "$OVERRIDE_FILE"
   fi
-
-  log "Enabling docker-host-gateway.service (user) and applying now"
   run "sudo -iu '$TARGET_USER' env XDG_RUNTIME_DIR=/run/user/${UID_N} systemctl --user daemon-reload"
-  run "sudo -iu '$TARGET_USER' env XDG_RUNTIME_DIR=/run/user/${UID_N} systemctl --user enable --now docker-host-gateway.service"
   run "sudo -iu '$TARGET_USER' env XDG_RUNTIME_DIR=/run/user/${UID_N} systemctl --user restart docker.service"
-  ok "host-gateway wired. Use 'extra_hosts: [\"host.docker.internal:host-gateway\"]' in compose files."
+  ok "pasta wired as rootlesskit network driver. host.docker.internal:host-gateway should now resolve to the host."
 fi
 
 ok "Rootless Docker installed for $TARGET_USER. Open a new shell and run: docker info"
