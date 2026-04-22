@@ -142,6 +142,68 @@ for rc in "$TARGET_HOME/.bashrc" "$TARGET_HOME/.zshrc"; do
   fi
 done
 
+# ---- Optional: host.docker.internal via host-gateway ------------------------
+# In WSL mirrored networking, containers can't reach the host by default.
+# Setting daemon.json's `host-gateway-ip` to eth0's IP makes compose files
+# using `extra_hosts: ["host.docker.internal:host-gateway"]` work natively.
+HOST_GW="${DOCKER_HOST_GATEWAY:-}"
+if [ -z "$HOST_GW" ]; then
+  if confirm "Wire up host.docker.internal via host-gateway-ip? (helps WSL mirrored networking)" y; then
+    HOST_GW=1
+  else
+    HOST_GW=0
+  fi
+fi
+case "$HOST_GW" in 1|yes|true) HOST_GW=1 ;; *) HOST_GW=0 ;; esac
+
+if [ "$HOST_GW" = "1" ]; then
+  REFRESH_BIN="$TARGET_HOME/.local/bin/docker-host-gateway-refresh"
+  UNIT_DIR="$TARGET_HOME/.config/systemd/user"
+  UNIT_FILE="$UNIT_DIR/docker-host-gateway.service"
+
+  log "Writing $REFRESH_BIN"
+  if [ "$DRY_RUN" != "1" ]; then
+    sudo -u "$TARGET_USER" mkdir -p "$TARGET_HOME/.local/bin" "$UNIT_DIR"
+    sudo -u "$TARGET_USER" tee "$REFRESH_BIN" >/dev/null <<'SH'
+#!/bin/sh
+# Stamp eth0's current IPv4 into the rootless dockerd daemon.json as
+# `host-gateway-ip`, so containers can reach the WSL host via
+# `extra_hosts: ["host.docker.internal:host-gateway"]` in compose files.
+set -eu
+DAEMON="$HOME/.config/docker/daemon.json"
+IP=$(ip -4 -o addr show eth0 2>/dev/null | awk '{print $4}' | cut -d/ -f1 | head -n1)
+[ -n "$IP" ] || exit 0
+mkdir -p "$(dirname "$DAEMON")"
+[ -f "$DAEMON" ] || echo '{}' > "$DAEMON"
+tmp=$(mktemp)
+jq --arg ip "$IP" '.["host-gateway-ip"]=$ip' "$DAEMON" > "$tmp" && mv "$tmp" "$DAEMON"
+SH
+    chmod +x "$REFRESH_BIN"
+    chown "$TARGET_USER:$TARGET_USER" "$REFRESH_BIN"
+
+    sudo -u "$TARGET_USER" tee "$UNIT_FILE" >/dev/null <<'UNIT'
+[Unit]
+Description=Stamp eth0 IP into rootless dockerd host-gateway-ip
+Before=docker.service
+PartOf=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/docker-host-gateway-refresh
+
+[Install]
+WantedBy=docker.service
+UNIT
+    chown "$TARGET_USER:$TARGET_USER" "$UNIT_FILE"
+  fi
+
+  log "Enabling docker-host-gateway.service (user) and applying now"
+  run "sudo -iu '$TARGET_USER' env XDG_RUNTIME_DIR=/run/user/${UID_N} systemctl --user daemon-reload"
+  run "sudo -iu '$TARGET_USER' env XDG_RUNTIME_DIR=/run/user/${UID_N} systemctl --user enable --now docker-host-gateway.service"
+  run "sudo -iu '$TARGET_USER' env XDG_RUNTIME_DIR=/run/user/${UID_N} systemctl --user restart docker.service"
+  ok "host-gateway wired. Use 'extra_hosts: [\"host.docker.internal:host-gateway\"]' in compose files."
+fi
+
 ok "Rootless Docker installed for $TARGET_USER. Open a new shell and run: docker info"
 echo "  - DOCKER_HOST is set automatically in new shells."
 echo "  - Daemon lifecycle: systemctl --user {status,restart,stop} docker"
