@@ -159,12 +159,16 @@ case "$USE_PASTA" in 1|yes|true) USE_PASTA=1 ;; *) USE_PASTA=0 ;; esac
 if [ "$USE_PASTA" = "1" ]; then
   OVERRIDE_DIR="$TARGET_HOME/.config/systemd/user/docker.service.d"
   OVERRIDE_FILE="$OVERRIDE_DIR/pasta.conf"
-  log "Writing $OVERRIDE_FILE (DOCKERD_ROOTLESS_ROOTLESSKIT_FLAGS=--net=pasta)"
+  # dockerd-rootless.sh reads NET and derives the matching --port-driver
+  # itself. Passing raw --net=pasta via DOCKERD_ROOTLESS_ROOTLESSKIT_FLAGS
+  # collides with the slirp4netns defaults the script has already picked,
+  # producing `network "pasta" requires port driver "none" or "implicit"`.
+  log "Writing $OVERRIDE_FILE (NET=pasta)"
   if [ "$DRY_RUN" != "1" ]; then
     sudo -u "$TARGET_USER" mkdir -p "$OVERRIDE_DIR"
     sudo -u "$TARGET_USER" tee "$OVERRIDE_FILE" >/dev/null <<'UNIT'
 [Service]
-Environment="DOCKERD_ROOTLESS_ROOTLESSKIT_FLAGS=--net=pasta"
+Environment="NET=pasta"
 UNIT
     chown "$TARGET_USER:$TARGET_USER" "$OVERRIDE_FILE"
   fi
