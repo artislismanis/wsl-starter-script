@@ -47,10 +47,16 @@ apt_add_signed_repo() {
   run "install -m 0755 -d /etc/apt/keyrings"
   run "curl -fsSL '$key_url' | gpg --dearmor -o '$key'"
   run "chmod 0644 '$key'"
-  run "printf '%s\n' '$deb_line' > '$list'"
-  run "chmod 0644 '$list'"
-  # Force the next apt_install to re-run apt-get update so the new repo is seen.
-  [ "$DRY_RUN" = "1" ] || rm -f "$APT_INDEX_STAMP"
+  # Direct write rather than via `run` — `run` eval's its argument, so a
+  # single-quote inside $deb_line would break the wrapping single-quotes.
+  if [ "$DRY_RUN" = "1" ]; then
+    printf "  $ printf '%%s\\n' <deb_line> > %s\n" "$list"
+  else
+    printf '%s\n' "$deb_line" > "$list"
+    chmod 0644 "$list"
+    # Force the next apt_install to re-run apt-get update so the new repo is seen.
+    rm -f "$APT_INDEX_STAMP"
+  fi
 }
 
 # apt_hold_unattended <name> <pkg1> [pkg2 ...]

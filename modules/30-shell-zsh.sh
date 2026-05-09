@@ -8,6 +8,18 @@ require_user
 
 command_exists zsh || die "zsh not on PATH — run 20-cli-modern (root) first."
 
+# These get interpolated into sed patterns below; reject anything that could
+# break the substitution (sed metachars `/`, `&`, `\`, or shell-metachars).
+# Plugin / theme names from oh-my-zsh and the wider zsh ecosystem are always
+# alnum + dash + underscore; spaces separate plugin names in the list.
+_check_safe() {
+  local name="$1" value="$2"
+  [[ "$value" =~ ^[A-Za-z0-9_\ -]*$ ]] \
+    || die "$name contains unsafe characters (allowed: alnum, _, -, space). Got: $value"
+}
+[ -n "${ZSH_PLUGINS+set}" ] && _check_safe ZSH_PLUGINS "$ZSH_PLUGINS"
+[ -n "${ZSH_THEME+set}" ]   && _check_safe ZSH_THEME   "$ZSH_THEME"
+
 ZSH_DIR="${ZSH:-$HOME/.oh-my-zsh}"
 if [ -d "$ZSH_DIR" ]; then
   skip "oh-my-zsh already installed at $ZSH_DIR"
@@ -46,26 +58,21 @@ for name in $ZSH_PLUGINS; do
 done
 
 ZSHRC="$HOME/.zshrc"
-# The sed patterns below assume ZSH_PLUGINS / ZSH_THEME contain only shell-safe
-# chars (alphanumerics, dashes, underscores, spaces). Plugin and theme names
-# don't legitimately contain `/`, `&`, or backslash, so we don't escape — but
-# anyone setting these to exotic values gets to keep the pieces.
-# The `grep -qF` precondition checks below are substring matches, not
-# anchored. Theoretical false-match if .zshrc already contains the search
-# string as part of a longer line — but the closing `)` / `"` make this
-# essentially impossible in practice. Anchored regex would require escaping
-# user input; not worth the complexity.
+# ZSH_PLUGINS / ZSH_THEME are validated above (alnum + _ - space) so the sed
+# substitutions below don't need delimiter-escaping. The `grep -qF` precondition
+# checks are substring matches; the closing `)` / `"` make accidental false
+# positives effectively impossible in a well-formed .zshrc.
 if [ -f "$ZSHRC" ]; then
   if [ "$PLUGINS_OVERRIDE" = "1" ]; then
     if grep -qF "plugins=($ZSH_PLUGINS)" "$ZSHRC"; then
       skip "plugins=($ZSH_PLUGINS) already set in ~/.zshrc"
     else
       log "Setting plugins=($ZSH_PLUGINS) in ~/.zshrc"
-      run "sed -i 's/^plugins=(.*)/plugins=($ZSH_PLUGINS)/' '$ZSHRC'"
+      run "sed -i 's|^plugins=(.*)|plugins=($ZSH_PLUGINS)|' '$ZSHRC'"
     fi
   elif ! grep -q "zsh-autosuggestions zsh-syntax-highlighting" "$ZSHRC"; then
     log "Enabling plugins in ~/.zshrc"
-    run "sed -i 's/^plugins=(\\(.*\\))/plugins=(\\1 zsh-autosuggestions zsh-syntax-highlighting)/' '$ZSHRC'"
+    run "sed -i 's|^plugins=(\\(.*\\))|plugins=(\\1 zsh-autosuggestions zsh-syntax-highlighting)|' '$ZSHRC'"
   fi
   if [ -n "${ZSH_THEME:-}" ]; then
     if grep -qF "ZSH_THEME=\"$ZSH_THEME\"" "$ZSHRC"; then

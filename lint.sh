@@ -11,26 +11,38 @@ else
   mapfile -t TARGETS < <(git ls-files 2>/dev/null | sort -u)
 fi
 
-# Keep `.sh` files plus any tracked file whose basename has no extension and
-# starts with a bash/sh shebang (covers .githooks/pre-commit and
+# Lint `.sh` files plus `.tmpl` files that are shell scripts (e.g.
+# claude/statusline.sh.tmpl) plus any tracked extensionless file with a
+# bash/sh shebang (covers .githooks/pre-commit and
 # modules/files/wsl-port-check). Detecting by shebang means new shell helpers
-# without `.sh` get linted automatically. The shebang match is deliberately
-# exact (no `-S bash`, no flags after `bash`, no `#! /bin/bash` with a space):
-# project convention is `#!/usr/bin/env bash`, and a stricter check rejects
-# accidental shell scripts that aren't actually bash.
+# without `.sh` get linted automatically. We accept flags after the shell name
+# (`#!/bin/bash -e`) so a maintainer adding such a script doesn't silently
+# skip lint.
+_is_shell_shebang() {
+  case "$1" in
+    "#!/usr/bin/env bash"*|"#!/bin/bash"*|"#!/usr/bin/env sh"*|"#!/bin/sh"*) return 0 ;;
+  esac
+  return 1
+}
 FILTERED=()
 for f in "${TARGETS[@]}"; do
   [ -f "$f" ] || continue
   case "$f" in
     *.sh) FILTERED+=("$f"); continue ;;
+    *.sh.tmpl) FILTERED+=("$f"); continue ;;
+  esac
+  case "$f" in
+    *.tmpl)
+      # .tmpl files without a `.sh.` middle segment may still be shell —
+      # only lint when the shebang says so.
+      read -r shebang <"$f" 2>/dev/null || continue
+      _is_shell_shebang "$shebang" && FILTERED+=("$f")
+      continue ;;
   esac
   base="${f##*/}"
   case "$base" in *.*) continue ;; esac   # basename has another extension
   read -r shebang <"$f" 2>/dev/null || continue
-  case "$shebang" in
-    "#!/usr/bin/env bash"|"#!/bin/bash"|"#!/usr/bin/env sh"|"#!/bin/sh")
-      FILTERED+=("$f") ;;
-  esac
+  _is_shell_shebang "$shebang" && FILTERED+=("$f")
 done
 
 [ "${#FILTERED[@]}" -gt 0 ] || { echo "no shell files to lint"; exit 0; }
