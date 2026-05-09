@@ -29,7 +29,7 @@ Every installer step must be safe to re-run. Use the helpers — do not hand-rol
 |--------|--------|
 | Install packages | `apt_install p1 p2 …` (guards; calls `apt_update_once` itself — don't double-call it before `apt_install`) |
 | Add 3rd-party repo | `apt_add_signed_repo name key-url deb-line` |
-| Exclude pkgs from unattended-upgrades | `apt_hold_unattended name pkg1 [pkg2 ...]` |
+| Exclude long-running daemons from unattended-upgrades | `apt_hold_unattended name pkg1 [pkg2 ...]` (use for docker/podman so a postinst restart doesn't kill live containers) |
 | Append a marked multi-line block | `ensure_block "wsl-starter:<topic>" /file "..."` |
 | Mirror an rc-file block into bash + zsh (same content, with optional chown) | `ensure_block_in_rcs "wsl-starter:<topic>" "$HOME" "..." [owner]` |
 | Mirror an rc-file block into bash + zsh with **per-shell** content | `ensure_block_per_shell "wsl-starter:<topic>" "$HOME" "<bash>" "<zsh>"` |
@@ -40,7 +40,7 @@ rc-file blocks use the `wsl-starter:<topic>` marker convention so re-runs don't 
 
 ## `run` + `--dry-run`
 
-`run "shell string"` eval's its argument — callers deliberately pass shell strings for redirects and pipes. Under `--dry-run` it prints the command and does nothing.
+`run "shell string"` takes exactly one shell-string argument and eval's it — callers deliberately pass strings for redirects and pipes. Under `--dry-run` it prints the command and does nothing. Passing zero or multiple args is a hard error.
 
 - State-changing one-liners: wrap in `run "..."`.
 - Direct file writes inside library helpers: guard with `if [ "$DRY_RUN" = "1" ]; then ... fi` explicitly (see `ensure_block`) — `run` would double-eval the payload.
@@ -58,7 +58,7 @@ Root modules run before reopen; user modules after. The dispatcher refuses misma
 
 When `install.sh` (running as non-root) hits a root module, it auto-escalates via `sudo env "${FORWARD_ASSIGNS[@]}" bash <module>`. `FORWARD_ASSIGNS` is built by `_collect_forward_assigns`, which sweeps every set env var matching `^(WSL|DOCKER|PODMAN|MISE|CLAUDE|ZSH)_` plus `NON_INTERACTIVE` and `DRY_RUN`, minus the system/SDK vars in `_FORWARD_BLOCK_RE`: `WSL_INTEROP`, `WSL_DISTRO_NAME`, `DOCKER_HOST`, `DOCKER_CONFIG`, `DOCKER_CONTEXT`, `DOCKER_TLS_*`, `DOCKER_CERT_PATH`, `CLAUDE_CODE_*`. The same sweep runs for the in-session `sudo -iu <user>` handoff at the end of root-phase. Do not use plain `sudo -E` — it depends on sudoers `env_keep` and silently drops most tunables.
 
-To add a new operator-tunable env var: name it with one of the forwarded prefixes (`WSL_`, `DOCKER_`, `PODMAN_`, `MISE_`, `CLAUDE_`, `ZSH_`) and it'll be forwarded automatically. No edit to `install.sh` needed. If the prefix matches but the var should NOT be forwarded (e.g. it's a system or SDK variable), add it to `_FORWARD_BLOCK_RE`.
+To add a new operator-tunable env var: name it with one of the forwarded prefixes (`WSL_`, `DOCKER_`, `PODMAN_`, `MISE_`, `CLAUDE_`, `ZSH_`) and it'll be forwarded automatically. No edit to `install.sh` needed. If the prefix matches but the var should NOT be forwarded (e.g. it's a system or SDK variable), add it to the `block_re` regex inside `_collect_forward_assigns`.
 
 `REPO_ROOT` is *not* in the forward list — each module re-derives it inside `lib/common.sh` from `BASH_SOURCE`.
 

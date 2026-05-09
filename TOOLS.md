@@ -66,7 +66,7 @@ Two install modes, chosen interactively or via `DOCKER_MODE`:
 - **classic** — upstream Docker apt repo, `docker.service` enabled under systemd, target user added to the `docker` group. Simplest, works like every Docker tutorial on the internet.
 - **rootless** — the same packages plus `docker-ce-rootless-extras`, `uidmap`, `slirp4netns`, `fuse-overlayfs`; runs `dockerd-rootless-setuptool.sh` as your user, enables linger so the daemon survives logout, sets `DOCKER_HOST=unix:///run/user/<uid>/docker.sock` in `~/.bashrc` + `~/.zshrc`. No daemon running as root, no `docker` group to worry about.
 
-Both modes include `docker-buildx-plugin` (multi-arch builds, BuildKit) and `docker-compose-plugin` (the `docker compose` subcommand — not the legacy `docker-compose` binary). Requires systemd, which is why `00-wsl-base` enables it and a WSL reopen is needed first.
+Both modes include `docker-buildx-plugin` (multi-arch builds, BuildKit) and `docker-compose-plugin` (the `docker compose` subcommand — not the legacy `docker-compose` binary). Both also get `live-restore: true` written to their `daemon.json` (`/etc/docker/daemon.json` for classic, `~/.config/docker/daemon.json` for rootless) before first start, so running containers survive a daemon restart (apt upgrade, post-resume daemon flap). Rootless additionally writes `exec-opts: ["native.cgroupdriver=systemd"]` (paired with the `Delegate=cpu cpuset io memory pids` drop-in for `user@.service` so cgroup v2 controllers are actually delegated to the user session). Requires systemd, which is why `00-wsl-base` enables it and a WSL reopen is needed first.
 
 The `--docker` group also runs module `27-wsl-network` (sysctl + `wsl-port-check`), described below.
 
@@ -74,7 +74,7 @@ The `--docker` group also runs module `27-wsl-network` (sysctl + `wsl-port-check
 
 ## Module `26-podman` — Podman *(root, optional)*
 
-[Podman](https://podman.io/) is a daemonless, rootless-by-default OCI runtime. Ships in Ubuntu main, so no third-party repo. Co-installable with Docker — they don't fight over sockets.
+[Podman](https://podman.io/) is a daemonless, rootless-by-default OCI runtime. Ships in Ubuntu main, so no third-party repo. Co-installable with Docker — they don't fight over sockets, but install order matters for the `docker` CLI shim: install Docker *first* if you want both, since `podman-docker` and `docker-ce-cli` both ship `/usr/bin/docker`. The module auto-skips `podman-docker` when `docker-ce-cli` is already present; the inverse direction (Podman first, then `--docker`) needs `PODMAN_DOCKER_SHIM=0` on the Podman run, or `apt-get remove podman-docker` before re-running `--docker`.
 
 | Package | Why it's here |
 |---|---|
@@ -223,7 +223,7 @@ uv *can* download its own Python builds if you skip the `mise use python@...` st
 | `claude` (native installer → `~/.local/bin/claude`) | Anthropic's official coding agent for the terminal. Standalone binary from `https://claude.ai/install.sh` — no Node dependency, independent of any mise-managed runtime. |
 | `~/.claude/settings.json` | User-global Claude Code settings with your chosen permission mode (`default` / `acceptEdits` / `plan`). Also enables `prefersReducedMotion` and the `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` env flag — edit the file (or `claude/settings.json.tmpl` before install) to opt out. |
 | `~/.claude/CLAUDE.md` | User-global instructions Claude reads in every session — starter content you can edit. |
-| `~/.claude/scripts/statusline.sh` | Custom status-line script wired into Claude's TUI. |
+| `~/.claude/scripts/statusline.sh` | Custom statusline wired into Claude's TUI. Shows `[model]`, context-window %, total in/out tokens, and 5-hour rate-limit % with reset countdown. Reads the JSON payload Claude pipes in on stdin via `jq` — needs `jq` on `$PATH` (`10-apt-core` installs it; `--claude` warns if missing). |
 | `~/.claude/mcp.example.json` | Example MCP (Model Context Protocol) server config you can copy to `mcp.json` and fill in. |
 
 Re-runs preserve any existing file, so edits to your settings/CLAUDE.md are safe.

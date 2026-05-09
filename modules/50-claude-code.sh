@@ -45,6 +45,12 @@ write_file_once "$CLAUDE_MD" < "$REPO_ROOT/claude/CLAUDE.md.tmpl"
 write_file_once "$STATUSLINE" "" 0755 < "$REPO_ROOT/claude/statusline.sh.tmpl"
 write_file_once "$MCP_EXAMPLE" < "$REPO_ROOT/claude/mcp.example.json"
 
+# statusline reads stdin via jq; without it the line silently goes blank.
+# 10-apt-core installs jq, but --claude can be invoked standalone, so warn
+# rather than die — the module is otherwise functional and the operator can
+# `sudo apt-get install -y jq` when convenient.
+command_exists jq || warn "jq not on PATH — statusline will be blank until you 'sudo apt-get install -y jq' (normally pulled in by --base/10-apt-core)."
+
 ok "Claude Code ready. Run 'claude' in a project directory to start."
 echo "  - Settings:  $SETTINGS"
 echo "  - CLAUDE.md: $CLAUDE_MD"

@@ -74,8 +74,10 @@ apt_hold_unattended() {
   fi
   log "Writing $file"
   [ "$DRY_RUN" = "1" ] && return 0
-  # Direct write rather than piping into write_file_once — the brace-group
-  # producer would race against write_file_once's early returns under pipefail.
+  # Direct brace-group write — write_file_once would need this content on stdin
+  # and the brace-group producer can race the function's early returns under
+  # pipefail. Same pattern used by apt_add_signed_repo above for the .list
+  # file write.
   {
     printf 'Unattended-Upgrade::Package-Blacklist {\n'
     for p in "$@"; do printf '    "%s";\n' "$p"; done
