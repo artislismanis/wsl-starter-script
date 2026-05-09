@@ -10,7 +10,7 @@ See [README.md § Layout](README.md#layout) for the canonical module list with `
 - `lib/common.sh` — `log/ok/skip/warn/die`, `ask/confirm/ask_secret`, `run`, `require_root/user`, `is_wsl`.
 - `lib/idempotent.sh` — `command_exists`, `pkg_installed`, `apt_install`, `apt_update_once`, `apt_add_signed_repo`, `apt_hold_unattended`, `ensure_block`, `ensure_block_in_rcs`, `strip_unmanaged_ini_section`, `replace_ini_section`, `write_file_once`.
 - `modules/NN-name.sh` — one installer unit; declares `REQUIRES_ROOT` + `DESCRIPTION` headers the dispatcher reads.
-- `claude/*.tmpl` — source files materialised into `~/.claude/` by `modules/50-claude-code.sh`. **Not** consumed by this repo itself — edit the `.tmpl`, not the rendered copy.
+- `claude/*.tmpl` (and `claude/mcp.example.json`) — source files materialised into `~/.claude/` by `modules/50-claude-code.sh`. **Not** consumed by this repo itself — edit the source, not the rendered copy. (`mcp.example.json` keeps its name unchanged because it's copied verbatim with no substitution.)
 - `.claude/` — tooling for Claude working on *this* repo (hooks, skills).
 - `TESTING.md` — manual E2E scenarios on a fresh WSL image.
 
@@ -50,7 +50,7 @@ rc-file blocks use the `wsl-starter:<topic>` marker convention so re-runs don't 
 
 `claude/*.tmpl` are source files that `modules/50-claude-code.sh` materialises into `$HOME/.claude/`. The suffix means "copy to destination at install time" — not "intermediate scaffolding". Edit the `.tmpl`, not the rendered file under `~/.claude/` (a project PreToolUse hook will refuse the latter).
 
-Only `claude/settings.json.tmpl` contains a substitution marker (`__PERMISSION_MODE__`). The others are literal.
+Only `claude/settings.json.tmpl` contains a substitution marker (`__PERMISSION_MODE__`). The other `.tmpl` files and `mcp.example.json` are copied literally.
 
 ## Privilege split
 

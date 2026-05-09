@@ -66,11 +66,10 @@ apt_hold_unattended() {
     skip "unattended-upgrades hold already in $file"
     return 0
   fi
-  log "writing $file (exclude from unattended-upgrades: $*)"
-  if [ "$DRY_RUN" = "1" ]; then
-    printf "  (would write blacklist for: %s)\n" "$*"
-    return 0
-  fi
+  log "Writing $file"
+  [ "$DRY_RUN" = "1" ] && return 0
+  # Direct write rather than piping into write_file_once — the brace-group
+  # producer would race against write_file_once's early returns under pipefail.
   {
     printf 'Unattended-Upgrade::Package-Blacklist {\n'
     for p in "$@"; do printf '    "%s";\n' "$p"; done

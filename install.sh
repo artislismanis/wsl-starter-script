@@ -164,6 +164,10 @@ run_group() {
       # the caller is non-root. As root we can't run user-phase modules
       # (require_user refuses) so we defer them to the post-handoff/reopen
       # user run. As user, we run the user-phase right after the root-phase.
+      # Note: under `--all` as root, DEV_ROOT_MODULES run here AND again in the
+      # deferred user-phase invocation (which re-enters this case branch and
+      # auto-escalates). Idempotent and cheap (apt stamp file short-circuits),
+      # but the duplicate log lines are intentional, not a bug.
       _run_each "${DEV_ROOT_MODULES[@]}"
       if [ "$(id -u)" = "0" ]; then
         DEFERRED+=("--dev")
@@ -281,6 +285,9 @@ if [ "$(id -u)" = "0" ] && [ ${#DEFERRED[@]} -gt 0 ]; then
     # CLAUDE_*/ZSH_* var the operator set (minus a system blocklist), so the
     # user-phase modules see the same tuning the root invocation did.
     _collect_forward_assigns
+    # FORWARD_ASSIGNS entries are already printf %q-quoted, so the IFS-space
+    # join from [*] expands into shell-safe `KEY=quoted-val` tokens for env(1).
+    # Don't "fix" the [*] to [@] with quoting — bash -lc "..." takes one string.
     sudo -iu "$TARGET_USER" bash -lc "cd '$TARGET_REPO' && env ${FORWARD_ASSIGNS[*]} ./install.sh ${DEFERRED[*]}"
     echo
     warn "In-session handoff complete. You're still root in *this* shell, though."

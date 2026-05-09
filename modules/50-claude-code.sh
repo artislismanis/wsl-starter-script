@@ -39,9 +39,7 @@ if [ -f "$SETTINGS" ]; then
   skip "Preserving existing $SETTINGS"
 else
   log "Writing $SETTINGS"
-  if [ "$DRY_RUN" != "1" ]; then
-    sed "s/__PERMISSION_MODE__/$PERM_MODE/" "$REPO_ROOT/claude/settings.json.tmpl" > "$SETTINGS"
-  fi
+  run "sed 's/__PERMISSION_MODE__/$PERM_MODE/' '$REPO_ROOT/claude/settings.json.tmpl' > '$SETTINGS'"
 fi
 
 CLAUDE_MD="$CLAUDE_DIR/CLAUDE.md"
@@ -62,7 +60,12 @@ else
 fi
 
 MCP_EXAMPLE="$CLAUDE_DIR/mcp.example.json"
-[ -f "$MCP_EXAMPLE" ] || run "cp '$REPO_ROOT/claude/mcp.example.json' '$MCP_EXAMPLE'"
+if [ -f "$MCP_EXAMPLE" ]; then
+  skip "Preserving existing $MCP_EXAMPLE"
+else
+  log "Writing $MCP_EXAMPLE"
+  run "cp '$REPO_ROOT/claude/mcp.example.json' '$MCP_EXAMPLE'"
+fi
 
 ok "Claude Code ready. Run 'claude' in a project directory to start."
 echo "  - Settings:  $SETTINGS"
