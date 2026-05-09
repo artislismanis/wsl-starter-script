@@ -25,7 +25,8 @@ else
   skip "zoxide already installed"
 fi
 
-# ---- bash wiring (with bash-preexec for atuin) ------------------------------
+# bash needs bash-preexec to give atuin a hook into command history; zsh has
+# preexec built in. So the bash and zsh blocks below intentionally diverge.
 BASH_PX="$HOME/.bash-preexec.sh"
 if [ ! -f "$BASH_PX" ]; then
   run "curl -fsSL https://raw.githubusercontent.com/rcaloras/bash-preexec/master/bash-preexec.sh -o '$BASH_PX'"
@@ -36,8 +37,7 @@ ensure_block "wsl-starter:atuin-zoxide" "$HOME/.bashrc" 'export PATH="$HOME/.atu
 command -v atuin  >/dev/null 2>&1 && eval "$(atuin init bash)"
 command -v zoxide >/dev/null 2>&1 && eval "$(zoxide init bash)"'
 
-# ---- zsh wiring -------------------------------------------------------------
-if [ -f "$HOME/.zshrc" ] || command_exists zsh; then
+if [ -f "$HOME/.zshrc" ]; then
   ensure_block "wsl-starter:atuin-zoxide" "$HOME/.zshrc" 'export PATH="$HOME/.atuin/bin:$HOME/.local/bin:$PATH"
 command -v atuin  >/dev/null 2>&1 && eval "$(atuin init zsh)"
 command -v zoxide >/dev/null 2>&1 && eval "$(zoxide init zsh)"'

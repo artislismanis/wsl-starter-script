@@ -74,20 +74,11 @@ if [ "$MODE" = "classic" ]; then
   # Write daemon.json with live-restore=true before first start. Containers
   # then survive dockerd restarts (apt upgrade, post-resume daemon flap), which
   # is the difference between a dev disconnect storm and a no-op restart.
-  CLASSIC_DAEMON_JSON="/etc/docker/daemon.json"
-  if [ -f "$CLASSIC_DAEMON_JSON" ]; then
-    skip "Preserving existing $CLASSIC_DAEMON_JSON (add \"live-restore\": true manually if missing)"
-  else
-    log "Writing $CLASSIC_DAEMON_JSON (live-restore=true)"
-    run "mkdir -p /etc/docker"
-    if [ "$DRY_RUN" != "1" ]; then
-      tee "$CLASSIC_DAEMON_JSON" >/dev/null <<'JSON'
+  write_file_once /etc/docker/daemon.json <<'JSON'
 {
   "live-restore": true
 }
 JSON
-    fi
-  fi
 
   log "Enabling docker.service"
   run "systemctl enable --now docker.service"
@@ -110,51 +101,33 @@ run "loginctl enable-linger '$TARGET_USER'"
 # Delegate all cgroup v2 controllers to user sessions. By default systemd only
 # delegates memory+pids to user@.service, which leaves rootless dockerd unable
 # to apply cpu/io limits.
-DELEGATE_DIR="/etc/systemd/system/user@.service.d"
-DELEGATE_CONF="$DELEGATE_DIR/delegate.conf"
-log "Writing $DELEGATE_CONF (delegate cpu cpuset io memory pids to user sessions)"
-run "mkdir -p '$DELEGATE_DIR'"
-if [ "$DRY_RUN" != "1" ]; then
-  tee "$DELEGATE_CONF" >/dev/null <<'EOF'
+write_file_once /etc/systemd/system/user@.service.d/delegate.conf <<'EOF'
 [Service]
 Delegate=cpu cpuset io memory pids
 EOF
-fi
 run "systemctl daemon-reload"
 
 # Write rootless daemon.json before first start: use the systemd cgroup driver
 # (now viable thanks to the controller delegation above).
-DAEMON_JSON="$TARGET_HOME/.config/docker/daemon.json"
-if [ -f "$DAEMON_JSON" ]; then
-  skip "Preserving existing $DAEMON_JSON"
-else
-  log "Writing $DAEMON_JSON (systemd cgroup driver)"
-  if [ "$DRY_RUN" != "1" ]; then
-    sudo -u "$TARGET_USER" mkdir -p "$TARGET_HOME/.config/docker"
-    sudo -u "$TARGET_USER" tee "$DAEMON_JSON" >/dev/null <<'JSON'
+write_file_once "$TARGET_HOME/.config/docker/daemon.json" "$TARGET_USER" <<'JSON'
 {
   "exec-opts": ["native.cgroupdriver=systemd"],
   "live-restore": true
 }
 JSON
-  fi
-fi
 
 # Run the rootless setuptool as the target user. It creates
 # ~/.config/systemd/user/docker.service and starts the user-level daemon.
 log "Running dockerd-rootless-setuptool.sh as $TARGET_USER"
 run "sudo -iu '$TARGET_USER' env XDG_RUNTIME_DIR=/run/user/$(id -u "$TARGET_USER") dockerd-rootless-setuptool.sh install --force"
 
-# Persist DOCKER_HOST in both bash and zsh rc files. ensure_block keeps re-runs
-# idempotent; we then re-chown so ownership stays right after a sudo-driven write.
+# Persist DOCKER_HOST in both bash and zsh rc files. The helper chowns each
+# touched rc back to TARGET_USER after the root-side write.
 UID_N="$(id -u "$TARGET_USER")"
-ROOTLESS_BLOCK="export PATH=\"\$HOME/bin:\$PATH\"
-export DOCKER_HOST=\"unix:///run/user/${UID_N}/docker.sock\""
-for rc in "$TARGET_HOME/.bashrc" "$TARGET_HOME/.zshrc"; do
-  [ -e "$rc" ] || continue
-  ensure_block "wsl-starter:docker-rootless" "$rc" "$ROOTLESS_BLOCK"
-  [ "$DRY_RUN" = "1" ] || chown "$TARGET_USER:$TARGET_USER" "$rc"
-done
+ensure_block_in_rcs "wsl-starter:docker-rootless" "$TARGET_HOME" \
+  "export PATH=\"\$HOME/bin:\$PATH\"
+export DOCKER_HOST=\"unix:///run/user/${UID_N}/docker.sock\"" \
+  "$TARGET_USER"
 
 # ---- Optional: pasta rootlesskit network driver -----------------------------
 # slirp4netns (rootless default) doesn't route to the WSL host under mirrored
@@ -171,21 +144,14 @@ fi
 case "$USE_PASTA" in 1|yes|true) USE_PASTA=1 ;; *) USE_PASTA=0 ;; esac
 
 if [ "$USE_PASTA" = "1" ]; then
-  OVERRIDE_DIR="$TARGET_HOME/.config/systemd/user/docker.service.d"
-  OVERRIDE_FILE="$OVERRIDE_DIR/pasta.conf"
   # dockerd-rootless.sh reads NET and derives the matching --port-driver
   # itself. Passing raw --net=pasta via DOCKERD_ROOTLESS_ROOTLESSKIT_FLAGS
   # collides with the slirp4netns defaults the script has already picked,
   # producing `network "pasta" requires port driver "none" or "implicit"`.
-  log "Writing $OVERRIDE_FILE (NET=pasta)"
-  if [ "$DRY_RUN" != "1" ]; then
-    sudo -u "$TARGET_USER" mkdir -p "$OVERRIDE_DIR"
-    sudo -u "$TARGET_USER" tee "$OVERRIDE_FILE" >/dev/null <<'UNIT'
+  write_file_once "$TARGET_HOME/.config/systemd/user/docker.service.d/pasta.conf" "$TARGET_USER" <<'UNIT'
 [Service]
 Environment="NET=pasta"
 UNIT
-    chown "$TARGET_USER:$TARGET_USER" "$OVERRIDE_FILE"
-  fi
   run "sudo -iu '$TARGET_USER' env XDG_RUNTIME_DIR=/run/user/${UID_N} systemctl --user daemon-reload"
   run "sudo -iu '$TARGET_USER' env XDG_RUNTIME_DIR=/run/user/${UID_N} systemctl --user restart docker.service"
   ok "pasta wired as rootlesskit network driver. host.docker.internal:host-gateway should now resolve to the host."

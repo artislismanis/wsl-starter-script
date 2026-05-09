@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # REQUIRES_ROOT=1
-# DESCRIPTION=Modern CLI (ripgrep, fd, bat, eza, gh)
+# DESCRIPTION=Modern CLI (zsh, ripgrep, fd, bat, eza, gh)
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/idempotent.sh"
 require_root
 
-apt_install ripgrep fd-find bat
+apt_install zsh ripgrep fd-find bat
 
 # Ubuntu ships fd as fdfind and bat as batcat — expose the conventional names.
 if ! command_exists fd && command_exists fdfind; then

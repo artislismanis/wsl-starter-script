@@ -54,31 +54,29 @@ module_requires_root() {
   grep -q '^# REQUIRES_ROOT=1' "$MODULES_DIR/$1.sh"
 }
 
-# Operator-tunable env vars consumed by modules. Listed explicitly (rather
-# than scooped up by prefix) because the calling shell often has unrelated
-# WSL_*/DOCKER_*/CLAUDE_* vars set (WSL_INTEROP, DOCKER_CONFIG, CLAUDE_CODE_*)
-# that we must not forward into root modules. MISE_*_VERSION is matched by
-# pattern so adding a new runtime in 40-mise.sh doesn't require touching this.
-_FORWARD_NAMES=(
-  NON_INTERACTIVE DRY_RUN REPO_ROOT
-  WSL_USER WSL_PASSWORD WSL_HOSTNAME WSL_DNS WSL_APT_UPGRADE
-  DOCKER_MODE DOCKER_USER DOCKER_ROOTLESS_PASTA
-  PODMAN_COMPOSE PODMAN_DOCKER_SHIM
-  MISE_LANGUAGES
-  CLAUDE_PERMISSION_MODE
-  ZSH_THEME ZSH_PLUGINS
-)
+# Operator-tunable env vars get forwarded across the root→user sudo handoff
+# (and into per-module sudo-escalations). Sweep by prefix so adding a new
+# tunable to a module doesn't require touching this file. The blocklist
+# excludes well-known system/SDK vars that share a tunable's prefix but
+# would corrupt module behavior or leak secrets if forwarded:
+#   WSL_INTEROP / WSL_DISTRO_NAME — set by WSL itself, session-specific
+#   DOCKER_HOST / DOCKER_CONFIG / DOCKER_CONTEXT / DOCKER_TLS_*  — Docker CLI
+#   CLAUDE_CODE_*  — Claude Code internals (auth tokens, telemetry)
+_FORWARD_ALWAYS=(NON_INTERACTIVE DRY_RUN)
+_FORWARD_PREFIX_RE='^(WSL|DOCKER|PODMAN|MISE|CLAUDE|ZSH)_'
+_FORWARD_BLOCK_RE='^(WSL_(INTEROP|DISTRO_NAME)|DOCKER_(HOST|CONFIG|CONTEXT|TLS_VERIFY|CERT_PATH)|CLAUDE_CODE_.*)$'
+
 _collect_forward_assigns() {
   local v
   FORWARD_ASSIGNS=()
-  for v in "${_FORWARD_NAMES[@]}"; do
-    [ -n "${!v+set}" ] || continue
-    FORWARD_ASSIGNS+=("$v=$(printf '%q' "${!v}")")
+  for v in "${_FORWARD_ALWAYS[@]}"; do
+    [ -n "${!v+set}" ] && FORWARD_ASSIGNS+=("$v=$(printf '%q' "${!v}")")
   done
-  for v in $(compgen -v | grep -E '^MISE_[A-Z]+_VERSION$' || true); do
-    [ -n "${!v+set}" ] || continue
-    FORWARD_ASSIGNS+=("$v=$(printf '%q' "${!v}")")
-  done
+  while IFS= read -r v; do
+    [[ "$v" =~ $_FORWARD_PREFIX_RE ]] || continue
+    [[ "$v" =~ $_FORWARD_BLOCK_RE ]] && continue
+    [ -n "${!v+set}" ] && FORWARD_ASSIGNS+=("$v=$(printf '%q' "${!v}")")
+  done < <(compgen -v)
 }
 
 RAN_MODULES=()
@@ -113,9 +111,12 @@ run_module() {
 BASE_MODULES=(00-wsl-base 10-apt-core)
 DEV_ROOT_MODULES=(20-cli-modern)
 DEV_USER_MODULES=(30-shell-zsh 31-shell-history 40-mise)
-DOCKER_MODULES=(25-docker-engine 27-wsl-network)
-PODMAN_MODULES=(26-podman 27-wsl-network)
+DOCKER_MODULES=(25-docker-engine)
+PODMAN_MODULES=(26-podman)
 CLAUDE_MODULES=(50-claude-code)
+# 27-wsl-network applies to *any* container host; install.sh appends it after
+# whichever runtime(s) ran, so combining --docker --podman in one invocation
+# doesn't queue it twice.
 
 interactive_menu() {
   echo "Select what to run:"
@@ -149,6 +150,7 @@ interactive_menu() {
 # Each runs one logical group. User-phase modules are silently deferred when
 # the group is invoked as root; they surface in the handoff banner at the end.
 DEFERRED=()
+NEED_WSL_NETWORK=0
 
 _run_each() { for m in "$@"; do run_module "$m"; done; }
 
@@ -167,8 +169,8 @@ run_group() {
         _run_each "${DEV_USER_MODULES[@]}"
       fi
       ;;
-    docker)  _run_each "${DOCKER_MODULES[@]}" ;;
-    podman)  _run_each "${PODMAN_MODULES[@]}" ;;
+    docker)  _run_each "${DOCKER_MODULES[@]}"; NEED_WSL_NETWORK=1 ;;
+    podman)  _run_each "${PODMAN_MODULES[@]}"; NEED_WSL_NETWORK=1 ;;
     claude)
       if [ "$(id -u)" != "0" ]; then
         _run_each "${CLAUDE_MODULES[@]}"
@@ -237,6 +239,9 @@ case "$MODE" in
     ;;
 esac
 
+# Apply container-host network defenses once if any container runtime ran.
+[ "$NEED_WSL_NETWORK" = "1" ] && run_module 27-wsl-network
+
 if [ "$(id -u)" = "0" ] && [ ${#DEFERRED[@]} -gt 0 ]; then
   echo
   warn "Root-phase done. User-phase modules (${DEFERRED[*]}) still need to run as your new user."
@@ -271,15 +276,10 @@ if [ "$(id -u)" = "0" ] && [ ${#DEFERRED[@]} -gt 0 ]; then
     # sudo -i gives a login shell so PATH, HOME, rc files are right.
     # bash -lc re-sources login files so mise/atuin wiring added mid-run is picked up.
     # _collect_forward_assigns harvests every WSL_*/DOCKER_*/PODMAN_*/MISE_*/
-    # CLAUDE_*/ZSH_* var the operator set, so the user-phase modules see the
-    # same tuning the root invocation did. (REPO_ROOT is re-derived under the
-    # new $HOME, so we deliberately drop it from the forwarded set below.)
+    # CLAUDE_*/ZSH_* var the operator set (minus a system blocklist), so the
+    # user-phase modules see the same tuning the root invocation did.
     _collect_forward_assigns
-    HANDOFF_ASSIGNS=()
-    for a in "${FORWARD_ASSIGNS[@]}"; do
-      case "$a" in REPO_ROOT=*) ;; *) HANDOFF_ASSIGNS+=("$a") ;; esac
-    done
-    sudo -iu "$TARGET_USER" bash -lc "cd '$TARGET_REPO' && env ${HANDOFF_ASSIGNS[*]} ./install.sh ${DEFERRED[*]}"
+    sudo -iu "$TARGET_USER" bash -lc "cd '$TARGET_REPO' && env ${FORWARD_ASSIGNS[*]} ./install.sh ${DEFERRED[*]}"
     echo
     warn "In-session handoff complete. You're still root in *this* shell, though."
     warn "Finish up from Windows PowerShell so the distro default user takes effect:"

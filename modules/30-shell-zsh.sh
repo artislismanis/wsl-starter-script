@@ -1,17 +1,12 @@
 #!/usr/bin/env bash
 # REQUIRES_ROOT=0
-# DESCRIPTION=zsh + oh-my-zsh + plugins (autosuggestions, syntax-highlighting)
+# DESCRIPTION=oh-my-zsh + plugins (autosuggestions, syntax-highlighting); needs zsh from 20-cli-modern
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/idempotent.sh"
 require_user
 
-if ! command_exists zsh; then
-  log "Installing zsh (needs sudo)"
-  run "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y zsh"
-else
-  skip "zsh already installed"
-fi
+command_exists zsh || die "zsh not on PATH — run 20-cli-modern (root) first."
 
 ZSH_DIR="${ZSH:-$HOME/.oh-my-zsh}"
 if [ -d "$ZSH_DIR" ]; then
