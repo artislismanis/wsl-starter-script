@@ -81,19 +81,17 @@ _collect_forward_assigns() {
   done < <(compgen -v)
 }
 
-RAN_MODULES=()
+declare -A RAN_MODULES=()
 run_module() {
   local name="$1" path="$MODULES_DIR/$1.sh"
   [ -f "$path" ] || die "Unknown module: $name"
-  for prev in "${RAN_MODULES[@]:-}"; do
-    if [ "$prev" = "$name" ]; then
-      skip "module '$name' already ran in this invocation"
-      return 0
-    fi
-  done
-  RAN_MODULES+=("$name")
+  if [ -n "${RAN_MODULES[$name]:-}" ]; then
+    skip "module '$name' already ran in this invocation"
+    return 0
+  fi
+  RAN_MODULES[$name]=1
+  printf "\n${C_BLUE}━━ %s ━━${C_RESET}\n" "$name"
   if module_requires_root "$name"; then
-    printf "\n${C_BLUE}━━ %s ━━${C_RESET}\n" "$name"
     if [ "$(id -u)" = "0" ]; then
       bash "$path"
     else
@@ -102,10 +100,7 @@ run_module() {
       sudo env "${FORWARD_ASSIGNS[@]}" bash "$path"
     fi
   else
-    if [ "$(id -u)" = "0" ]; then
-      die "Module '$name' must run as your non-root user, not sudo."
-    fi
-    printf "\n${C_BLUE}━━ %s ━━${C_RESET}\n" "$name"
+    [ "$(id -u)" = "0" ] && die "Module '$name' must run as your non-root user, not sudo."
     bash "$path"
   fi
 }

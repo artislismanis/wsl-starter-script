@@ -32,40 +32,18 @@ esac
 
 # ---- Write ~/.claude/ -------------------------------------------------------
 CLAUDE_DIR="$HOME/.claude"
-run "mkdir -p '$CLAUDE_DIR/scripts'"
-
 SETTINGS="$CLAUDE_DIR/settings.json"
-if [ -f "$SETTINGS" ]; then
-  skip "Preserving existing $SETTINGS"
-else
-  log "Writing $SETTINGS"
-  run "sed 's/__PERMISSION_MODE__/$PERM_MODE/' '$REPO_ROOT/claude/settings.json.tmpl' > '$SETTINGS'"
-fi
-
 CLAUDE_MD="$CLAUDE_DIR/CLAUDE.md"
-if [ -f "$CLAUDE_MD" ]; then
-  skip "Preserving existing $CLAUDE_MD"
-else
-  log "Writing $CLAUDE_MD"
-  run "cp '$REPO_ROOT/claude/CLAUDE.md.tmpl' '$CLAUDE_MD'"
-fi
-
 STATUSLINE="$CLAUDE_DIR/scripts/statusline.sh"
-if [ -f "$STATUSLINE" ]; then
-  skip "Preserving existing $STATUSLINE"
-else
-  log "Writing $STATUSLINE"
-  run "cp '$REPO_ROOT/claude/statusline.sh.tmpl' '$STATUSLINE'"
-  run "chmod +x '$STATUSLINE'"
-fi
-
 MCP_EXAMPLE="$CLAUDE_DIR/mcp.example.json"
-if [ -f "$MCP_EXAMPLE" ]; then
-  skip "Preserving existing $MCP_EXAMPLE"
-else
-  log "Writing $MCP_EXAMPLE"
-  run "cp '$REPO_ROOT/claude/mcp.example.json' '$MCP_EXAMPLE'"
-fi
+
+# settings.json is the only template that needs substitution; the rest are
+# copied byte-for-byte. write_file_once preserves operator edits (skip-if-exists),
+# handles dry-run, and creates parent dirs.
+write_file_once "$SETTINGS" < <(sed "s/__PERMISSION_MODE__/$PERM_MODE/" "$REPO_ROOT/claude/settings.json.tmpl")
+write_file_once "$CLAUDE_MD" < "$REPO_ROOT/claude/CLAUDE.md.tmpl"
+write_file_once "$STATUSLINE" "" 0755 < "$REPO_ROOT/claude/statusline.sh.tmpl"
+write_file_once "$MCP_EXAMPLE" < "$REPO_ROOT/claude/mcp.example.json"
 
 ok "Claude Code ready. Run 'claude' in a project directory to start."
 echo "  - Settings:  $SETTINGS"

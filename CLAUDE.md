@@ -8,7 +8,7 @@ Target runtime: a **fresh Ubuntu WSL image** — this repo is never tested on lo
 See [README.md § Layout](README.md#layout) for the canonical module list with `[root]/[user]` tags. Notes specific to working on the repo:
 
 - `lib/common.sh` — `log/ok/skip/warn/die`, `ask/confirm/ask_secret`, `run`, `require_root/user`, `is_wsl`.
-- `lib/idempotent.sh` — `command_exists`, `pkg_installed`, `apt_install`, `apt_update_once`, `apt_add_signed_repo`, `apt_hold_unattended`, `ensure_block`, `ensure_block_in_rcs`, `strip_unmanaged_ini_section`, `replace_ini_section`, `write_file_once`.
+- `lib/idempotent.sh` — `command_exists`, `pkg_installed`, `apt_install`, `apt_update_once`, `apt_add_signed_repo`, `apt_hold_unattended`, `ensure_block`, `ensure_block_in_rcs`, `ensure_block_per_shell`, `replace_ini_section`, `write_file_once`.
 - `modules/NN-name.sh` — one installer unit; declares `REQUIRES_ROOT` + `DESCRIPTION` headers the dispatcher reads.
 - `claude/*.tmpl` (and `claude/mcp.example.json`) — source files materialised into `~/.claude/` by `modules/50-claude-code.sh`. **Not** consumed by this repo itself — edit the source, not the rendered copy. (`mcp.example.json` keeps its name unchanged because it's copied verbatim with no substitution.)
 - `.claude/` — tooling for Claude working on *this* repo (hooks, skills).
@@ -31,10 +31,10 @@ Every installer step must be safe to re-run. Use the helpers — do not hand-rol
 | Add 3rd-party repo | `apt_add_signed_repo name key-url deb-line` |
 | Exclude pkgs from unattended-upgrades | `apt_hold_unattended name pkg1 [pkg2 ...]` |
 | Append a marked multi-line block | `ensure_block "wsl-starter:<topic>" /file "..."` |
-| Mirror an rc-file block into bash + zsh (with optional chown) | `ensure_block_in_rcs "wsl-starter:<topic>" "$HOME" "..." [owner]` |
-| Drop unmanaged INI section before re-writing | `strip_unmanaged_ini_section /file section` |
+| Mirror an rc-file block into bash + zsh (same content, with optional chown) | `ensure_block_in_rcs "wsl-starter:<topic>" "$HOME" "..." [owner]` |
+| Mirror an rc-file block into bash + zsh with **per-shell** content | `ensure_block_per_shell "wsl-starter:<topic>" "$HOME" "<bash>" "<zsh>"` |
 | Strip + replace an INI section in one call | `replace_ini_section "wsl-starter:<topic>" /file section "[section]\nkey=val"` |
-| Write a file only if absent (preserves operator edits; reads stdin) | `write_file_once /path [owner] <<EOF ... EOF` |
+| Write a file only if absent (preserves operator edits; reads stdin) | `write_file_once /path [owner] [mode] <<EOF ... EOF` |
 
 rc-file blocks use the `wsl-starter:<topic>` marker convention so re-runs don't duplicate. Keep the prefix.
 

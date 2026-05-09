@@ -35,15 +35,13 @@ if [ ! -f "$BASH_PX" ]; then
   run "curl -fsSL https://raw.githubusercontent.com/rcaloras/bash-preexec/master/bash-preexec.sh -o '$BASH_PX'"
 fi
 
-ensure_block "wsl-starter:atuin-zoxide" "$HOME/.bashrc" 'export PATH="$HOME/.atuin/bin:$HOME/.local/bin:$PATH"
+ensure_block_per_shell "wsl-starter:atuin-zoxide" "$HOME" \
+  'export PATH="$HOME/.atuin/bin:$HOME/.local/bin:$PATH"
 [ -f "$HOME/.bash-preexec.sh" ] && source "$HOME/.bash-preexec.sh"
 command -v atuin  >/dev/null 2>&1 && eval "$(atuin init bash)"
-command -v zoxide >/dev/null 2>&1 && eval "$(zoxide init bash)"'
-
-if [ -f "$HOME/.zshrc" ]; then
-  ensure_block "wsl-starter:atuin-zoxide" "$HOME/.zshrc" 'export PATH="$HOME/.atuin/bin:$HOME/.local/bin:$PATH"
+command -v zoxide >/dev/null 2>&1 && eval "$(zoxide init bash)"' \
+  'export PATH="$HOME/.atuin/bin:$HOME/.local/bin:$PATH"
 command -v atuin  >/dev/null 2>&1 && eval "$(atuin init zsh)"
 command -v zoxide >/dev/null 2>&1 && eval "$(zoxide init zsh)"'
-fi
 
 ok "atuin + zoxide wired into bash and zsh."
