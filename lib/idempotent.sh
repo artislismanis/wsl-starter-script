@@ -5,15 +5,18 @@ command_exists() { command -v "$1" >/dev/null 2>&1; }
 
 pkg_installed() { dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -q "ok installed"; }
 
-# Run apt-get update once per session across modules.
+# Run apt-get update once per install session, across modules. Each module
+# runs in its own bash process, so a plain env var doesn't survive — we use a
+# stamp file under /run (tmpfs, cleared on reboot, no cleanup needed).
+APT_INDEX_STAMP="${APT_INDEX_STAMP:-/run/wsl-starter.apt-fresh}"
 apt_update_once() {
-  if [ "${_APT_INDEX_FRESH:-0}" = "1" ]; then
+  if [ -f "$APT_INDEX_STAMP" ]; then
     skip "apt index already refreshed this session"
     return 0
   fi
   log "apt-get update"
   run "DEBIAN_FRONTEND=noninteractive apt-get update -y"
-  export _APT_INDEX_FRESH=1
+  [ "$DRY_RUN" = "1" ] || : > "$APT_INDEX_STAMP"
 }
 
 apt_install() {
@@ -46,7 +49,8 @@ apt_add_signed_repo() {
   run "chmod 0644 '$key'"
   run "printf '%s\n' '$deb_line' > '$list'"
   run "chmod 0644 '$list'"
-  export _APT_INDEX_FRESH=0
+  # Force the next apt_install to re-run apt-get update so the new repo is seen.
+  [ "$DRY_RUN" = "1" ] || rm -f "$APT_INDEX_STAMP"
 }
 
 # apt_hold_unattended <name> <pkg1> [pkg2 ...]
