@@ -17,7 +17,9 @@ wsl-starter-script
   ./install.sh                       Interactive menu.
   ./install.sh --all                 Run every module in order.
   ./install.sh --base                Root-phase WSL setup only.
-  ./install.sh --dev                 apt-core + cli-modern + zsh + history + mise.
+  ./install.sh --dev                 cli-modern (root, auto-escalates) + zsh + history + mise.
+                                     If invoked as root the user-phase is deferred to the
+                                     post-handoff/reopen user run.
   ./install.sh --docker              Docker Engine (classic or rootless).
   ./install.sh --podman              Podman (rootless, daemonless).
   ./install.sh --claude              Claude Code CLI + user-global config.
@@ -158,12 +160,12 @@ run_group() {
   case "$1" in
     base)    _run_each "${BASE_MODULES[@]}" ;;
     dev)
-      # Root runs the root-phase modules and defers the user-phase to the
-      # new user (via in-session handoff or reopen). Non-root runs only the
-      # user-phase modules — the root-phase packages must have been installed
-      # earlier by `sudo ./install.sh --dev` (or --all / --base then --dev).
+      # Root-phase modules always run; run_module auto-escalates them when
+      # the caller is non-root. As root we can't run user-phase modules
+      # (require_user refuses) so we defer them to the post-handoff/reopen
+      # user run. As user, we run the user-phase right after the root-phase.
+      _run_each "${DEV_ROOT_MODULES[@]}"
       if [ "$(id -u)" = "0" ]; then
-        _run_each "${DEV_ROOT_MODULES[@]}"
         DEFERRED+=("--dev")
       else
         _run_each "${DEV_USER_MODULES[@]}"

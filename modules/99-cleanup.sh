@@ -3,6 +3,7 @@
 # DESCRIPTION=apt autoremove + next-steps banner
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/idempotent.sh"
 require_root
 
 log "apt autoremove + clean"
