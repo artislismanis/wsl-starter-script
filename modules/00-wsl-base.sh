@@ -8,9 +8,14 @@ require_root
 is_wsl || warn "This doesn't look like WSL — continuing anyway."
 
 apt_update_once
-if [ "${WSL_APT_UPGRADE:-}" = "1" ] || confirm "Run 'apt upgrade' now? (slow on a fresh image)" y; then
-  run "DEBIAN_FRONTEND=noninteractive apt-get upgrade -y"
-fi
+# WSL_APT_UPGRADE: 1 = upgrade, 0 = skip, unset = ask (default yes).
+DO_UPGRADE=0
+case "${WSL_APT_UPGRADE-unset}" in
+  1|yes|true) DO_UPGRADE=1 ;;
+  0|no|false) DO_UPGRADE=0 ;;
+  unset)      confirm "Run 'apt upgrade' now? (slow on a fresh image)" y && DO_UPGRADE=1 ;;
+esac
+[ "$DO_UPGRADE" = "1" ] && run "DEBIAN_FRONTEND=noninteractive apt-get upgrade -y"
 
 apt_install sudo systemd
 
@@ -82,6 +87,7 @@ fi
 # If the repo lives under /root (bootstrap's default when run as root), copy it
 # into the new user's home so they can re-invoke ./install.sh after reopen.
 USER_HOME="$(getent passwd "$USER_NAME" | cut -d: -f6)"
+HANDOFF_DIR="$REPO_ROOT"
 if [ -n "$USER_HOME" ] && [ -d "$USER_HOME" ]; then
   case "$REPO_ROOT" in
     /root/*)
@@ -95,12 +101,19 @@ if [ -n "$USER_HOME" ] && [ -d "$USER_HOME" ]; then
       fi
       HANDOFF_DIR="$DEST"
       ;;
-    *)
-      HANDOFF_DIR="$REPO_ROOT"
-      ;;
   esac
-else
-  HANDOFF_DIR="$REPO_ROOT"
+fi
+
+# Drop a hint file so the orchestrator (install.sh) can resume into the new
+# user without re-deriving any of this. /run is tmpfs, cleared on reboot —
+# perfect for one-shot session state.
+if [ "$DRY_RUN" != "1" ]; then
+  {
+    printf 'USER=%s\n' "$USER_NAME"
+    printf 'HOME=%s\n' "$USER_HOME"
+    printf 'REPO=%s\n' "$HANDOFF_DIR"
+  } > /run/wsl-starter-handoff
+  chmod 0644 /run/wsl-starter-handoff
 fi
 
 ok "WSL base configured. Run 'wsl --terminate ${WSL_DISTRO_NAME:-<your-distro>}' in Windows, then reopen."

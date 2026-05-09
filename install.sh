@@ -54,6 +54,33 @@ module_requires_root() {
   grep -q '^# REQUIRES_ROOT=1' "$MODULES_DIR/$1.sh"
 }
 
+# Operator-tunable env vars consumed by modules. Listed explicitly (rather
+# than scooped up by prefix) because the calling shell often has unrelated
+# WSL_*/DOCKER_*/CLAUDE_* vars set (WSL_INTEROP, DOCKER_CONFIG, CLAUDE_CODE_*)
+# that we must not forward into root modules. MISE_*_VERSION is matched by
+# pattern so adding a new runtime in 40-mise.sh doesn't require touching this.
+_FORWARD_NAMES=(
+  NON_INTERACTIVE DRY_RUN REPO_ROOT
+  WSL_USER WSL_PASSWORD WSL_HOSTNAME WSL_DNS WSL_APT_UPGRADE
+  DOCKER_MODE DOCKER_USER DOCKER_ROOTLESS_PASTA
+  PODMAN_COMPOSE PODMAN_DOCKER_SHIM
+  MISE_LANGUAGES
+  CLAUDE_PERMISSION_MODE
+  ZSH_THEME ZSH_PLUGINS
+)
+_collect_forward_assigns() {
+  local v
+  FORWARD_ASSIGNS=()
+  for v in "${_FORWARD_NAMES[@]}"; do
+    [ -n "${!v+set}" ] || continue
+    FORWARD_ASSIGNS+=("$v=$(printf '%q' "${!v}")")
+  done
+  for v in $(compgen -v | grep -E '^MISE_[A-Z]+_VERSION$' || true); do
+    [ -n "${!v+set}" ] || continue
+    FORWARD_ASSIGNS+=("$v=$(printf '%q' "${!v}")")
+  done
+}
+
 RAN_MODULES=()
 run_module() {
   local name="$1" path="$MODULES_DIR/$1.sh"
@@ -71,10 +98,8 @@ run_module() {
       bash "$path"
     else
       log "Module '$name' requires root — escalating via sudo."
-      sudo env REPO_ROOT="$REPO_ROOT" \
-        NON_INTERACTIVE="${NON_INTERACTIVE:-0}" \
-        DRY_RUN="${DRY_RUN:-0}" \
-        bash "$path"
+      _collect_forward_assigns
+      sudo env "${FORWARD_ASSIGNS[@]}" bash "$path"
     fi
   else
     if [ "$(id -u)" = "0" ]; then
@@ -91,7 +116,6 @@ DEV_USER_MODULES=(30-shell-zsh 31-shell-history 40-mise)
 DOCKER_MODULES=(25-docker-engine 27-wsl-network)
 PODMAN_MODULES=(26-podman 27-wsl-network)
 CLAUDE_MODULES=(50-claude-code)
-CLEANUP_MODULES=(99-cleanup)
 
 interactive_menu() {
   echo "Select what to run:"
@@ -152,7 +176,7 @@ run_group() {
         DEFERRED+=("--claude")
       fi
       ;;
-    cleanup) _run_each "${CLEANUP_MODULES[@]}" ;;
+    cleanup) run_module 99-cleanup ;;
     *) die "Unknown group: $1" ;;
   esac
 }
@@ -213,29 +237,29 @@ case "$MODE" in
     ;;
 esac
 
-_deferred_target_user() {
-  # Prefer the name the operator passed in, fall back to the managed [user]
-  # block in /etc/wsl.conf that 00-wsl-base just wrote.
-  if [ -n "${WSL_USER:-}" ] && id "$WSL_USER" >/dev/null 2>&1; then
-    printf '%s\n' "$WSL_USER"; return 0
-  fi
-  [ -f /etc/wsl.conf ] || return 1
-  awk '
-    /^# >>> wsl-starter:user >>>/ { m=1; next }
-    /^# <<< wsl-starter:user <<</ { m=0 }
-    m && /^default=/ { sub(/^default=/,""); print; exit }
-  ' /etc/wsl.conf
-}
-
 if [ "$(id -u)" = "0" ] && [ ${#DEFERRED[@]} -gt 0 ]; then
   echo
   warn "Root-phase done. User-phase modules (${DEFERRED[*]}) still need to run as your new user."
 
-  TARGET_USER="$(_deferred_target_user || true)"
-  TARGET_HOME=""
-  [ -n "$TARGET_USER" ] && TARGET_HOME="$(getent passwd "$TARGET_USER" 2>/dev/null | cut -d: -f6 || true)"
-  TARGET_REPO=""
-  [ -n "$TARGET_HOME" ] && TARGET_REPO="$TARGET_HOME/$(basename "$REPO_ROOT")"
+  # 00-wsl-base writes /run/wsl-starter-handoff with USER/HOME/REPO. Prefer it;
+  # fall back to WSL_USER if the file isn't there (e.g. operator skipped --base
+  # and is invoking a deferred group against an already-prepared distro).
+  TARGET_USER=""; TARGET_HOME=""; TARGET_REPO=""
+  if [ -r /run/wsl-starter-handoff ]; then
+    # shellcheck disable=SC1091
+    while IFS='=' read -r k v; do
+      case "$k" in
+        USER) TARGET_USER="$v" ;;
+        HOME) TARGET_HOME="$v" ;;
+        REPO) TARGET_REPO="$v" ;;
+      esac
+    done < /run/wsl-starter-handoff
+  fi
+  if [ -z "$TARGET_USER" ] && [ -n "${WSL_USER:-}" ] && id "$WSL_USER" >/dev/null 2>&1; then
+    TARGET_USER="$WSL_USER"
+    TARGET_HOME="$(getent passwd "$TARGET_USER" 2>/dev/null | cut -d: -f6 || true)"
+    [ -n "$TARGET_HOME" ] && TARGET_REPO="$TARGET_HOME/$(basename "$REPO_ROOT")"
+  fi
 
   CAN_CONTINUE=0
   if [ -n "$TARGET_USER" ] && [ -d "$TARGET_REPO" ] && [ -x "$TARGET_REPO/install.sh" ]; then
@@ -246,28 +270,16 @@ if [ "$(id -u)" = "0" ] && [ ${#DEFERRED[@]} -gt 0 ]; then
     log "Handing off to $TARGET_USER via sudo -iu"
     # sudo -i gives a login shell so PATH, HOME, rc files are right.
     # bash -lc re-sources login files so mise/atuin wiring added mid-run is picked up.
-    # Forward non-interactive / tuning env vars across the privilege drop — sudo strips
-    # them by default, and the user-phase modules (mise pins, claude perm mode, etc.)
-    # need to see the same values the root invocation did.
-    # Only user-phase env vars need forwarding — root-phase modules have
-    # already run by the time we reach the handoff. WSL_USER stays so the
-    # deferred install.sh can still resolve $TARGET_USER if it needs to.
-    FORWARD_VARS=(
-      NON_INTERACTIVE DRY_RUN
-      WSL_USER
-      MISE_LANGUAGES
-      MISE_NODE_VERSION MISE_PYTHON_VERSION MISE_RUBY_VERSION
-      MISE_JAVA_VERSION MISE_GO_VERSION MISE_DENO_VERSION MISE_BUN_VERSION
-      CLAUDE_PERMISSION_MODE
-      ZSH_PLUGINS ZSH_THEME
-    )
-    FORWARD_ASSIGNS=()
-    for v in "${FORWARD_VARS[@]}"; do
-      if [ -n "${!v+set}" ]; then
-        FORWARD_ASSIGNS+=("$v=$(printf '%q' "${!v}")")
-      fi
+    # _collect_forward_assigns harvests every WSL_*/DOCKER_*/PODMAN_*/MISE_*/
+    # CLAUDE_*/ZSH_* var the operator set, so the user-phase modules see the
+    # same tuning the root invocation did. (REPO_ROOT is re-derived under the
+    # new $HOME, so we deliberately drop it from the forwarded set below.)
+    _collect_forward_assigns
+    HANDOFF_ASSIGNS=()
+    for a in "${FORWARD_ASSIGNS[@]}"; do
+      case "$a" in REPO_ROOT=*) ;; *) HANDOFF_ASSIGNS+=("$a") ;; esac
     done
-    sudo -iu "$TARGET_USER" bash -lc "cd '$TARGET_REPO' && env ${FORWARD_ASSIGNS[*]} ./install.sh ${DEFERRED[*]}"
+    sudo -iu "$TARGET_USER" bash -lc "cd '$TARGET_REPO' && env ${HANDOFF_ASSIGNS[*]} ./install.sh ${DEFERRED[*]}"
     echo
     warn "In-session handoff complete. You're still root in *this* shell, though."
     warn "Finish up from Windows PowerShell so the distro default user takes effect:"
