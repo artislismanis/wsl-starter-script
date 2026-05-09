@@ -48,6 +48,14 @@ bash <(curl -fsSL https://raw.githubusercontent.com/artislismanis/wsl-starter-sc
 
 Re-runs are safe: subsequent invocations `git pull --ff-only` before handing off.
 
+Bootstrap respects three optional env vars:
+
+| Var | Default | Purpose |
+|-----|---------|---------|
+| `WSL_STARTER_REPO`   | `https://github.com/artislismanis/wsl-starter-script` | Clone source — point at a fork to test changes. |
+| `WSL_STARTER_BRANCH` | `main` | Branch / tag / commit to check out. |
+| `WSL_STARTER_DIR`    | `/root/wsl-starter-script` (root) or `$HOME/wsl-starter-script` (user) | Where to clone. |
+
 ### 2. Reviewable — clone first, run locally
 
 ```bash
@@ -146,6 +154,8 @@ claude/
 | `ZSH_THEME`               | Override the oh-my-zsh theme |
 | `ZSH_PLUGINS`             | Replace the full `plugins=(...)` line in `~/.zshrc` |
 | `CLAUDE_PERMISSION_MODE`  | `default` / `acceptEdits` / `plan` |
+
+A handful of yes/no prompts have no env override (they default to "yes" under `--non-interactive`): disable Windows PATH appending, set automount metadata options, make zsh the default shell, install `uv`. Pass `--non-interactive` and you'll get the recommended defaults for all four. If you need to opt *out* of any of them, run interactively for that step.
 
 Per-runtime version pins (override any of these; defaults shown):
 

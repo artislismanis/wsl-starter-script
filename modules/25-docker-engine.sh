@@ -6,14 +6,11 @@ source "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/idempotent.sh"
 require_root
 
-# Bail early if systemd isn't active — Docker (rootful or rootless) depends
-# on systemd units. 00-wsl-base enables it; the user must `wsl --shutdown`
-# and reopen before this module can succeed.
-if ! systemctl is-system-running --quiet 2>/dev/null && ! systemctl is-active --quiet default.target 2>/dev/null; then
-  if ! pidof systemd >/dev/null 2>&1; then
-    die "systemd is not running. Run 00-wsl-base.sh, then 'wsl --terminate ${WSL_DISTRO_NAME:-<your-distro>}' from Windows, reopen, and re-run this module."
-  fi
-fi
+# Bail early if systemd isn't PID 1 — Docker (rootful or rootless) depends on
+# systemd units. 00-wsl-base flips systemd=true in /etc/wsl.conf; the user must
+# `wsl --terminate` and reopen before this module can succeed.
+pidof systemd >/dev/null 2>&1 || \
+  die "systemd is not running. Run 00-wsl-base.sh, then 'wsl --terminate ${WSL_DISTRO_NAME:-<your-distro>}' from Windows, reopen, and re-run this module."
 
 # ---- Mode selection ---------------------------------------------------------
 MODE="${DOCKER_MODE:-}"

@@ -6,8 +6,6 @@ source "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/idempotent.sh"
 require_root
 
-apt_update_once
-
 apt_install \
   build-essential \
   git \

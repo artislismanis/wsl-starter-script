@@ -19,15 +19,15 @@ Ask the user (or parse from `$ARGUMENTS`) for:
 
 Current numeric map (do not collide):
 
-| Range | Phase |
-|-------|-------|
-| 00-09 | WSL base setup (root) |
-| 10-19 | Core apt packages (root) |
-| 20-29 | Modern CLI repos/packages (root) — 25 = docker-engine |
-| 30-39 | Shell setup (user) |
-| 40-49 | Language runtimes (user) |
-| 50-59 | Claude Code + agent tooling (user) |
-| 99    | Cleanup banner (root) |
+| Range | Phase | Taken |
+|-------|-------|-------|
+| 00-09 | WSL base setup (root) | 00 |
+| 10-19 | Core apt packages (root) | 10 |
+| 20-29 | Modern CLI / container runtimes / network (root) | 20 (cli-modern), 25 (docker-engine), 26 (podman), 27 (wsl-network) |
+| 30-39 | Shell setup (user) | 30 (zsh), 31 (history) |
+| 40-49 | Language runtimes (user) | 40 (mise) |
+| 50-59 | Claude Code + agent tooling (user) | 50 (claude-code) |
+| 99    | Cleanup banner (root) | 99 |
 
 ## Steps
 
@@ -42,7 +42,7 @@ Current numeric map (do not collide):
 
 ## Conventions to remind the user about when writing the body
 
-- Use `apt_install`, `apt_add_signed_repo`, `apt_update_once` from `lib/idempotent.sh` — don't hand-roll apt work.
+- Use `apt_install`, `apt_add_signed_repo` from `lib/idempotent.sh` — don't hand-roll apt work. (`apt_install` invokes `apt_update_once` itself; only call `apt_update_once` directly if you have a raw `apt-get upgrade` or similar that bypasses `apt_install`.)
 - Guard every mutation for idempotency (`command_exists`, `pkg_installed`, `ensure_block`).
 - Write user-facing progress through `log / ok / skip / warn / die` — no raw `echo` for log lines.
 - Wrap state-changing shell one-liners in `run "..."` so `--dry-run` honours them.
@@ -51,10 +51,13 @@ Current numeric map (do not collide):
 ## If the user wants the module wired into a group
 
 After creating the file, ask whether to add it to one of the arrays in `install.sh`:
-- `BASE_MODULES` — root-phase boot setup
-- `DEV_ROOT_MODULES` — root-phase dev tooling
-- `DEV_USER_MODULES` — user-phase dev tooling
-- `CLAUDE_MODULES` — Claude Code setup
-- `CLEANUP_MODULES` — final cleanup
+- `BASE_MODULES` — root-phase boot setup (`--base`)
+- `DEV_ROOT_MODULES` — root-phase dev tooling (`--dev` as root)
+- `DEV_USER_MODULES` — user-phase dev tooling (`--dev` as the target user)
+- `DOCKER_MODULES` — Docker Engine (`--docker`)
+- `PODMAN_MODULES` — Podman (`--podman`)
+- `CLAUDE_MODULES` — Claude Code (`--claude`)
 
-`--all` and the named flags (`--base`, `--dev`, `--claude`) only execute what's listed in these arrays; `--module NAME` and the interactive "single module" picker work regardless.
+99-cleanup is invoked directly by `install.sh` (no array). The `--docker` and `--podman` groups also append `27-wsl-network` once via the `NEED_WSL_NETWORK` flag — there's no separate array for it.
+
+`--all` and the named flags only execute what's listed in these arrays; `--module NAME` and the interactive "single module" picker work regardless.
