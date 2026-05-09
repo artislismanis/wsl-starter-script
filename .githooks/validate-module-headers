@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Validate that every modules/*.sh file passed in $@ has the two required
+# headers the dispatcher reads (REQUIRES_ROOT and DESCRIPTION). The
+# `./install.sh --list` parser is permissive — a missing REQUIRES_ROOT line
+# silently falls through to "[user]", and a missing DESCRIPTION leaves the
+# --list column blank — so neither bash -n nor shellcheck catches the bug.
+# Used by the PostToolUse hook in .claude/settings.json and (transitively)
+# by the pre-commit hook.
+set -euo pipefail
+
+fail=0
+for f in "$@"; do
+  case "$f" in
+    modules/*.sh|*/modules/*.sh) ;;
+    *) continue ;;
+  esac
+  [ -f "$f" ] || continue
+
+  if ! grep -qE '^# REQUIRES_ROOT=[01]$' "$f"; then
+    echo "$f: missing or malformed '# REQUIRES_ROOT=0|1' header (dispatcher silently treats this as user-phase)." >&2
+    fail=1
+  fi
+  if ! grep -qE '^# DESCRIPTION=.+' "$f"; then
+    echo "$f: missing '# DESCRIPTION=...' header (--list output will be blank for this module)." >&2
+    fail=1
+  fi
+done
+
+exit "$fail"

@@ -39,6 +39,18 @@ Every installer step must be safe to re-run. Use the helpers — do not hand-rol
 
 rc-file blocks use the `wsl-starter:<topic>` marker convention so re-runs don't duplicate. Keep the prefix.
 
+## Rollback parity (paired-write rule)
+
+Every state-changing path a module touches must have a matching teardown line in `README.md` § Rollback. This is the operator's only escape hatch — undocumented mutations strand them. The rule applies to:
+
+- Files written via `write_file_once` (the path goes in Rollback as `sudo rm <path>`).
+- systemd units enabled via `systemctl enable` (also `disable --now` before `rm`, and a `daemon-reload` after).
+- rc-file blocks (`ensure_block` / `ensure_block_in_rcs` / `ensure_block_per_shell`) — the `wsl-starter:<marker>` already lets `sed -i '/# >>> wsl-starter:/,/# <<< wsl-starter:/d'` strip them, so a generic line covers all of them; add a marker-specific line only when the unwind needs extra steps (uninstall command, parent-dir cleanup, etc.).
+- apt repos added via `apt_add_signed_repo` (the `.list` and `/etc/apt/keyrings/<name>.gpg`).
+- Unattended-upgrade holds via `apt_hold_unattended` (already covered by a generic line in Rollback — extend it when adding a hold for a new package).
+
+When you add a new write-site to a module, audit Rollback in the same edit. Reviewers should reject PRs that introduce a write without a corresponding Rollback line.
+
 ## `run` + `--dry-run`
 
 `run "shell string"` takes exactly one shell-string argument and eval's it — callers deliberately pass strings for redirects and pipes. Under `--dry-run` it prints the command and does nothing. Passing zero or multiple args is a hard error.
