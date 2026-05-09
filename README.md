@@ -28,6 +28,8 @@ wsl --distribution UbuntuNobleExample --cd '~'
 
 If you use Windows Terminal, restart it so the new distro appears in the dropdown.
 
+For host-side configuration that complements this installer (`.wslconfig`, auto-start at login, recovery commands for mirrored-mode port leaks), see [WSL-HOST.md](WSL-HOST.md).
+
 ## Quick start
 
 Three options, pick what suits you:

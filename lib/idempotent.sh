@@ -49,6 +49,32 @@ apt_add_signed_repo() {
   export _APT_INDEX_FRESH=0
 }
 
+# apt_hold_unattended <name> <pkg1> [pkg2 ...]
+#   Writes /etc/apt/apt.conf.d/51unattended-upgrades-<name> with a
+#   Package-Blacklist directive so unattended-upgrades skips these packages.
+#   Use for long-running daemons (docker, podman) where a mid-day auto-restart
+#   to swap binaries would kill active containers. Caller must be root.
+apt_hold_unattended() {
+  local name="$1"; shift
+  [ "$#" -gt 0 ] || die "apt_hold_unattended: need at least one package"
+  local file="/etc/apt/apt.conf.d/51unattended-upgrades-$name"
+  if [ -f "$file" ]; then
+    skip "unattended-upgrades hold already in $file"
+    return 0
+  fi
+  log "writing $file (exclude from unattended-upgrades: $*)"
+  if [ "$DRY_RUN" = "1" ]; then
+    printf "  (would write blacklist for: %s)\n" "$*"
+    return 0
+  fi
+  {
+    printf 'Unattended-Upgrade::Package-Blacklist {\n'
+    for p in "$@"; do printf '    "%s";\n' "$p"; done
+    printf '};\n'
+  } > "$file"
+  chmod 0644 "$file"
+}
+
 # ensure_line "line" "file" — append line to file unless present (fixed-string match).
 # Writes directly (not via run) to avoid double-eval of the line content.
 ensure_line() {

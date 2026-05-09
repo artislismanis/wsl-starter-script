@@ -57,6 +57,12 @@ else
   apt_install "${CORE_PKGS[@]}"
 fi
 
+# Exclude docker from unattended-upgrades. The postinst stops docker.service to
+# swap binaries; if that fires while containers are in use the daemon flaps and
+# clients see disconnect storms. Operator can run `apt-get install docker-ce`
+# on their own schedule.
+apt_hold_unattended "docker" docker-ce docker-ce-cli containerd.io
+
 # ---- Classic (rootful) ------------------------------------------------------
 if [ "$MODE" = "classic" ]; then
   if id -nG "$TARGET_USER" | tr ' ' '\n' | grep -qx docker; then
@@ -65,6 +71,24 @@ if [ "$MODE" = "classic" ]; then
     log "Adding $TARGET_USER to the docker group"
     run "usermod -aG docker '$TARGET_USER'"
   fi
+  # Write daemon.json with live-restore=true before first start. Containers
+  # then survive dockerd restarts (apt upgrade, post-resume daemon flap), which
+  # is the difference between a dev disconnect storm and a no-op restart.
+  CLASSIC_DAEMON_JSON="/etc/docker/daemon.json"
+  if [ -f "$CLASSIC_DAEMON_JSON" ]; then
+    skip "Preserving existing $CLASSIC_DAEMON_JSON (add \"live-restore\": true manually if missing)"
+  else
+    log "Writing $CLASSIC_DAEMON_JSON (live-restore=true)"
+    run "mkdir -p /etc/docker"
+    if [ "$DRY_RUN" != "1" ]; then
+      tee "$CLASSIC_DAEMON_JSON" >/dev/null <<'JSON'
+{
+  "live-restore": true
+}
+JSON
+    fi
+  fi
+
   log "Enabling docker.service"
   run "systemctl enable --now docker.service"
   run "systemctl enable --now containerd.service"
@@ -109,7 +133,8 @@ else
     sudo -u "$TARGET_USER" mkdir -p "$TARGET_HOME/.config/docker"
     sudo -u "$TARGET_USER" tee "$DAEMON_JSON" >/dev/null <<'JSON'
 {
-  "exec-opts": ["native.cgroupdriver=systemd"]
+  "exec-opts": ["native.cgroupdriver=systemd"],
+  "live-restore": true
 }
 JSON
   fi

@@ -19,6 +19,7 @@ wsl-starter-script
   ./install.sh --base                Root-phase WSL setup only.
   ./install.sh --dev                 apt-core + cli-modern + zsh + history + mise.
   ./install.sh --docker              Docker Engine (classic or rootless).
+  ./install.sh --podman              Podman (rootless, daemonless).
   ./install.sh --claude              Claude Code CLI + user-global config.
   ./install.sh --module NAME         Run one module (e.g. 20-cli-modern).
   ./install.sh --list                List available modules.
@@ -72,7 +73,8 @@ run_module() {
 BASE_MODULES=(00-wsl-base 10-apt-core)
 DEV_ROOT_MODULES=(20-cli-modern)
 DEV_USER_MODULES=(30-shell-zsh 31-shell-history 40-mise)
-DOCKER_MODULES=(25-docker-engine)
+DOCKER_MODULES=(25-docker-engine 27-wsl-network)
+PODMAN_MODULES=(26-podman 27-wsl-network)
 CLAUDE_MODULES=(50-claude-code)
 CLEANUP_MODULES=(99-cleanup)
 
@@ -123,6 +125,7 @@ run_group() {
       fi
       ;;
     docker)  for m in "${DOCKER_MODULES[@]}"; do run_module "$m"; done ;;
+    podman)  for m in "${PODMAN_MODULES[@]}"; do run_module "$m"; done ;;
     claude)
       if [ "$(id -u)" != "0" ]; then
         for m in "${CLAUDE_MODULES[@]}"; do run_module "$m"; done
@@ -144,6 +147,7 @@ while [ $# -gt 0 ]; do
     --base)             SELECTED+=(base) ;;
     --dev)              SELECTED+=(dev) ;;
     --docker)           SELECTED+=(docker) ;;
+    --podman)           SELECTED+=(podman) ;;
     --claude)           SELECTED+=(claude) ;;
     --module)           MODE=single; SINGLE="${2:-}"; shift ;;
     --list)             list_modules; exit 0 ;;
@@ -183,6 +187,7 @@ case "$MODE" in
     confirm "Run base setup (systemd, user, hostname, DNS)?" y && run_group base
     confirm "Install dev tools (CLI modern, zsh, history, mise)?" y && run_group dev
     confirm "Install Docker Engine?" n && run_group docker
+    confirm "Install Podman (daemonless, rootless — co-installable with docker)?" n && run_group podman
     confirm "Install Claude Code?" y && run_group claude
     ;;
   single)
