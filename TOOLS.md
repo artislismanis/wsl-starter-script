@@ -81,7 +81,7 @@ The `--docker` group also runs module `27-wsl-network` (sysctl + `wsl-port-check
 | `podman` | The runtime itself. No daemon, no `podman` group. |
 | `uidmap`, `slirp4netns`, `passt`, `fuse-overlayfs` | Rootless plumbing — user namespaces, network, overlay storage. |
 | `podman-compose` *(default on)* | `docker-compose`-style YAML support. Opt out with `PODMAN_COMPOSE=0`. |
-| `podman-docker` *(default on)* | Installs `/usr/bin/docker` as a shim so `docker` CLI works against podman. **Auto-skipped** if `docker-ce-cli` is present (file conflict). Opt out with `PODMAN_DOCKER_SHIM=0`. |
+| `podman-docker` *(default on)* | Installs `/usr/bin/docker` as a shim so `docker` CLI works against podman. **Auto-skipped** if `docker-ce-cli` is present (file conflict). Opt out with `PODMAN_DOCKER_SHIM=0`. The module also touches `/etc/containers/nodocker` to silence the per-invocation "Emulate Docker CLI using podman" notice that the shim prints otherwise. |
 
 `apt_hold_unattended` excludes podman from unattended-upgrades for the same reason as docker — a postinst-driven restart while containers are running corrupts state.
 
@@ -97,6 +97,7 @@ Two small defenses that pay off heavily on container-hosting WSL distros. Pulled
 |---|---|---|
 | sysctl tweaks | `/etc/sysctl.d/99-wsl-network.conf` | `tcp_tw_reuse=1`, `tcp_fin_timeout=15`, wider ephemeral port range (10000–65535) — reduces TIME_WAIT exhaustion under rapid container churn. |
 | `wsl-port-check` | `/usr/local/bin/wsl-port-check` | Prints listening ports + TIME_WAIT count; given a port, runs a `bind()` probe that flags the WSL2 mirrored-mode hypervisor port leak (bind fails but `ss` shows nothing → smoking gun, recover with `wsl --shutdown`). |
+| `wsl-rshared-root.service` | `/etc/systemd/system/wsl-rshared-root.service` | systemd oneshot that runs `mount --make-rshared /` at boot. Suppresses the `WARN[0000] "/" is not a shared mount` notice that rootless docker / rootless podman emit on every invocation under WSL2 (where `/init` mounts the rootfs with private propagation before systemd takes over). |
 
 These are *not* a fix for the hypervisor port leak — that lives in Hyper-V state. They handle the much-more-common TIME_WAIT pressure case so that when the hard case strikes, you can identify it instead of conflating the two.
 

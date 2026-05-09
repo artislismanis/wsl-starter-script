@@ -14,7 +14,7 @@ NONSHELL_TEXT=()
 for f in "${STAGED[@]}"; do
   [ -f "$f" ] || continue
   case "$f" in
-    *.sh|install.sh|bootstrap.sh|.githooks/pre-commit)
+    *.sh|.githooks/pre-commit)
       SHELL_FILES+=("$f") ;;
     *.md|*.json|*.toml|*.yml|*.yaml|*.tmpl|*.conf|.gitattributes|.editorconfig)
       NONSHELL_TEXT+=("$f") ;;

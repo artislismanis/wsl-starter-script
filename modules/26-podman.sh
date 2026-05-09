@@ -38,4 +38,19 @@ apt_install "${PKGS[@]}"
 # running corrupts state. Operator decides when to upgrade.
 apt_hold_unattended "podman" podman
 
+# Silence the "Emulate Docker CLI using podman. Create /etc/containers/nodocker
+# to quiet msg." notice that the podman-docker shim prints on every invocation.
+# The file's existence is the signal — its content is ignored.
+case "$INCLUDE_SHIM" in
+  1|yes|true)
+    if [ -e /etc/containers/nodocker ]; then
+      skip "/etc/containers/nodocker already present"
+    elif pkg_installed podman-docker; then
+      log "Touching /etc/containers/nodocker to silence the docker-shim notice"
+      run "install -m 0755 -d /etc/containers"
+      run "touch /etc/containers/nodocker"
+    fi
+    ;;
+esac
+
 ok "Podman installed. Try: podman run --rm hello-world  (rootless, no group needed)"

@@ -65,7 +65,12 @@ for f in "${FILTERED[@]}"; do
     fail=1
   fi
 
-  if [ "$HAVE_SHELLCHECK" = "1" ] && ! shellcheck -x "$f"; then
+  # -S warning matches the PostToolUse hook in .claude/settings.json: info-level
+  # findings (notably SC1091 "not following" on dynamic-path source statements,
+  # which fires for every module's `source $(dirname "${BASH_SOURCE[0]}")/...`
+  # line) aren't actionable here and would otherwise make every commit fail
+  # once shellcheck is installed.
+  if [ "$HAVE_SHELLCHECK" = "1" ] && ! shellcheck -S warning -x "$f"; then
     fail=1
   fi
 done
