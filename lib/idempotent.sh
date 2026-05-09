@@ -152,7 +152,12 @@ ensure_block_in_rcs() {
   for rc in "$home/.bashrc" "$home/.zshrc"; do
     [ "$rc" = "$home/.zshrc" ] && [ ! -f "$rc" ] && continue
     ensure_block "$marker" "$rc" "$content"
-    [ -n "$owner" ] && [ "$DRY_RUN" != "1" ] && chown "$owner:$owner" "$rc"
+    # `if` rather than chained `&&` so a missing owner doesn't make the loop
+    # body return 1 — that would make the whole function return 1 and trip
+    # set -e in the caller.
+    if [ -n "$owner" ] && [ "$DRY_RUN" != "1" ]; then
+      chown "$owner:$owner" "$rc"
+    fi
   done
 }
 
@@ -180,7 +185,12 @@ write_file_once() {
     mkdir -p "$dir"
     cat > "$path"
   fi
-  [ -n "$mode" ] && chmod "$mode" "$path"
+  # Trailing `[ -n "$mode" ] && chmod ...` would make the whole function return
+  # 1 whenever mode is empty (the most common call shape), tripping set -e in
+  # every caller. Use `if` so the function's exit status stays 0.
+  if [ -n "$mode" ]; then
+    chmod "$mode" "$path"
+  fi
 }
 
 # ensure_block_per_shell <marker> <home> <bash_content> <zsh_content>
@@ -190,5 +200,9 @@ write_file_once() {
 ensure_block_per_shell() {
   local marker="$1" home="$2" bash_content="$3" zsh_content="$4"
   ensure_block "$marker" "$home/.bashrc" "$bash_content"
-  [ -f "$home/.zshrc" ] && ensure_block "$marker" "$home/.zshrc" "$zsh_content"
+  # `if` rather than `[ -f X ] && cmd` so the function's exit status is 0
+  # when zshrc is absent (set -e in callers would otherwise trip).
+  if [ -f "$home/.zshrc" ]; then
+    ensure_block "$marker" "$home/.zshrc" "$zsh_content"
+  fi
 }
