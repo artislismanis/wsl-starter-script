@@ -12,7 +12,7 @@ if [ "${WSL_APT_UPGRADE:-}" = "1" ] || confirm "Run 'apt upgrade' now? (slow on 
   run "DEBIAN_FRONTEND=noninteractive apt-get upgrade -y"
 fi
 
-apt_install sudo systemd ca-certificates
+apt_install sudo systemd
 
 strip_unmanaged_ini_section /etc/wsl.conf boot
 ensure_block "wsl-starter:boot" /etc/wsl.conf "[boot]

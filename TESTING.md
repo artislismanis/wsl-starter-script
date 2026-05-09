@@ -253,11 +253,66 @@ sudo ./install.sh --module 40-mise
 sudo -E ./install.sh --module 20-cli-modern   # runs just that one module
 ```
 
-**Pass criteria:** `--list` shows 8 modules; `--module` runs exactly one and exits cleanly.
+**Pass criteria:** `--list` shows 11 modules; `--module` runs exactly one and exits cleanly.
 
 ---
 
-## Scenario 11 — Full end-to-end on a clean image
+## Scenario 11a — Docker (rootless + pasta)
+
+After base + reopen, as the user:
+
+```bash
+DOCKER_MODE=rootless DOCKER_ROOTLESS_PASTA=1 \
+  sudo -E ./install.sh --docker --non-interactive
+```
+
+**Verify (in a fresh shell so rc-file blocks load):**
+
+```bash
+echo "$DOCKER_HOST"                                  # unix:///run/user/<uid>/docker.sock
+docker info >/dev/null && echo ok                    # daemon reachable
+systemctl --user is-active docker                    # active
+grep -c '# >>> wsl-starter:docker-rootless >>>' ~/.bashrc   # exactly 1 (re-run twice)
+ls /etc/sysctl.d/99-wsl-network.conf                 # 27-wsl-network ran
+command -v wsl-port-check                            # /usr/local/bin/wsl-port-check
+```
+
+**Pass criteria:** rootless daemon up; pasta override file present at `~/.config/systemd/user/docker.service.d/pasta.conf`; rc-file block exactly once after a re-run.
+
+---
+
+## Scenario 11b — Podman (co-install with docker)
+
+```bash
+sudo ./install.sh --podman
+```
+
+**Verify:**
+
+```bash
+podman --version
+podman-compose --version 2>/dev/null || true        # default on
+ls /usr/bin/docker                                  # if docker-ce-cli NOT present, this is the podman shim
+podman run --rm hello-world                         # rootless, no group needed
+ls /etc/apt/apt.conf.d/51unattended-upgrades-podman # hold in place
+```
+
+**Pass criteria:** podman runs rootless without prompting for a group; if classic docker is also installed, the podman-docker shim is automatically skipped (warn line in install output).
+
+---
+
+## Scenario 11c — wsl-port-check helper
+
+```bash
+wsl-port-check                                      # listening ports + TIME_WAIT view
+wsl-port-check 22                                   # probe a specific port
+```
+
+**Pass criteria:** without args, prints listening sockets + ephemeral range. With a port, attempts `bind()`; on failure with no listener visible, prints the "SMOKING GUN" hint pointing to `wsl --shutdown`.
+
+---
+
+## Scenario 12 — Full end-to-end on a clean image
 
 The long one. Unregister, reinstall, then from root:
 

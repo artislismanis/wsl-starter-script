@@ -1,0 +1,19 @@
+# Force LF on text files. Shell scripts with CRLF break at runtime (bash chokes
+# on \r in shebangs / arg lists) and shellcheck refuses to lint them.
+* text=auto eol=lf
+
+*.sh    text eol=lf
+*.tmpl  text eol=lf
+*.md    text eol=lf
+*.json  text eol=lf
+*.toml  text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+*.conf  text eol=lf
+
+# Templates ship as-is to ~/.claude/ — don't let GitHub count them as the
+# repo's primary language.
+claude/*.tmpl linguist-language=Shell linguist-detectable=false
+
+# Mark shell scripts so `git diff` uses sensible hunk headers.
+*.sh diff=bash

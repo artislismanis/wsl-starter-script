@@ -145,26 +145,15 @@ fi
 log "Running dockerd-rootless-setuptool.sh as $TARGET_USER"
 run "sudo -iu '$TARGET_USER' env XDG_RUNTIME_DIR=/run/user/$(id -u "$TARGET_USER") dockerd-rootless-setuptool.sh install --force"
 
-# Persist DOCKER_HOST in both bash and zsh rc files via a markered block so
-# re-runs don't duplicate it. Writing as the target user so ownership stays right.
+# Persist DOCKER_HOST in both bash and zsh rc files. ensure_block keeps re-runs
+# idempotent; we then re-chown so ownership stays right after a sudo-driven write.
 UID_N="$(id -u "$TARGET_USER")"
-BLOCK="export PATH=\"\$HOME/bin:\$PATH\"
+ROOTLESS_BLOCK="export PATH=\"\$HOME/bin:\$PATH\"
 export DOCKER_HOST=\"unix:///run/user/${UID_N}/docker.sock\""
 for rc in "$TARGET_HOME/.bashrc" "$TARGET_HOME/.zshrc"; do
   [ -e "$rc" ] || continue
-  if grep -qF "# >>> wsl-starter:docker-rootless >>>" "$rc" 2>/dev/null; then
-    skip "rootless docker env already present in $rc"
-    continue
-  fi
-  log "Adding DOCKER_HOST block to $rc"
-  if [ "$DRY_RUN" != "1" ]; then
-    {
-      printf '\n# >>> wsl-starter:docker-rootless >>>\n'
-      printf '%s\n' "$BLOCK"
-      printf '# <<< wsl-starter:docker-rootless <<<\n'
-    } >> "$rc"
-    chown "$TARGET_USER:$TARGET_USER" "$rc"
-  fi
+  ensure_block "wsl-starter:docker-rootless" "$rc" "$ROOTLESS_BLOCK"
+  [ "$DRY_RUN" = "1" ] || chown "$TARGET_USER:$TARGET_USER" "$rc"
 done
 
 # ---- Optional: pasta rootlesskit network driver -----------------------------

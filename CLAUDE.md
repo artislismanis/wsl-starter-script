@@ -9,8 +9,12 @@ Target runtime: a **fresh Ubuntu WSL image** — this repo is never tested on lo
 install.sh                 dispatcher (flags, TUI, module grouping arrays)
 lib/common.sh              log/ok/skip/warn/die, ask/confirm/ask_secret, run, require_root/user
 lib/idempotent.sh          command_exists, pkg_installed, apt_install, apt_update_once,
-                           apt_add_signed_repo, ensure_line, ensure_block
+                           apt_add_signed_repo, apt_hold_unattended, ensure_line, ensure_block,
+                           strip_unmanaged_ini_section
 modules/NN-name.sh         one unit of installer work; declares REQUIRES_ROOT + DESCRIPTION
+                           Numeric prefixes today: 00 base, 10 apt-core, 20 cli-modern,
+                           25 docker-engine, 26 podman, 27 wsl-network, 30 shell-zsh,
+                           31 shell-history, 40 mise, 50 claude-code, 99 cleanup.
 claude/*.tmpl              source files rendered into ~/.claude/ by modules/50-claude-code.sh
                            (NOT consumed by this repo itself — they ship to users)
 .claude/                   tooling for Claude working on this repo (hooks, skills)
@@ -32,8 +36,10 @@ Every installer step must be safe to re-run. Use the helpers — do not hand-rol
 |--------|--------|
 | Install packages | `apt_install p1 p2 …` (guards, invokes `apt_update_once` if needed) |
 | Add 3rd-party repo | `apt_add_signed_repo name key-url deb-line` |
+| Exclude pkgs from unattended-upgrades | `apt_hold_unattended name pkg1 [pkg2 ...]` |
 | Append a line to a config | `ensure_line "line" /path/to/file` |
 | Append a marked multi-line block | `ensure_block "wsl-starter:<topic>" /file "..."` |
+| Drop unmanaged INI section before re-writing | `strip_unmanaged_ini_section /file section` |
 
 rc-file blocks use the `wsl-starter:<topic>` marker convention so re-runs don't duplicate. Keep the prefix.
 
@@ -57,7 +63,7 @@ Root modules run before reopen; user modules after. The dispatcher refuses misma
 
 ## Testing
 
-No unit tests. `TESTING.md` documents 11 manual scenarios against a fresh WSL image — this is the only meaningful test surface. `bash -n` and shellcheck run automatically on every edit via the PostToolUse hook in `.claude/settings.json`.
+No unit tests. `TESTING.md` documents manual E2E scenarios against a fresh WSL image — this is the only meaningful test surface. `bash -n` and shellcheck run automatically on every edit via the PostToolUse hook in `.claude/settings.json`.
 
 ## When adding a new language/tool
 

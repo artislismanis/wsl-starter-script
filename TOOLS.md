@@ -47,6 +47,38 @@ Two install modes, chosen interactively or via `DOCKER_MODE`:
 
 Both modes include `docker-buildx-plugin` (multi-arch builds, BuildKit) and `docker-compose-plugin` (the `docker compose` subcommand — not the legacy `docker-compose` binary). Requires systemd, which is why `00-wsl-base` enables it and a WSL reopen is needed first.
 
+The `--docker` group also runs module `27-wsl-network` (sysctl + `wsl-port-check`), described below.
+
+---
+
+## Module `26-podman` — Podman *(root, optional)*
+
+[Podman](https://podman.io/) is a daemonless, rootless-by-default OCI runtime. Ships in Ubuntu main, so no third-party repo. Co-installable with Docker — they don't fight over sockets.
+
+| Package | Why it's here |
+|---|---|
+| `podman` | The runtime itself. No daemon, no `podman` group. |
+| `uidmap`, `slirp4netns`, `passt`, `fuse-overlayfs` | Rootless plumbing — user namespaces, network, overlay storage. |
+| `podman-compose` *(default on)* | `docker-compose`-style YAML support. Opt out with `PODMAN_COMPOSE=0`. |
+| `podman-docker` *(default on)* | Installs `/usr/bin/docker` as a shim so `docker` CLI works against podman. **Auto-skipped** if `docker-ce-cli` is present (file conflict). Opt out with `PODMAN_DOCKER_SHIM=0`. |
+
+`apt_hold_unattended` excludes podman from unattended-upgrades for the same reason as docker — a postinst-driven restart while containers are running corrupts state.
+
+The `--podman` group also runs module `27-wsl-network` (below).
+
+---
+
+## Module `27-wsl-network` — container-host network defenses *(root)*
+
+Two small defenses that pay off heavily on container-hosting WSL distros. Pulled into both the `--docker` and `--podman` groups.
+
+| What | File / command | Purpose |
+|---|---|---|
+| sysctl tweaks | `/etc/sysctl.d/99-wsl-network.conf` | `tcp_tw_reuse=1`, `tcp_fin_timeout=15`, wider ephemeral port range (10000–65535) — reduces TIME_WAIT exhaustion under rapid container churn. |
+| `wsl-port-check` | `/usr/local/bin/wsl-port-check` | Prints listening ports + TIME_WAIT count; given a port, runs a `bind()` probe that flags the WSL2 mirrored-mode hypervisor port leak (bind fails but `ss` shows nothing → smoking gun, recover with `wsl --shutdown`). |
+
+These are *not* a fix for the hypervisor port leak — that lives in Hyper-V state. They handle the much-more-common TIME_WAIT pressure case so that when the hard case strikes, you can identify it instead of conflating the two.
+
 ---
 
 ## Module `30-shell-zsh` — zsh + oh-my-zsh *(user)*
@@ -186,5 +218,5 @@ Re-runs preserve any existing file, so edits to your settings/CLAUDE.md are safe
 
 - **No editor** beyond `nano`. Install your preferred one separately (`apt install vim`, `mise use -g neovim`, VS Code Remote-WSL from Windows, etc.).
 - **No desktop / X / Wayland stack.** This is a headless dev image.
-- **No systemd-level container runtime beyond Docker.** Want Podman, nerdctl, k3s? Add a module.
+- **No container orchestrator.** Docker and Podman are available (modules 25/26); k3s/k8s/nerdctl are not — add a module if you need them.
 - **No dotfile manager** (chezmoi, yadm, stow). The installer writes into plain `~/.bashrc` / `~/.zshrc` so you can layer any dotfile system on top.

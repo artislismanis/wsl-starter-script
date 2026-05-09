@@ -97,6 +97,9 @@ modules/
   00-wsl-base.sh        [root] /etc/wsl.conf, user, hostname, DNS
   10-apt-core.sh        [root] build-essential, git, tmux, locales, ...
   20-cli-modern.sh      [root] ripgrep, fd, bat, eza, gh
+  25-docker-engine.sh   [root] Docker Engine (classic or rootless), optional
+  26-podman.sh          [root] Podman (rootless, daemonless) + docker shim, optional
+  27-wsl-network.sh     [root] sysctl tweaks + wsl-port-check helper
   30-shell-zsh.sh       [user] zsh + oh-my-zsh + plugins
   31-shell-history.sh   [user] atuin + zoxide (bash & zsh)
   40-mise.sh            [user] mise + selected runtimes + uv
@@ -112,9 +115,11 @@ claude/
 ## Flags
 
 ```
---all                 Run every module in order.
+--all                 Run base → dev → docker → claude → cleanup. (Excludes podman.)
 --base                Root-phase only (modules 00, 10).
 --dev                 apt-core + cli-modern + zsh + history + mise.
+--docker              Docker Engine (classic or rootless) + WSL network defenses.
+--podman              Podman (rootless, daemonless) + WSL network defenses.
 --claude              Claude Code + user-global config.
 --module NAME         Run one module (see --list).
 --list                List modules with descriptions.
@@ -136,6 +141,10 @@ claude/
 | `DOCKER_MODE`             | `classic` / `rootless` / `skip` (only for `25-docker-engine`) |
 | `DOCKER_USER`             | User to add to the `docker` group (classic mode) |
 | `DOCKER_ROOTLESS_PASTA`   | `1` to use pasta as the rootlesskit network driver (rootless only) |
+| `PODMAN_COMPOSE`          | `1` (default) installs `podman-compose`, `0` skips |
+| `PODMAN_DOCKER_SHIM`      | `1` (default) installs `podman-docker` shim if `docker-ce-cli` isn't present |
+| `ZSH_THEME`               | Override the oh-my-zsh theme |
+| `ZSH_PLUGINS`             | Replace the full `plugins=(...)` line in `~/.zshrc` |
 | `CLAUDE_PERMISSION_MODE`  | `default` / `acceptEdits` / `plan` |
 
 Per-runtime version pins (override any of these; defaults shown):
@@ -168,9 +177,24 @@ sudo -E ./install.sh --all --non-interactive
 - **mise over nvm/rvm/sdkman/pyenv.** One tool for Node, Python, Ruby, Java, Go, Deno, Bun.
 - **Claude Code starter.** Writes `~/.claude/settings.json`, `~/.claude/CLAUDE.md`, `~/.claude/scripts/statusline.sh`, and drops a commented `mcp.example.json` — existing files are preserved, never clobbered.
 
+## Contributing
+
+Pure bash, no framework. To work on the repo locally:
+
+```bash
+./lint.sh                                 # bash -n + shellcheck on every shell file
+git config core.hooksPath .githooks       # opt in to pre-commit lint + CRLF guard
+```
+
+The pre-commit hook is plain shell (`.githooks/pre-commit`) — no Python, no `pre-commit` framework. It runs `lint.sh` against staged shell files and refuses commits with CRLF line endings. `.gitattributes` enforces LF on text files so a Windows clone doesn't ship broken shebangs back to a WSL run.
+
 ## Rollback
 
 - WSL base: remove the `# >>> wsl-starter:* >>>` blocks from `/etc/wsl.conf`, then `wsl --terminate <your-distro>` (or `wsl --shutdown` to stop all distros).
 - Shell wiring: remove the `# >>> wsl-starter:* >>>` blocks from `~/.bashrc` / `~/.zshrc`.
-- Packages: `sudo apt-get remove <pkg>`; `mise uninstall <lang>`; `npm uninstall -g @anthropic-ai/claude-code`.
+- Packages: `sudo apt-get remove <pkg>`; `mise uninstall <lang>`; `~/.local/bin/claude uninstall` (or delete `~/.local/bin/claude`).
+- Rootless docker: `systemctl --user disable --now docker`; `dockerd-rootless-setuptool.sh uninstall`; remove `~/.config/docker/`, `~/.config/systemd/user/docker.service.d/pasta.conf`, and the `wsl-starter:docker-rootless` block from `~/.bashrc`/`~/.zshrc`.
+- Podman: `sudo apt-get remove podman podman-compose podman-docker` (the latter only if installed); no per-user state to clean up.
+- WSL network defenses: `sudo rm /etc/sysctl.d/99-wsl-network.conf /usr/local/bin/wsl-port-check && sudo sysctl --system`.
+- Unattended-upgrades holds: `sudo rm /etc/apt/apt.conf.d/51unattended-upgrades-{docker,podman}`.
 - Claude config: delete `~/.claude/settings.json` / `~/.claude/CLAUDE.md` (or edit in place).

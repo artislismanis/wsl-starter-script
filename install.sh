@@ -25,11 +25,18 @@ wsl-starter-script
   ./install.sh --list                List available modules.
 
 Flags:
-  --non-interactive   Read answers from env vars:
-                      WSL_USER, WSL_PASSWORD, WSL_HOSTNAME, WSL_DNS,
-                      MISE_LANGUAGES (csv), CLAUDE_PERMISSION_MODE.
+  --non-interactive   Read answers from env vars. Common ones:
+                      WSL_USER, WSL_PASSWORD, WSL_HOSTNAME, WSL_DNS, WSL_APT_UPGRADE,
+                      MISE_LANGUAGES (csv), MISE_<LANG>_VERSION,
+                      DOCKER_MODE, DOCKER_USER, DOCKER_ROOTLESS_PASTA,
+                      PODMAN_COMPOSE, PODMAN_DOCKER_SHIM,
+                      ZSH_THEME, ZSH_PLUGINS, CLAUDE_PERMISSION_MODE.
+                      Full list and defaults in README.md.
   --dry-run           Print what would happen, make no changes.
   -h, --help          This message.
+
+Note: --all runs base → dev → docker → claude → cleanup. Podman is excluded
+(it's an alternative to Docker, not a complement); pass --podman explicitly.
 USAGE
 }
 
@@ -47,9 +54,17 @@ module_requires_root() {
   grep -q '^# REQUIRES_ROOT=1' "$MODULES_DIR/$1.sh"
 }
 
+RAN_MODULES=()
 run_module() {
   local name="$1" path="$MODULES_DIR/$1.sh"
   [ -f "$path" ] || die "Unknown module: $name"
+  for prev in "${RAN_MODULES[@]:-}"; do
+    if [ "$prev" = "$name" ]; then
+      skip "module '$name' already ran in this invocation"
+      return 0
+    fi
+  done
+  RAN_MODULES+=("$name")
   if module_requires_root "$name"; then
     printf "\n${C_BLUE}━━ %s ━━${C_RESET}\n" "$name"
     if [ "$(id -u)" = "0" ]; then
@@ -80,25 +95,27 @@ CLEANUP_MODULES=(99-cleanup)
 
 interactive_menu() {
   echo "Select what to run:"
-  echo "  1) Guided setup    (ask about each group: base / dev / docker / claude)"
-  echo "  2) Full setup      (everything: base → dev → docker → claude → cleanup)"
+  echo "  1) Guided setup    (ask about each group: base / dev / docker / podman / claude)"
+  echo "  2) Full setup      (base → dev → docker → claude → cleanup; excludes podman)"
   echo "  3) Base only       (root: systemd, user, hostname, DNS)"
   echo "  4) Dev only        (CLI tools, zsh, history, mise)"
   echo "  5) Docker only     (Docker Engine: classic or rootless)"
-  echo "  6) Claude only     (claude-code + config)"
-  echo "  7) Single module"
-  echo "  8) List modules"
+  echo "  6) Podman only     (rootless, daemonless)"
+  echo "  7) Claude only     (claude-code + config)"
+  echo "  8) Single module"
+  echo "  9) List modules"
   echo "  q) Quit"
   read -r -p "$(_fmt_prompt "Choice >")" sel
   case "$sel" in
     1) MODE=guided ;;
     2) MODE=all ;;
-    3) MODE=base ;;
-    4) MODE=dev ;;
-    5) MODE=docker ;;
-    6) MODE=claude ;;
-    7) list_modules; read -r -p "$(_fmt_prompt "Module name:")" SINGLE; MODE=single ;;
-    8) list_modules; exit 0 ;;
+    3) MODE=groups; SELECTED=(base) ;;
+    4) MODE=groups; SELECTED=(dev) ;;
+    5) MODE=groups; SELECTED=(docker) ;;
+    6) MODE=groups; SELECTED=(podman) ;;
+    7) MODE=groups; SELECTED=(claude) ;;
+    8) list_modules; read -r -p "$(_fmt_prompt "Module name:")" SINGLE; MODE=single ;;
+    9) list_modules; exit 0 ;;
     q|Q) exit 0 ;;
     *) die "Invalid selection" ;;
   esac
