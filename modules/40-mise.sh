@@ -38,6 +38,13 @@ declare -A SPECS=(
 
 if [ -n "${MISE_LANGUAGES:-}" ]; then
   IFS=',' read -r -a choices <<<"$MISE_LANGUAGES"
+  # Surface typos in MISE_LANGUAGES at parse time, not silently in the install
+  # loop below. Each entry must map to a known SPECS key.
+  unknown=()
+  for lang in "${choices[@]}"; do
+    [ -n "$lang" ] && [ -z "${SPECS[$lang]:-}" ] && unknown+=("$lang")
+  done
+  [ ${#unknown[@]} -gt 0 ] && die "MISE_LANGUAGES contains unknown runtime(s): ${unknown[*]}. Valid: ${!SPECS[*]}"
 else
   choices=()
   # Default prompts: only node + python. Everything else is an "advanced" opt-in.
