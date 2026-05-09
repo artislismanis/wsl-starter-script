@@ -40,7 +40,7 @@ Three options, pick what suits you:
 bash <(curl -fsSL https://raw.githubusercontent.com/artislismanis/wsl-starter-script/main/bootstrap.sh)
 ```
 
-Installs `git`/`curl` if missing, clones this repo to `$HOME/wsl-starter-script` (or `/root/wsl-starter-script` if you're root), then drops you into the interactive menu. All flags pass through, so you can do:
+Installs `git`/`curl` if missing, clones this repo to `$HOME/wsl-starter-script` (or `/root/wsl-starter-script` if you're root), then runs `install.sh` — with the interactive menu by default, or with whatever flags you passed through. So you can do:
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/artislismanis/wsl-starter-script/main/bootstrap.sh) --base
@@ -75,8 +75,9 @@ Or just `./install.sh` for the interactive menu.
 
 ```bash
 sudo ./install.sh --module 25-docker-engine
-# or non-interactively (sudo -E preserves env; plain sudo would drop these):
-sudo -E DOCKER_MODE=classic DOCKER_USER=$USER ./install.sh --module 25-docker-engine --non-interactive
+# Or non-interactively. Pass tunables as `VAR=val` args to sudo (modern sudo
+# forwards these without relying on sudoers env_keep, which `sudo -E` does):
+sudo DOCKER_MODE=classic DOCKER_USER=$USER ./install.sh --module 25-docker-engine --non-interactive
 # DOCKER_MODE = classic | rootless | skip
 ```
 
@@ -147,7 +148,7 @@ claude/
 | `MISE_LANGUAGES`          | CSV of runtimes to install, e.g. `node,python,go` |
 | `MISE_<LANG>_VERSION`     | Pin a specific version per runtime — see defaults below |
 | `DOCKER_MODE`             | `classic` / `rootless` / `skip` (only for `25-docker-engine`) |
-| `DOCKER_USER`             | Target user — added to `docker` group (classic) or owns the rootless daemon (rootless) |
+| `DOCKER_USER`             | Target user — added to `docker` group (classic) or owns the rootless daemon (rootless). Falls back to `SUDO_USER` when running under sudo, otherwise prompts. |
 | `DOCKER_ROOTLESS_PASTA`   | `1` to use pasta as the rootlesskit network driver (rootless only) |
 | `PODMAN_COMPOSE`          | `1` (default) installs `podman-compose`, `0` skips |
 | `PODMAN_DOCKER_SHIM`      | `1` (default) installs `podman-docker` shim if `docker-ce-cli` isn't present |
@@ -172,12 +173,15 @@ Per-runtime version pins (override any of these; defaults shown):
 Example — full install with pinned Node/Python versions:
 
 ```bash
-WSL_USER=artis WSL_PASSWORD='...' WSL_HOSTNAME=box \
-MISE_LANGUAGES=node,python,go \
-MISE_NODE_VERSION=22 MISE_PYTHON_VERSION=3.13 MISE_GO_VERSION=1.23 \
-CLAUDE_PERMISSION_MODE=acceptEdits \
-sudo -E ./install.sh --all --non-interactive
+sudo \
+  WSL_USER=artis WSL_PASSWORD='...' WSL_HOSTNAME=box \
+  MISE_LANGUAGES=node,python,go \
+  MISE_NODE_VERSION=22 MISE_PYTHON_VERSION=3.13 MISE_GO_VERSION=1.23 \
+  CLAUDE_PERMISSION_MODE=acceptEdits \
+  ./install.sh --all --non-interactive
 ```
+
+(Pass `VAR=val` as arguments to `sudo` rather than relying on `sudo -E` — modern sudo forwards these reliably; `-E` depends on sudoers `env_keep` and silently drops most tunables.)
 
 ## Design notes
 
@@ -203,7 +207,7 @@ The pre-commit hook is plain shell (`.githooks/pre-commit`) — no Python, no `p
 - WSL base: remove the `# >>> wsl-starter:* >>>` blocks from `/etc/wsl.conf`, then `wsl --terminate <your-distro>` (or `wsl --shutdown` to stop all distros).
 - Shell wiring: remove the `# >>> wsl-starter:* >>>` blocks from `~/.bashrc` / `~/.zshrc`.
 - Packages: `sudo apt-get remove <pkg>`; `mise uninstall <lang>`; `~/.local/bin/claude uninstall` (or delete `~/.local/bin/claude`).
-- Rootless docker: `systemctl --user disable --now docker`; `dockerd-rootless-setuptool.sh uninstall`; remove `~/.config/docker/`, `~/.config/systemd/user/docker.service.d/pasta.conf`, and the `wsl-starter:docker-rootless` block from `~/.bashrc`/`~/.zshrc`.
+- Rootless docker: `systemctl --user disable --now docker`; `dockerd-rootless-setuptool.sh uninstall`; remove `~/.config/docker/`, `~/.config/systemd/user/docker.service.d/pasta.conf`, `/etc/systemd/system/user@.service.d/delegate.conf` (then `sudo systemctl daemon-reload`), and the `wsl-starter:docker-rootless` block from `~/.bashrc`/`~/.zshrc`.
 - Podman: `sudo apt-get remove podman podman-compose podman-docker` (the latter only if installed); no per-user state to clean up.
 - WSL network defenses: `sudo rm /etc/sysctl.d/99-wsl-network.conf /usr/local/bin/wsl-port-check && sudo sysctl --system`.
 - Unattended-upgrades holds: `sudo rm /etc/apt/apt.conf.d/51unattended-upgrades-{docker,podman}`.

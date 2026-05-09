@@ -119,4 +119,7 @@ if [ "$DRY_RUN" != "1" ]; then
 fi
 
 ok "WSL base configured. Run 'wsl --terminate ${WSL_DISTRO_NAME:-<your-distro>}' in Windows, then reopen."
-log "Next step as $USER_NAME: cd $HANDOFF_DIR && ./install.sh --dev --claude"
+# install.sh's deferred-handoff logic owns the resume messaging when more
+# work is queued (e.g. under --all). When 00-wsl-base ran on its own, point
+# the operator at the most likely follow-up but don't presume both flags.
+log "Next step as $USER_NAME: cd $HANDOFF_DIR && ./install.sh    # then pick --dev / --claude / --all etc."

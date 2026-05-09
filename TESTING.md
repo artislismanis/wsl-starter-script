@@ -249,12 +249,11 @@ sudo ./install.sh --module 40-mise
 ## Scenario 10 — Single module + listing
 
 ```bash
-./install.sh --list                           # table of modules with [root]/[user] tags
-./install.sh --module 20-cli-modern           # (will demand sudo — that's fine)
-sudo -E ./install.sh --module 20-cli-modern   # runs just that one module
+./install.sh --list                          # table of modules with [root]/[user] tags
+./install.sh --module 20-cli-modern          # auto-escalates via sudo (prompts for password)
 ```
 
-**Pass criteria:** `--list` shows 11 modules; `--module` runs exactly one and exits cleanly.
+**Pass criteria:** `--list` shows 11 modules; `--module` runs exactly one (auto-escalating via sudo for root modules) and exits cleanly.
 
 ---
 
@@ -263,8 +262,8 @@ sudo -E ./install.sh --module 20-cli-modern   # runs just that one module
 After base + reopen, as the user:
 
 ```bash
-DOCKER_MODE=rootless DOCKER_ROOTLESS_PASTA=1 \
-  sudo -E ./install.sh --docker --non-interactive
+sudo DOCKER_MODE=rootless DOCKER_ROOTLESS_PASTA=1 \
+  ./install.sh --docker --non-interactive
 ```
 
 **Verify (in a fresh shell so rc-file blocks load):**

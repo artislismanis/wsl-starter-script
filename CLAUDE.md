@@ -56,9 +56,9 @@ Only `claude/settings.json.tmpl` contains a substitution marker (`__PERMISSION_M
 
 Root modules run before reopen; user modules after. The dispatcher refuses mismatched invocations.
 
-When `install.sh` (running as non-root) hits a root module, it auto-escalates via `sudo env "${FORWARD_ASSIGNS[@]}" bash <module>`. `FORWARD_ASSIGNS` is built by `_collect_forward_assigns`, which sweeps every set env var matching `^(WSL|DOCKER|PODMAN|MISE|CLAUDE|ZSH)_` (minus a small blocklist for system/SDK vars like `WSL_INTEROP`, `DOCKER_HOST`, `CLAUDE_CODE_*`) plus `NON_INTERACTIVE` and `DRY_RUN`. The same sweep runs for the in-session `sudo -iu <user>` handoff at the end of root-phase. Do not use plain `sudo -E` — it depends on sudoers `env_keep` and silently drops most tunables.
+When `install.sh` (running as non-root) hits a root module, it auto-escalates via `sudo env "${FORWARD_ASSIGNS[@]}" bash <module>`. `FORWARD_ASSIGNS` is built by `_collect_forward_assigns`, which sweeps every set env var matching `^(WSL|DOCKER|PODMAN|MISE|CLAUDE|ZSH)_` plus `NON_INTERACTIVE` and `DRY_RUN`, minus the system/SDK vars in `_FORWARD_BLOCK_RE`: `WSL_INTEROP`, `WSL_DISTRO_NAME`, `DOCKER_HOST`, `DOCKER_CONFIG`, `DOCKER_CONTEXT`, `DOCKER_TLS_*`, `DOCKER_CERT_PATH`, `CLAUDE_CODE_*`. The same sweep runs for the in-session `sudo -iu <user>` handoff at the end of root-phase. Do not use plain `sudo -E` — it depends on sudoers `env_keep` and silently drops most tunables.
 
-To add a new operator-tunable env var: name it with one of the listed prefixes and it'll be forwarded automatically. No edit to `install.sh` needed. If the prefix is one but the var should NOT be forwarded (e.g. it's a system or SDK variable), add it to `_FORWARD_BLOCK_RE`.
+To add a new operator-tunable env var: name it with one of the forwarded prefixes (`WSL_`, `DOCKER_`, `PODMAN_`, `MISE_`, `CLAUDE_`, `ZSH_`) and it'll be forwarded automatically. No edit to `install.sh` needed. If the prefix matches but the var should NOT be forwarded (e.g. it's a system or SDK variable), add it to `_FORWARD_BLOCK_RE`.
 
 `REPO_ROOT` is *not* in the forward list — each module re-derives it inside `lib/common.sh` from `BASH_SOURCE`.
 
