@@ -211,7 +211,7 @@ The pre-commit hook is plain shell (`.githooks/pre-commit`) — no Python, no `p
 - Shell wiring: remove the `# >>> wsl-starter:* >>>` blocks from `~/.bashrc` / `~/.zshrc`.
 - Packages: `sudo apt-get remove <pkg>`; `mise uninstall <lang>`; `~/.local/bin/claude uninstall` (or delete `~/.local/bin/claude`).
 - Rootless docker: `systemctl --user disable --now docker`; `dockerd-rootless-setuptool.sh uninstall`; `sudo apt-get remove docker-ce-rootless-extras uidmap slirp4netns passt fuse-overlayfs` (drop `passt` from this list if you still want it for podman); remove `~/.config/docker/`, `~/.config/systemd/user/docker.service.d/` (parent dir, not just `pasta.conf`), `/etc/systemd/system/user@.service.d/delegate.conf` (then `sudo systemctl daemon-reload`), and the `wsl-starter:docker-rootless` block from `~/.bashrc`/`~/.zshrc`.
-- Podman: `sudo apt-get remove podman podman-compose podman-docker` (the latter only if installed); also drop the rootless plumbing (`uidmap slirp4netns passt fuse-overlayfs`) if no other runtime needs it; no per-user state to clean up.
-- WSL network defenses: `sudo rm /etc/sysctl.d/99-wsl-network.conf /usr/local/bin/wsl-port-check && sudo sysctl --system`.
+- Podman: `sudo apt-get remove podman podman-compose podman-docker` (the latter only if installed); also drop the rootless plumbing (`uidmap slirp4netns passt fuse-overlayfs`) if no other runtime needs it, and `sudo rm -f /etc/containers/nodocker` if you removed the shim. No per-user state to clean up.
+- WSL network defenses: `sudo systemctl disable --now wsl-rshared-root.service 2>/dev/null; sudo rm -f /etc/sysctl.d/99-wsl-network.conf /usr/local/bin/wsl-port-check /etc/systemd/system/wsl-rshared-root.service && sudo systemctl daemon-reload && sudo sysctl --system`.
 - Unattended-upgrades holds: `sudo rm /etc/apt/apt.conf.d/51unattended-upgrades-{docker,podman}`.
 - Claude config: delete `~/.claude/settings.json` / `~/.claude/CLAUDE.md` (or edit in place).

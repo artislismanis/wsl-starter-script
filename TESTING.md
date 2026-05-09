@@ -299,6 +299,21 @@ ls /etc/apt/apt.conf.d/51unattended-upgrades-podman # hold in place
 
 **Pass criteria:** podman runs rootless without prompting for a group; if classic docker is also installed, the podman-docker shim is automatically skipped (warn line in install output).
 
+Quiet-message check (only meaningful when the shim is installed):
+
+```bash
+ls /etc/containers/nodocker                          # exists → "Emulate Docker CLI…" notice silenced
+docker run --rm hello-world 2>&1 | grep -c 'Emulate Docker CLI'   # 0
+```
+
+Mount-propagation fix (applies whenever 27-wsl-network ran — i.e. after any --docker or --podman flow):
+
+```bash
+systemctl is-enabled wsl-rshared-root.service        # enabled
+findmnt -o TARGET,PROPAGATION /                      # PROPAGATION column shows "shared"
+podman run --rm hello-world 2>&1 | grep -c 'is not a shared mount'   # 0
+```
+
 ---
 
 ## Scenario 11c — wsl-port-check helper
