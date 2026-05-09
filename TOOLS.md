@@ -28,6 +28,7 @@ Faster, friendlier defaults for the commands you use hourly. All installed from 
 
 | Tool | Replaces | Why it's nicer |
 |---|---|---|
+| `zsh` | `bash` | Shell that the user-phase `30-shell-zsh` module then configures (oh-my-zsh, plugins). Installed root-side here so `--dev` doesn't need a second sudo prompt. |
 | [`ripgrep`](https://github.com/BurntSushi/ripgrep) (`rg`) | `grep -r` | Respects `.gitignore` by default; an order of magnitude faster; smart case. |
 | [`fd`](https://github.com/sharkdp/fd) | `find` | Sane defaults (`.gitignore`-aware, colored), far less typing, regex by default. |
 | [`bat`](https://github.com/sharkdp/bat) | `cat` / `less` | Syntax highlighting, line numbers, git-aware gutter, paging built in. |
@@ -81,11 +82,12 @@ These are *not* a fix for the hypervisor port leak — that lives in Hyper-V sta
 
 ---
 
-## Module `30-shell-zsh` — zsh + oh-my-zsh *(user)*
+## Module `30-shell-zsh` — oh-my-zsh + plugins *(user)*
+
+The `zsh` package itself is installed by `20-cli-modern` (root); this user-phase module wires it up.
 
 | Component | What you get |
 |---|---|
-| `zsh` | Friendlier prompt, smarter tab completion, glob patterns, history expansion. |
 | [oh-my-zsh](https://ohmyz.sh/) | Plugin framework + theme engine with sensible defaults (ships the `robbyrussell` theme). |
 | [`zsh-autosuggestions`](https://github.com/zsh-users/zsh-autosuggestions) | Fish-style history-based completion: grayed-out suggestion as you type; `→` accepts. |
 | [`zsh-syntax-highlighting`](https://github.com/zsh-users/zsh-syntax-highlighting) | Commands colored red until valid, quoted strings highlighted, typos caught before Enter. |

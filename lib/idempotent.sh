@@ -128,3 +128,52 @@ ensure_block() {
     printf '# <<< %s <<<\n' "$marker"
   } >> "$file"
 }
+
+# replace_ini_section <marker> <file> <section> <content>
+#   Strip any unmanaged copy of [section] then write it as a managed block.
+#   The two-step pairing was hand-rolled in every wsl.conf edit; this folds
+#   them so the call site can't forget the strip and produce duplicate keys.
+replace_ini_section() {
+  local marker="$1" file="$2" section="$3" content="$4"
+  strip_unmanaged_ini_section "$file" "$section"
+  ensure_block "$marker" "$file" "$content"
+}
+
+# ensure_block_in_rcs <marker> <home_dir> <content> [owner]
+#   Write the same marked block into ~/.bashrc (always) and ~/.zshrc (only if
+#   it already exists — zsh wiring lives in 30-shell-zsh, which creates it).
+#   If [owner] is given, chown the touched files to that user; use this when
+#   root is editing rc files in another user's home (rootless-docker handoff).
+ensure_block_in_rcs() {
+  local marker="$1" home="$2" content="$3" owner="${4:-}"
+  local rc
+  for rc in "$home/.bashrc" "$home/.zshrc"; do
+    [ "$rc" = "$home/.zshrc" ] && [ ! -f "$rc" ] && continue
+    ensure_block "$marker" "$rc" "$content"
+    [ -n "$owner" ] && [ "$DRY_RUN" != "1" ] && chown "$owner:$owner" "$rc"
+  done
+}
+
+# write_file_once <path> [owner]   — content read from stdin (heredoc).
+#   Skip if <path> already exists (preserves operator edits). Otherwise
+#   mkdir -p the parent and write. With [owner] set, mkdir + write run as
+#   that user via sudo, so the file and any new parent dirs are user-owned;
+#   caller must be root in that case.
+write_file_once() {
+  local path="$1" owner="${2:-}"
+  if [ -f "$path" ]; then
+    skip "Preserving existing $path"
+    return 0
+  fi
+  log "Writing $path"
+  [ "$DRY_RUN" = "1" ] && return 0
+  local dir
+  dir="$(dirname "$path")"
+  if [ -n "$owner" ]; then
+    sudo -u "$owner" mkdir -p "$dir"
+    sudo -u "$owner" tee "$path" >/dev/null
+  else
+    mkdir -p "$dir"
+    cat > "$path"
+  fi
+}

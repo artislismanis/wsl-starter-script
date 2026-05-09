@@ -19,8 +19,7 @@ esac
 
 apt_install sudo systemd
 
-strip_unmanaged_ini_section /etc/wsl.conf boot
-ensure_block "wsl-starter:boot" /etc/wsl.conf "[boot]
+replace_ini_section "wsl-starter:boot" /etc/wsl.conf boot "[boot]
 systemd=true"
 
 USER_NAME="${WSL_USER:-}"
@@ -40,13 +39,11 @@ else
   unset PASS
 fi
 
-strip_unmanaged_ini_section /etc/wsl.conf user
-ensure_block "wsl-starter:user" /etc/wsl.conf "[user]
+replace_ini_section "wsl-starter:user" /etc/wsl.conf user "[user]
 default=$USER_NAME"
 
 HOST_NAME="${WSL_HOSTNAME:-$(ask "Hostname" "$(hostname)")}"
-strip_unmanaged_ini_section /etc/wsl.conf network
-ensure_block "wsl-starter:network" /etc/wsl.conf "[network]
+replace_ini_section "wsl-starter:network" /etc/wsl.conf network "[network]
 generateResolvConf=false
 hostname=$HOST_NAME"
 
@@ -72,14 +69,12 @@ if [ -n "$DNS_CHOICE" ]; then
 fi
 
 if confirm "Disable Windows PATH appending (cleaner \$PATH)?" y; then
-  strip_unmanaged_ini_section /etc/wsl.conf interop
-  ensure_block "wsl-starter:interop" /etc/wsl.conf "[interop]
+  replace_ini_section "wsl-starter:interop" /etc/wsl.conf interop "[interop]
 appendWindowsPath=false"
 fi
 
 if confirm "Set metadata automount options on /mnt/* (proper file perms)?" y; then
-  strip_unmanaged_ini_section /etc/wsl.conf automount
-  ensure_block "wsl-starter:automount" /etc/wsl.conf "[automount]
+  replace_ini_section "wsl-starter:automount" /etc/wsl.conf automount "[automount]
 enabled=true
 options=\"metadata,umask=22,fmask=11\""
 fi
