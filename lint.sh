@@ -8,7 +8,7 @@ cd "$(dirname "${BASH_SOURCE[0]}")"
 if [ "$#" -gt 0 ]; then
   TARGETS=("$@")
 else
-  mapfile -t TARGETS < <(git ls-files '*.sh' 'install.sh' 'bootstrap.sh' 'lib/*.sh' 'modules/*.sh' '.githooks/*' 2>/dev/null | sort -u)
+  mapfile -t TARGETS < <(git ls-files '*.sh' '.githooks/*' 2>/dev/null | sort -u)
 fi
 
 # Filter once: keep only existing shell files we care about.

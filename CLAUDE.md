@@ -5,21 +5,14 @@ Target runtime: a **fresh Ubuntu WSL image** — this repo is never tested on lo
 
 ## Layout
 
-```
-install.sh                 dispatcher (flags, TUI, module grouping arrays)
-lib/common.sh              log/ok/skip/warn/die, ask/confirm/ask_secret, run, require_root/user
-lib/idempotent.sh          command_exists, pkg_installed, apt_install, apt_update_once,
-                           apt_add_signed_repo, apt_hold_unattended, ensure_block,
-                           strip_unmanaged_ini_section
-modules/NN-name.sh         one unit of installer work; declares REQUIRES_ROOT + DESCRIPTION
-                           Numeric prefixes today: 00 base, 10 apt-core, 20 cli-modern,
-                           25 docker-engine, 26 podman, 27 wsl-network, 30 shell-zsh,
-                           31 shell-history, 40 mise, 50 claude-code, 99 cleanup.
-claude/*.tmpl              source files rendered into ~/.claude/ by modules/50-claude-code.sh
-                           (NOT consumed by this repo itself — they ship to users)
-.claude/                   tooling for Claude working on this repo (hooks, skills)
-TESTING.md                 manual E2E scenarios on a fresh WSL image
-```
+See [README.md § Layout](README.md#layout) for the canonical module list with `[root]/[user]` tags. Notes specific to working on the repo:
+
+- `lib/common.sh` — `log/ok/skip/warn/die`, `ask/confirm/ask_secret`, `run`, `require_root/user`.
+- `lib/idempotent.sh` — `command_exists`, `pkg_installed`, `apt_install`, `apt_update_once`, `apt_add_signed_repo`, `apt_hold_unattended`, `ensure_block`, `strip_unmanaged_ini_section`.
+- `modules/NN-name.sh` — one installer unit; declares `REQUIRES_ROOT` + `DESCRIPTION` headers the dispatcher reads.
+- `claude/*.tmpl` — source files materialised into `~/.claude/` by `modules/50-claude-code.sh`. **Not** consumed by this repo itself — edit the `.tmpl`, not the rendered copy.
+- `.claude/` — tooling for Claude working on *this* repo (hooks, skills).
+- `TESTING.md` — manual E2E scenarios on a fresh WSL image.
 
 ## Module contract (every file in `modules/`)
 

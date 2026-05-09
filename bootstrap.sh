@@ -10,6 +10,8 @@ set -euo pipefail
 REPO_URL="${WSL_STARTER_REPO:-https://github.com/artislismanis/wsl-starter-script}"
 BRANCH="${WSL_STARTER_BRANCH:-main}"
 
+# Inline (rather than sourcing lib/common.sh): bootstrap runs before the repo
+# is cloned, so the libs aren't on disk yet.
 if [ -t 1 ]; then B=$'\033[0;94m'; G=$'\033[0;92m'; R=$'\033[0;91m'; N=$'\033[0m'
 else B=''; G=''; R=''; N=''; fi
 log()  { printf '%s==>%s %s\n' "$B" "$N" "$*"; }
