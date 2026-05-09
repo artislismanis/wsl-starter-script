@@ -9,6 +9,7 @@ See [README.md § Layout](README.md#layout) for the canonical module list with `
 
 - `lib/common.sh` — `log/ok/skip/warn/die`, `ask/confirm/ask_secret`, `run`, `require_root/user`, `is_wsl`.
 - `lib/idempotent.sh` — `command_exists`, `pkg_installed`, `apt_install`, `apt_update_once`, `apt_add_signed_repo`, `apt_hold_unattended`, `ensure_block`, `ensure_block_in_rcs`, `ensure_block_per_shell`, `replace_ini_section`, `write_file_once`.
+- `bootstrap.sh` — remote one-liner entry point. Inlines its own colour helpers (the libs aren't on disk yet at clone time), installs `git`/`curl`/`ca-certificates` if missing, clones (or `git pull --ff-only`s) the repo, then `exec`s `install.sh`. Edit this file if you change clone-time prerequisites or the default clone path.
 - `modules/NN-name.sh` — one installer unit; declares `REQUIRES_ROOT` + `DESCRIPTION` headers the dispatcher reads.
 - `claude/*.tmpl` (and `claude/mcp.example.json`) — source files materialised into `~/.claude/` by `modules/50-claude-code.sh`. **Not** consumed by this repo itself — edit the source, not the rendered copy. (`mcp.example.json` keeps its name unchanged because it's copied verbatim with no substitution.)
 - `.claude/` — tooling for Claude working on *this* repo (hooks, skills).
@@ -46,6 +47,10 @@ rc-file blocks use the `wsl-starter:<topic>` marker convention so re-runs don't 
 - Direct file writes inside library helpers: guard with `if [ "$DRY_RUN" = "1" ]; then ... fi` explicitly (see `ensure_block`) — `run` would double-eval the payload.
 - **Never** bypass `run` for `apt-get`, `useradd`, `chpasswd`, or any mutation. Dry-run must be total.
 
+## `set -e` + trailing `&&` footgun
+
+Don't end a function or for-loop body with `[ test ] && cmd`. When `test` fails, the line returns 1, the function returns 1, and the caller's `set -e` exits silently right after whatever log line preceded it — no error message, no stack trace. We've been bitten by this in `write_file_once`, `ensure_block_per_shell`, and `ensure_block_in_rcs`; all three now use `if` blocks at end-of-scope. The pattern is fine **mid-function** (set -e is exempt for the failing left side of `&&`); it's only the final statement of a function or loop body that bites.
+
 ## `.tmpl` files
 
 `claude/*.tmpl` are source files that `modules/50-claude-code.sh` materialises into `$HOME/.claude/`. The suffix means "copy to destination at install time" — not "intermediate scaffolding". Edit the `.tmpl`, not the rendered file under `~/.claude/` (a project PreToolUse hook will refuse the latter).
@@ -64,7 +69,9 @@ To add a new operator-tunable env var: name it with one of the forwarded prefixe
 
 ## Testing
 
-No unit tests. `TESTING.md` documents manual E2E scenarios against a fresh WSL image — this is the only meaningful test surface. `bash -n` and shellcheck run automatically on every edit via the PostToolUse hook in `.claude/settings.json`.
+No unit tests. `TESTING.md` documents manual E2E scenarios against a fresh WSL image — this is the only meaningful test surface.
+
+`./lint.sh` runs `bash -n` and `shellcheck -S warning` over every tracked shell file (and any extensionless file with a bash/sh shebang). The same checks run on staged files via `.githooks/pre-commit` and on each Claude Edit via the PostToolUse hook in `.claude/settings.json`. **Keep `-S warning` consistent across all three** — info-level findings (notably `SC1091` "Not following: ./../lib/common.sh" on every module's dynamic `source` line) aren't actionable and would block every commit if surfaced.
 
 ## When adding a new language/tool
 
