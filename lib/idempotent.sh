@@ -78,21 +78,19 @@ apt_hold_unattended() {
   chmod 0644 "$file"
 }
 
-# strip_unmanaged_ini_section <file> <section>
-#   Remove an INI section (e.g. [boot]) and its body from <file>, but only if
-#   it lives outside any "# >>> wsl-starter:* >>>" fenced block. Used to clear
-#   pre-existing unmanaged keys before ensure_block writes a managed version,
-#   preventing duplicate-key warnings (e.g. WSL's /etc/wsl.conf parser).
-strip_unmanaged_ini_section() {
+# _strip_unmanaged_ini_section <file> <section>
+#   Internal helper for replace_ini_section. Removes an INI section (e.g.
+#   [boot]) and its body from <file>, but only if it lives outside any
+#   "# >>> wsl-starter:* >>>" fenced block. Clears pre-existing unmanaged keys
+#   before ensure_block writes a managed version, preventing duplicate-key
+#   warnings (e.g. WSL's /etc/wsl.conf parser).
+_strip_unmanaged_ini_section() {
   local file="$1" section="$2"
   [ -f "$file" ] || return 0
   if ! grep -qE "^\[${section}\][[:space:]]*$" "$file" 2>/dev/null; then
     return 0
   fi
-  if [ "$DRY_RUN" = "1" ]; then
-    printf "  (would strip unmanaged [%s] section from %s)\n" "$section" "$file"
-    return 0
-  fi
+  [ "$DRY_RUN" = "1" ] && { printf "  (would strip unmanaged [%s] section from %s)\n" "$section" "$file"; return 0; }
   awk -v sec="[$section]" '
     /^# >>> wsl-starter:/ { in_managed=1; print; next }
     /^# <<< wsl-starter:/ { in_managed=0; print; next }
@@ -116,10 +114,7 @@ ensure_block() {
     return 0
   fi
   log "adding block '$marker' to $file"
-  if [ "$DRY_RUN" = "1" ]; then
-    printf "  (would append marked block to %s)\n" "$file"
-    return 0
-  fi
+  [ "$DRY_RUN" = "1" ] && { printf "  (would append marked block to %s)\n" "$file"; return 0; }
   [ -f "$file" ] || touch "$file"
   {
     printf '\n# >>> %s >>>\n' "$marker"
@@ -134,7 +129,7 @@ ensure_block() {
 #   them so the call site can't forget the strip and produce duplicate keys.
 replace_ini_section() {
   local marker="$1" file="$2" section="$3" content="$4"
-  strip_unmanaged_ini_section "$file" "$section"
+  _strip_unmanaged_ini_section "$file" "$section"
   ensure_block "$marker" "$file" "$content"
 }
 
@@ -153,13 +148,15 @@ ensure_block_in_rcs() {
   done
 }
 
-# write_file_once <path> [owner]   — content read from stdin (heredoc).
+# write_file_once <path> [owner] [mode]   — content read from stdin (heredoc).
 #   Skip if <path> already exists (preserves operator edits). Otherwise
 #   mkdir -p the parent and write. With [owner] set, mkdir + write run as
 #   that user via sudo, so the file and any new parent dirs are user-owned;
-#   caller must be root in that case.
+#   caller must be root in that case. With [mode] set (e.g. 0755), chmod the
+#   newly-written file — only applied when we actually wrote, so an operator's
+#   chmod on a preserved file isn't clobbered.
 write_file_once() {
-  local path="$1" owner="${2:-}"
+  local path="$1" owner="${2:-}" mode="${3:-}"
   if [ -f "$path" ]; then
     skip "Preserving existing $path"
     return 0
@@ -175,4 +172,15 @@ write_file_once() {
     mkdir -p "$dir"
     cat > "$path"
   fi
+  [ -n "$mode" ] && chmod "$mode" "$path"
+}
+
+# ensure_block_per_shell <marker> <home> <bash_content> <zsh_content>
+#   Like ensure_block_in_rcs but with shell-specific content. Use when the
+#   block needs to differ between bash and zsh (e.g. `mise activate bash` vs
+#   `mise activate zsh`). .zshrc is only touched if it already exists.
+ensure_block_per_shell() {
+  local marker="$1" home="$2" bash_content="$3" zsh_content="$4"
+  ensure_block "$marker" "$home/.bashrc" "$bash_content"
+  [ -f "$home/.zshrc" ] && ensure_block "$marker" "$home/.zshrc" "$zsh_content"
 }

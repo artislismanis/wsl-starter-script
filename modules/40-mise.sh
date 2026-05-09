@@ -17,9 +17,10 @@ MISE_BIN="$HOME/.local/bin/mise"
 [ -x "$MISE_BIN" ] || MISE_BIN="$(command -v mise || true)"
 [ -n "$MISE_BIN" ] || die "mise installed but not on PATH; open a new shell and re-run."
 
-ensure_block "wsl-starter:mise" "$HOME/.bashrc" 'export PATH="$HOME/.local/bin:$PATH"
-command -v mise >/dev/null 2>&1 && eval "$("$HOME/.local/bin/mise" activate bash)"'
-[ -f "$HOME/.zshrc" ] && ensure_block "wsl-starter:mise" "$HOME/.zshrc" 'export PATH="$HOME/.local/bin:$PATH"
+ensure_block_per_shell "wsl-starter:mise" "$HOME" \
+  'export PATH="$HOME/.local/bin:$PATH"
+command -v mise >/dev/null 2>&1 && eval "$("$HOME/.local/bin/mise" activate bash)"' \
+  'export PATH="$HOME/.local/bin:$PATH"
 command -v mise >/dev/null 2>&1 && eval "$("$HOME/.local/bin/mise" activate zsh)"'
 
 # ---- Runtimes ---------------------------------------------------------------
