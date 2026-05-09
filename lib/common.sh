@@ -25,11 +25,16 @@ die()     { printf "${C_RED} xx${C_RESET} %s\n" "$*" >&2; exit 1; }
 : "${DRY_RUN:=0}"
 : "${NON_INTERACTIVE:=0}"
 
+# run "shell string"  — single-arg by contract. Callers pass one shell string
+# (often containing redirects/pipes that must survive eval). The previous
+# implementation used `eval "$@"` which only happened to work because nobody
+# called it with multiple args; `eval "$1"` makes the contract explicit.
 run() {
+  [ "$#" -eq 1 ] || die "run: expected one shell-string argument, got $#"
   if [ "$DRY_RUN" = "1" ]; then
-    printf "${C_DIM}  $ %s${C_RESET}\n" "$*"
+    printf "${C_DIM}  $ %s${C_RESET}\n" "$1"
   else
-    eval "$@"
+    eval "$1"
   fi
 }
 

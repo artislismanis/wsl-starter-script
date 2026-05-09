@@ -64,19 +64,18 @@ module_requires_root() {
 #   WSL_INTEROP / WSL_DISTRO_NAME — set by WSL itself, session-specific
 #   DOCKER_HOST / DOCKER_CONFIG / DOCKER_CONTEXT / DOCKER_TLS_*  — Docker CLI
 #   CLAUDE_CODE_*  — Claude Code internals (auth tokens, telemetry)
-_FORWARD_ALWAYS=(NON_INTERACTIVE DRY_RUN)
-_FORWARD_PREFIX_RE='^(WSL|DOCKER|PODMAN|MISE|CLAUDE|ZSH)_'
-_FORWARD_BLOCK_RE='^(WSL_(INTEROP|DISTRO_NAME)|DOCKER_(HOST|CONFIG|CONTEXT|TLS_.*|CERT_PATH)|CLAUDE_CODE_.*)$'
-
 _collect_forward_assigns() {
+  local always=(NON_INTERACTIVE DRY_RUN)
+  local prefix_re='^(WSL|DOCKER|PODMAN|MISE|CLAUDE|ZSH)_'
+  local block_re='^(WSL_(INTEROP|DISTRO_NAME)|DOCKER_(HOST|CONFIG|CONTEXT|TLS_.*|CERT_PATH)|CLAUDE_CODE_.*)$'
   local v
   FORWARD_ASSIGNS=()
-  for v in "${_FORWARD_ALWAYS[@]}"; do
+  for v in "${always[@]}"; do
     [ -n "${!v+set}" ] && FORWARD_ASSIGNS+=("$v=$(printf '%q' "${!v}")")
   done
   while IFS= read -r v; do
-    [[ "$v" =~ $_FORWARD_PREFIX_RE ]] || continue
-    [[ "$v" =~ $_FORWARD_BLOCK_RE ]] && continue
+    [[ "$v" =~ $prefix_re ]] || continue
+    [[ "$v" =~ $block_re ]] && continue
     [ -n "${!v+set}" ] && FORWARD_ASSIGNS+=("$v=$(printf '%q' "${!v}")")
   done < <(compgen -v)
 }
@@ -97,6 +96,10 @@ run_module() {
     else
       log "Module '$name' requires root — escalating via sudo."
       _collect_forward_assigns
+      # Array form here ("${...[@]}") because env(1) takes argv directly.
+      # The handoff path below uses ${...[*]} because it builds a single
+      # bash -lc command string. Both are correct in their context — keep
+      # them aligned if either is touched.
       sudo env "${FORWARD_ASSIGNS[@]}" bash "$path"
     fi
   else

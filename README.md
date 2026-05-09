@@ -117,7 +117,7 @@ modules/
 claude/
   settings.json.tmpl    user-global Claude settings template
   CLAUDE.md.tmpl        user-global CLAUDE.md starter
-  statusline.sh.tmpl    minimal statusline (model, cwd, git branch)
+  statusline.sh.tmpl    statusline (model, ctx %, in/out tokens, 5h rate-limit)
   mcp.example.json      commented MCP servers to copy into projects
 ```
 
@@ -125,6 +125,9 @@ claude/
 
 ```
 --all                 Run base → dev → docker → claude → cleanup. (Excludes podman.)
+                      Cleanup is root-only — skipped when --all runs as a non-root user.
+                      Under --non-interactive, Docker installs in 'classic' mode by
+                      default; set DOCKER_MODE=skip to opt out or =rootless to switch.
 --base                Root-phase only (modules 00, 10).
 --dev                 cli-modern + zsh + history + mise. (apt-core is in --base.)
 --docker              Docker Engine (classic or rootless) + WSL network defenses.
@@ -207,8 +210,8 @@ The pre-commit hook is plain shell (`.githooks/pre-commit`) — no Python, no `p
 - WSL base: remove the `# >>> wsl-starter:* >>>` blocks from `/etc/wsl.conf`, then `wsl --terminate <your-distro>` (or `wsl --shutdown` to stop all distros).
 - Shell wiring: remove the `# >>> wsl-starter:* >>>` blocks from `~/.bashrc` / `~/.zshrc`.
 - Packages: `sudo apt-get remove <pkg>`; `mise uninstall <lang>`; `~/.local/bin/claude uninstall` (or delete `~/.local/bin/claude`).
-- Rootless docker: `systemctl --user disable --now docker`; `dockerd-rootless-setuptool.sh uninstall`; remove `~/.config/docker/`, `~/.config/systemd/user/docker.service.d/pasta.conf`, `/etc/systemd/system/user@.service.d/delegate.conf` (then `sudo systemctl daemon-reload`), and the `wsl-starter:docker-rootless` block from `~/.bashrc`/`~/.zshrc`.
-- Podman: `sudo apt-get remove podman podman-compose podman-docker` (the latter only if installed); no per-user state to clean up.
+- Rootless docker: `systemctl --user disable --now docker`; `dockerd-rootless-setuptool.sh uninstall`; `sudo apt-get remove docker-ce-rootless-extras uidmap slirp4netns passt fuse-overlayfs` (drop `passt` from this list if you still want it for podman); remove `~/.config/docker/`, `~/.config/systemd/user/docker.service.d/` (parent dir, not just `pasta.conf`), `/etc/systemd/system/user@.service.d/delegate.conf` (then `sudo systemctl daemon-reload`), and the `wsl-starter:docker-rootless` block from `~/.bashrc`/`~/.zshrc`.
+- Podman: `sudo apt-get remove podman podman-compose podman-docker` (the latter only if installed); also drop the rootless plumbing (`uidmap slirp4netns passt fuse-overlayfs`) if no other runtime needs it; no per-user state to clean up.
 - WSL network defenses: `sudo rm /etc/sysctl.d/99-wsl-network.conf /usr/local/bin/wsl-port-check && sudo sysctl --system`.
 - Unattended-upgrades holds: `sudo rm /etc/apt/apt.conf.d/51unattended-upgrades-{docker,podman}`.
 - Claude config: delete `~/.claude/settings.json` / `~/.claude/CLAUDE.md` (or edit in place).

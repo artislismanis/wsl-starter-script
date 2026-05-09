@@ -155,11 +155,11 @@ ls -l ~/.claude/mcp.example.json
 Pipe a fake payload through the statusline:
 
 ```bash
-echo '{"model":{"display_name":"opus"},"workspace":{"current_dir":"'$HOME'"}}' \
+echo '{"model":{"display_name":"opus"},"context_window":{"used_percentage":42,"total_input_tokens":12345,"total_output_tokens":678},"rate_limits":{"five_hour":{"used_percentage":17}}}' \
   | bash ~/.claude/scripts/statusline.sh; echo
 ```
 
-**Pass criteria:** `claude` on PATH, `settings.json` has your chosen `defaultMode` (not the literal `__PERMISSION_MODE__`), statusline prints `opus ~`.
+**Pass criteria:** `claude` on PATH, `settings.json` has your chosen `defaultMode` (not the literal `__PERMISSION_MODE__`), statusline prints something like `[opus] ctx:42% in:12.3k out:678 5h:17%` (colour codes stripped here for clarity).
 
 ---
 
@@ -309,6 +309,60 @@ wsl-port-check 22                                   # probe a specific port
 ```
 
 **Pass criteria:** without args, prints listening sockets + ephemeral range. With a port, attempts `bind()`; on failure with no listener visible, prints the "SMOKING GUN" hint pointing to `wsl --shutdown`.
+
+---
+
+## Scenario 11d — bootstrap.sh remote one-liner
+
+From a freshly-imported root shell with no clone yet:
+
+```bash
+apt-get update && apt-get install -y curl     # ca-certs is normally already there
+bash <(curl -fsSL https://raw.githubusercontent.com/artislismanis/wsl-starter-script/main/bootstrap.sh) --list
+```
+
+**Verify:**
+
+```bash
+ls /root/wsl-starter-script/install.sh        # repo cloned to root home
+git -C /root/wsl-starter-script remote -v     # origin matches WSL_STARTER_REPO default
+```
+
+Re-run the same one-liner — the second invocation should print "Updating existing clone at /root/wsl-starter-script" and `git pull --ff-only`. Then a negative case:
+
+```bash
+WSL_STARTER_DIR=/root/some-other-dir \
+  bash <(curl -fsSL https://raw.githubusercontent.com/artislismanis/wsl-starter-script/main/bootstrap.sh) --help
+```
+
+**Pass criteria:** initial run clones, second run fast-forwards (no errors, no duplicate clone), `WSL_STARTER_DIR` honoured. On a non-Debian image (try `wsl --import` of an Alpine or Fedora rootfs) the bootstrap dies with the "Bootstrap requires a Debian-family distro" message rather than barrelling on.
+
+---
+
+## Scenario 11e — In-session handoff (skip the reopen)
+
+After unregistering the test distro and reimporting fresh, as root:
+
+```bash
+cd /root/wsl-starter-script
+sudo ./install.sh --all
+```
+
+Answer the prompts through the root phase (user creation, hostname, DNS, etc.). When the root phase finishes, the installer asks **"Continue as '<user>' now in this WSL session…?"** — answer **y**.
+
+**Verify:**
+
+```bash
+# Inside the same shell after the handoff completes:
+ls /home/<user>/.claude/settings.json         # user-phase modules ran
+mise --version                                # 40-mise installed for the new user
+# We're still root in this shell, but the user's $HOME is fully provisioned.
+whoami                                        # root
+```
+
+Then `wsl --terminate <distro>` from PowerShell, reopen, and confirm you land as the new user with a working zsh / atuin / mise / claude.
+
+**Pass criteria:** the handoff completes without re-prompting for env vars set in the original `sudo` invocation (set `MISE_LANGUAGES=node,python` and confirm those are the runtimes installed); the post-handoff banner clearly states the operator is still root in this shell and points at `wsl --terminate`.
 
 ---
 

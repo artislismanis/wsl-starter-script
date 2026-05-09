@@ -70,9 +70,22 @@ if [ -f "$ZSHRC" ]; then
       log "Setting plugins=($ZSH_PLUGINS) in ~/.zshrc"
       run "sed -i 's|^plugins=(.*)|plugins=($ZSH_PLUGINS)|' '$ZSHRC'"
     fi
-  elif ! grep -q "zsh-autosuggestions zsh-syntax-highlighting" "$ZSHRC"; then
-    log "Enabling plugins in ~/.zshrc"
-    run "sed -i 's|^plugins=(\\(.*\\))|plugins=(\\1 zsh-autosuggestions zsh-syntax-highlighting)|' '$ZSHRC'"
+  else
+    # Only append plugins missing from the existing plugins=(...) line.
+    # Earlier versions checked for the exact substring "zsh-autosuggestions
+    # zsh-syntax-highlighting"; that missed cases where the operator had
+    # interleaved a custom plugin between the two and would re-append both.
+    plugins_line="$(grep -m1 '^plugins=(' "$ZSHRC" || true)"
+    to_add=()
+    for p in zsh-autosuggestions zsh-syntax-highlighting; do
+      [[ "$plugins_line" == *"$p"* ]] || to_add+=("$p")
+    done
+    if [ ${#to_add[@]} -gt 0 ]; then
+      log "Adding ${to_add[*]} to plugins=() in ~/.zshrc"
+      run "sed -i 's|^plugins=(\\(.*\\))|plugins=(\\1 ${to_add[*]})|' '$ZSHRC'"
+    else
+      skip "zsh-autosuggestions + zsh-syntax-highlighting already in plugins=()"
+    fi
   fi
   if [ -n "${ZSH_THEME:-}" ]; then
     if grep -qF "ZSH_THEME=\"$ZSH_THEME\"" "$ZSHRC"; then
