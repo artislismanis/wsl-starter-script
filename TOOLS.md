@@ -4,6 +4,26 @@ Reference for everything that ends up on disk after running the full installer. 
 
 ---
 
+## Module `00-wsl-base` — WSL base setup *(root)*
+
+The first module run on a fresh image. Everything else assumes systemd is up and a non-root user exists.
+
+| What | Where | Purpose |
+|---|---|---|
+| systemd enabled | `/etc/wsl.conf` `[boot] systemd=true` | Required by Docker/Podman and by atuin/mise's user services. Takes effect after `wsl --terminate`. |
+| `apt update` (+ optional `apt upgrade`) | — | Bring the image current. The upgrade step is opt-out under `WSL_APT_UPGRADE=0`; default is yes. |
+| `sudo`, `systemd` packages | apt | The base image often lacks `sudo`. |
+| Non-root user | `useradd -m -G sudo`, `chpasswd` | Operator-supplied via `WSL_USER` / `WSL_PASSWORD` (or interactive prompts). The distro's default user gets set in `/etc/wsl.conf` `[user]`. |
+| Hostname | `/etc/wsl.conf` `[network] hostname=…` | `WSL_HOSTNAME` or prompt. |
+| DNS | `/etc/resolv.conf` (rewritten with `chattr -i` first) + `[network] generateResolvConf=false` | Cloudflare / Google / keep-existing, or set `WSL_DNS` to an explicit space-separated list. |
+| Disable Windows PATH appending | `/etc/wsl.conf` `[interop] appendWindowsPath=false` | Opt-out prompt; default yes. Cleaner `$PATH` and faster shell startup. |
+| `/mnt/*` automount metadata | `/etc/wsl.conf` `[automount] options="metadata,umask=22,fmask=11"` | Opt-out prompt; default yes. Lets `chmod` work on Windows-side files. |
+| Repo handoff | `cp` to new user's `$HOME` (when started from `/root/`) + `/run/wsl-starter-handoff` hint file | So the user can pick up `--dev` / `--claude` after `wsl --terminate` + reopen. |
+
+All `/etc/wsl.conf` writes go through `replace_ini_section` — pre-existing unmanaged sections are stripped before the marked block is written, so re-runs don't accumulate duplicates.
+
+---
+
 ## Module `10-apt-core` — system foundation *(root)*
 
 Baseline Ubuntu packages every later module assumes are present. Nothing flashy here, but it saves you chasing "command not found" during setup.
@@ -201,7 +221,7 @@ uv *can* download its own Python builds if you skip the `mise use python@...` st
 | Item | Purpose |
 |---|---|
 | `claude` (native installer → `~/.local/bin/claude`) | Anthropic's official coding agent for the terminal. Standalone binary from `https://claude.ai/install.sh` — no Node dependency, independent of any mise-managed runtime. |
-| `~/.claude/settings.json` | User-global Claude Code settings with your chosen permission mode (`default` / `acceptEdits` / `plan`). |
+| `~/.claude/settings.json` | User-global Claude Code settings with your chosen permission mode (`default` / `acceptEdits` / `plan`). Also enables `prefersReducedMotion` and the `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` env flag — edit the file (or `claude/settings.json.tmpl` before install) to opt out. |
 | `~/.claude/CLAUDE.md` | User-global instructions Claude reads in every session — starter content you can edit. |
 | `~/.claude/scripts/statusline.sh` | Custom status-line script wired into Claude's TUI. |
 | `~/.claude/mcp.example.json` | Example MCP (Model Context Protocol) server config you can copy to `mcp.json` and fill in. |
