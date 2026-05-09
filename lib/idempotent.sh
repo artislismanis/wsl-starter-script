@@ -75,22 +75,6 @@ apt_hold_unattended() {
   chmod 0644 "$file"
 }
 
-# ensure_line "line" "file" — append line to file unless present (fixed-string match).
-# Writes directly (not via run) to avoid double-eval of the line content.
-ensure_line() {
-  local line="$1" file="$2"
-  if [ -f "$file" ] && grep -qxF -- "$line" "$file" 2>/dev/null; then
-    skip "present in $file: $line"
-    return 0
-  fi
-  if [ "$DRY_RUN" = "1" ]; then
-    printf "  (would append to %s): %s\n" "$file" "$line"
-    return 0
-  fi
-  [ -f "$file" ] || touch "$file"
-  printf '%s\n' "$line" >> "$file"
-}
-
 # strip_unmanaged_ini_section <file> <section>
 #   Remove an INI section (e.g. [boot]) and its body from <file>, but only if
 #   it lives outside any "# >>> wsl-starter:* >>>" fenced block. Used to clear

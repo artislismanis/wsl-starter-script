@@ -198,7 +198,7 @@ uv *can* download its own Python builds if you skip the `mise use python@...` st
 
 | Item | Purpose |
 |---|---|
-| `@anthropic-ai/claude-code` (global npm) | The `claude` CLI — Anthropic's official coding agent for the terminal. Needs Node from module 40. |
+| `claude` (native installer → `~/.local/bin/claude`) | Anthropic's official coding agent for the terminal. Standalone binary from `https://claude.ai/install.sh` — no Node dependency, independent of any mise-managed runtime. |
 | `~/.claude/settings.json` | User-global Claude Code settings with your chosen permission mode (`default` / `acceptEdits` / `plan`). |
 | `~/.claude/CLAUDE.md` | User-global instructions Claude reads in every session — starter content you can edit. |
 | `~/.claude/scripts/statusline.sh` | Custom status-line script wired into Claude's TUI. |

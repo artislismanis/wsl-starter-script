@@ -234,14 +234,15 @@ CLAUDE_PERMISSION_MODE=acceptEdits \
 ```bash
 # As a non-root user, try to run a root-only module:
 ./install.sh --module 00-wsl-base
-# Expect: error "Module '00-wsl-base' requires root. Re-run with: sudo ..."
+# Expect: log "Module '00-wsl-base' requires root — escalating via sudo."
+# then sudo prompts for the password and the module runs as root.
 
 # As root, try to run a user-only module:
 sudo ./install.sh --module 40-mise
 # Expect: error "Module '40-mise' must run as your non-root user, not sudo."
 ```
 
-**Pass criteria:** both refusals fire with clear messages, exit non-zero.
+**Pass criteria:** the root-only module auto-escalates via sudo (does *not* die); the user-only-as-root case refuses with a clear error and exits non-zero.
 
 ---
 

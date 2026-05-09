@@ -126,31 +126,33 @@ interactive_menu() {
 # the group is invoked as root; they surface in the handoff banner at the end.
 DEFERRED=()
 
+_run_each() { for m in "$@"; do run_module "$m"; done; }
+
 run_group() {
   case "$1" in
-    base)    for m in "${BASE_MODULES[@]}"; do run_module "$m"; done ;;
+    base)    _run_each "${BASE_MODULES[@]}" ;;
     dev)
       # Root runs the root-phase modules and defers the user-phase to the
       # new user (via in-session handoff or reopen). Non-root runs only the
       # user-phase modules — the root-phase packages must have been installed
       # earlier by `sudo ./install.sh --dev` (or --all / --base then --dev).
       if [ "$(id -u)" = "0" ]; then
-        for m in "${DEV_ROOT_MODULES[@]}"; do run_module "$m"; done
+        _run_each "${DEV_ROOT_MODULES[@]}"
         DEFERRED+=("--dev")
       else
-        for m in "${DEV_USER_MODULES[@]}"; do run_module "$m"; done
+        _run_each "${DEV_USER_MODULES[@]}"
       fi
       ;;
-    docker)  for m in "${DOCKER_MODULES[@]}"; do run_module "$m"; done ;;
-    podman)  for m in "${PODMAN_MODULES[@]}"; do run_module "$m"; done ;;
+    docker)  _run_each "${DOCKER_MODULES[@]}" ;;
+    podman)  _run_each "${PODMAN_MODULES[@]}" ;;
     claude)
       if [ "$(id -u)" != "0" ]; then
-        for m in "${CLAUDE_MODULES[@]}"; do run_module "$m"; done
+        _run_each "${CLAUDE_MODULES[@]}"
       else
         DEFERRED+=("--claude")
       fi
       ;;
-    cleanup) for m in "${CLEANUP_MODULES[@]}"; do run_module "$m"; done ;;
+    cleanup) _run_each "${CLEANUP_MODULES[@]}" ;;
     *) die "Unknown group: $1" ;;
   esac
 }
@@ -178,7 +180,7 @@ done
 
 # --all and --module are exclusive with group flags.
 if [ "$MODE" = "all" ] || [ "$MODE" = "single" ]; then
-  [ ${#SELECTED[@]} -eq 0 ] || die "--all/--module can't be combined with --base/--dev/--docker/--claude."
+  [ ${#SELECTED[@]} -eq 0 ] || die "--all/--module can't be combined with --base/--dev/--docker/--podman/--claude."
 fi
 
 [ "$MODE" = "" ] && [ ${#SELECTED[@]} -gt 0 ] && MODE=groups
@@ -189,13 +191,11 @@ case "$MODE" in
     run_group base
     run_group dev
     run_group docker
-    if [ "$(id -u)" = "0" ]; then
-      # Base created a new user; user-phase modules deferred.
-      :
-    else
-      run_group claude
-      run_group cleanup
-    fi
+    run_group claude
+    # Cleanup is root-only; skip when we're running the user-phase tail of
+    # --all (user has no apt to autoremove). When root, run it now — handoff
+    # below will take care of the deferred user-phase modules.
+    [ "$(id -u)" = "0" ] && run_group cleanup
     ;;
   groups)
     for g in "${SELECTED[@]}"; do run_group "$g"; done
@@ -249,13 +249,15 @@ if [ "$(id -u)" = "0" ] && [ ${#DEFERRED[@]} -gt 0 ]; then
     # Forward non-interactive / tuning env vars across the privilege drop — sudo strips
     # them by default, and the user-phase modules (mise pins, claude perm mode, etc.)
     # need to see the same values the root invocation did.
+    # Only user-phase env vars need forwarding — root-phase modules have
+    # already run by the time we reach the handoff. WSL_USER stays so the
+    # deferred install.sh can still resolve $TARGET_USER if it needs to.
     FORWARD_VARS=(
       NON_INTERACTIVE DRY_RUN
-      WSL_USER WSL_PASSWORD WSL_HOSTNAME WSL_DNS WSL_APT_UPGRADE
+      WSL_USER
       MISE_LANGUAGES
       MISE_NODE_VERSION MISE_PYTHON_VERSION MISE_RUBY_VERSION
       MISE_JAVA_VERSION MISE_GO_VERSION MISE_DENO_VERSION MISE_BUN_VERSION
-      DOCKER_MODE DOCKER_USER
       CLAUDE_PERMISSION_MODE
       ZSH_PLUGINS ZSH_THEME
     )
