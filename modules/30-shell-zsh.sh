@@ -46,27 +46,49 @@ for name in $ZSH_PLUGINS; do
 done
 
 ZSHRC="$HOME/.zshrc"
+# The sed patterns below assume ZSH_PLUGINS / ZSH_THEME contain only shell-safe
+# chars (alphanumerics, dashes, underscores, spaces). Plugin and theme names
+# don't legitimately contain `/`, `&`, or backslash, so we don't escape — but
+# anyone setting these to exotic values gets to keep the pieces.
+# The `grep -qF` precondition checks below are substring matches, not
+# anchored. Theoretical false-match if .zshrc already contains the search
+# string as part of a longer line — but the closing `)` / `"` make this
+# essentially impossible in practice. Anchored regex would require escaping
+# user input; not worth the complexity.
 if [ -f "$ZSHRC" ]; then
   if [ "$PLUGINS_OVERRIDE" = "1" ]; then
-    log "Setting plugins=($ZSH_PLUGINS) in ~/.zshrc"
-    run "sed -i 's/^plugins=(.*)/plugins=($ZSH_PLUGINS)/' '$ZSHRC'"
+    if grep -qF "plugins=($ZSH_PLUGINS)" "$ZSHRC"; then
+      skip "plugins=($ZSH_PLUGINS) already set in ~/.zshrc"
+    else
+      log "Setting plugins=($ZSH_PLUGINS) in ~/.zshrc"
+      run "sed -i 's/^plugins=(.*)/plugins=($ZSH_PLUGINS)/' '$ZSHRC'"
+    fi
   elif ! grep -q "zsh-autosuggestions zsh-syntax-highlighting" "$ZSHRC"; then
     log "Enabling plugins in ~/.zshrc"
     run "sed -i 's/^plugins=(\\(.*\\))/plugins=(\\1 zsh-autosuggestions zsh-syntax-highlighting)/' '$ZSHRC'"
   fi
   if [ -n "${ZSH_THEME:-}" ]; then
-    log "Setting ZSH_THEME=\"$ZSH_THEME\" in ~/.zshrc"
-    run "sed -i 's|^ZSH_THEME=.*|ZSH_THEME=\"$ZSH_THEME\"|' '$ZSHRC'"
+    if grep -qF "ZSH_THEME=\"$ZSH_THEME\"" "$ZSHRC"; then
+      skip "ZSH_THEME=\"$ZSH_THEME\" already set in ~/.zshrc"
+    else
+      log "Setting ZSH_THEME=\"$ZSH_THEME\" in ~/.zshrc"
+      run "sed -i 's|^ZSH_THEME=.*|ZSH_THEME=\"$ZSH_THEME\"|' '$ZSHRC'"
+    fi
   fi
 fi
 
 if confirm "Make zsh the default shell?" y; then
   zsh_path="$(command -v zsh)"
   current_shell="$(getent passwd "$USER" | cut -d: -f7)"
-  if [ "$current_shell" != "$zsh_path" ]; then
-    run "sudo chsh -s '$zsh_path' '$USER'"
-  else
+  if [ "$current_shell" = "$zsh_path" ]; then
     skip "zsh is already the login shell for $USER"
+  elif [ "$NON_INTERACTIVE" = "1" ] && ! sudo -n true >/dev/null 2>&1; then
+    # Under --non-interactive sudo can't prompt, so a chsh that needs auth
+    # would die with "no tty present". Detect and skip cleanly. Interactive
+    # runs fall through to plain `sudo chsh` which can prompt as normal.
+    warn "chsh needs sudo auth but there's no cached credential under --non-interactive — skipping. Run 'sudo chsh -s $zsh_path $USER' yourself."
+  else
+    run "sudo chsh -s '$zsh_path' '$USER'"
   fi
 fi
 

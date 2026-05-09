@@ -33,6 +33,8 @@ else
   [ -n "$PASS" ] || die "Password is required."
   log "Creating user $USER_NAME"
   run "useradd -m -G sudo -s /bin/bash '$USER_NAME'"
+  # chpasswd is deliberately NOT in `run` — `run` would echo the command
+  # (including the password) under --dry-run. Inline DRY_RUN guard it is.
   if [ "$DRY_RUN" != "1" ]; then
     printf '%s:%s\n' "$USER_NAME" "$PASS" | chpasswd
   fi
@@ -58,6 +60,10 @@ if [ -z "${WSL_DNS+set}" ]; then
 fi
 if [ -n "$DNS_CHOICE" ]; then
   log "Writing /etc/resolv.conf with DNS: $DNS_CHOICE"
+  # Three-step block (chattr -i, rm, redirected heredoc-style write) — kept as
+  # an inline DRY_RUN guard rather than three separate `run` calls because the
+  # operations only make sense as a unit. The log line above stands in for the
+  # dry-run preview.
   if [ "$DRY_RUN" != "1" ]; then
     chattr -i /etc/resolv.conf 2>/dev/null || true
     rm -f /etc/resolv.conf
@@ -101,7 +107,8 @@ fi
 
 # Drop a hint file so the orchestrator (install.sh) can resume into the new
 # user without re-deriving any of this. /run is tmpfs, cleared on reboot —
-# perfect for one-shot session state.
+# perfect for one-shot session state. Inline DRY_RUN guard rather than `run`
+# because the heredoc-style write isn't expressible as a single eval string.
 if [ "$DRY_RUN" != "1" ]; then
   {
     printf 'USER=%s\n' "$USER_NAME"

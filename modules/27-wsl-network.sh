@@ -20,8 +20,8 @@ require_root
 #    (bind fails but ss shows nothing → smoking gun for the WSL bug).
 
 SYSCTL_FILE="/etc/sysctl.d/99-wsl-network.conf"
-SYSCTL_EXISTED=0
-[ -f "$SYSCTL_FILE" ] && SYSCTL_EXISTED=1
+sysctl_was_new=1
+[ -f "$SYSCTL_FILE" ] && sysctl_was_new=0
 write_file_once "$SYSCTL_FILE" <<'CONF'
 # wsl-starter: container-host network defenses.
 # Reduces ephemeral-port exhaustion from rapid container churn.
@@ -29,7 +29,7 @@ net.ipv4.tcp_tw_reuse = 1
 net.ipv4.tcp_fin_timeout = 15
 net.ipv4.ip_local_port_range = 10000 65535
 CONF
-[ "$SYSCTL_EXISTED" = "0" ] && run "sysctl --system >/dev/null"
+[ "$sysctl_was_new" = "1" ] && run "sysctl --system >/dev/null"
 
 PORT_CHECK="/usr/local/bin/wsl-port-check"
 PORT_CHECK_SRC="$(dirname "${BASH_SOURCE[0]}")/files/wsl-port-check"

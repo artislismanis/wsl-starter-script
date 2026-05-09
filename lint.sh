@@ -8,15 +8,28 @@ cd "$(dirname "${BASH_SOURCE[0]}")"
 if [ "$#" -gt 0 ]; then
   TARGETS=("$@")
 else
-  mapfile -t TARGETS < <(git ls-files '*.sh' '.githooks/*' 2>/dev/null | sort -u)
+  mapfile -t TARGETS < <(git ls-files 2>/dev/null | sort -u)
 fi
 
-# Filter once: keep only existing shell files we care about.
+# Keep `.sh` files plus any tracked file whose basename has no extension and
+# starts with a bash/sh shebang (covers .githooks/pre-commit and
+# modules/files/wsl-port-check). Detecting by shebang means new shell helpers
+# without `.sh` get linted automatically. The shebang match is deliberately
+# exact (no `-S bash`, no flags after `bash`, no `#! /bin/bash` with a space):
+# project convention is `#!/usr/bin/env bash`, and a stricter check rejects
+# accidental shell scripts that aren't actually bash.
 FILTERED=()
 for f in "${TARGETS[@]}"; do
   [ -f "$f" ] || continue
   case "$f" in
-    *.sh|install.sh|bootstrap.sh|.githooks/pre-commit) FILTERED+=("$f") ;;
+    *.sh) FILTERED+=("$f"); continue ;;
+  esac
+  base="${f##*/}"
+  case "$base" in *.*) continue ;; esac   # basename has another extension
+  read -r shebang <"$f" 2>/dev/null || continue
+  case "$shebang" in
+    "#!/usr/bin/env bash"|"#!/bin/bash"|"#!/usr/bin/env sh"|"#!/bin/sh")
+      FILTERED+=("$f") ;;
   esac
 done
 

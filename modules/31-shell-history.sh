@@ -28,6 +28,9 @@ fi
 # bash needs bash-preexec to give atuin a hook into command history; zsh has
 # preexec built in. So the bash and zsh blocks below intentionally diverge.
 BASH_PX="$HOME/.bash-preexec.sh"
+# One-time download by design: bash-preexec is a single self-contained script
+# rarely updated upstream, and we want to preserve any operator edits across
+# re-runs. To force a refresh, delete ~/.bash-preexec.sh and re-run the module.
 if [ ! -f "$BASH_PX" ]; then
   run "curl -fsSL https://raw.githubusercontent.com/rcaloras/bash-preexec/master/bash-preexec.sh -o '$BASH_PX'"
 fi

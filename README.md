@@ -75,8 +75,8 @@ Or just `./install.sh` for the interactive menu.
 
 ```bash
 sudo ./install.sh --module 25-docker-engine
-# or non-interactively:
-sudo DOCKER_MODE=classic DOCKER_USER=$USER ./install.sh --module 25-docker-engine --non-interactive
+# or non-interactively (sudo -E preserves env; plain sudo would drop these):
+sudo -E DOCKER_MODE=classic DOCKER_USER=$USER ./install.sh --module 25-docker-engine --non-interactive
 # DOCKER_MODE = classic | rootless | skip
 ```
 
@@ -125,7 +125,7 @@ claude/
 ```
 --all                 Run base → dev → docker → claude → cleanup. (Excludes podman.)
 --base                Root-phase only (modules 00, 10).
---dev                 apt-core + cli-modern + zsh + history + mise.
+--dev                 cli-modern + zsh + history + mise. (apt-core is in --base.)
 --docker              Docker Engine (classic or rootless) + WSL network defenses.
 --podman              Podman (rootless, daemonless) + WSL network defenses.
 --claude              Claude Code + user-global config.
@@ -143,11 +143,11 @@ claude/
 | `WSL_PASSWORD`            | Password for that user |
 | `WSL_HOSTNAME`            | Hostname in `/etc/wsl.conf` |
 | `WSL_DNS`                 | Space-separated nameservers (empty = keep existing) |
-| `WSL_APT_UPGRADE`         | `1` to run `apt upgrade` during `--base` (default: skip) |
+| `WSL_APT_UPGRADE`         | `1`/`yes` runs `apt upgrade` during `--base`; `0`/`no` skips; unset prompts (default-yes, so `--non-interactive` upgrades) |
 | `MISE_LANGUAGES`          | CSV of runtimes to install, e.g. `node,python,go` |
 | `MISE_<LANG>_VERSION`     | Pin a specific version per runtime — see defaults below |
 | `DOCKER_MODE`             | `classic` / `rootless` / `skip` (only for `25-docker-engine`) |
-| `DOCKER_USER`             | User to add to the `docker` group (classic mode) |
+| `DOCKER_USER`             | Target user — added to `docker` group (classic) or owns the rootless daemon (rootless) |
 | `DOCKER_ROOTLESS_PASTA`   | `1` to use pasta as the rootlesskit network driver (rootless only) |
 | `PODMAN_COMPOSE`          | `1` (default) installs `podman-compose`, `0` skips |
 | `PODMAN_DOCKER_SHIM`      | `1` (default) installs `podman-docker` shim if `docker-ce-cli` isn't present |
@@ -155,7 +155,7 @@ claude/
 | `ZSH_PLUGINS`             | Replace the full `plugins=(...)` line in `~/.zshrc` |
 | `CLAUDE_PERMISSION_MODE`  | `default` / `acceptEdits` / `plan` |
 
-A handful of yes/no prompts have no env override (they default to "yes" under `--non-interactive`): disable Windows PATH appending, set automount metadata options, make zsh the default shell, install `uv`. Pass `--non-interactive` and you'll get the recommended defaults for all four. If you need to opt *out* of any of them, run interactively for that step.
+A handful of yes/no prompts have no env override and default to "yes" under `--non-interactive`: disable Windows PATH appending, set automount metadata options, make zsh the default shell, install `uv`. Note: mise's "show other runtimes" prompt defaults to *no*, so under `--non-interactive` only node and python are installed — set `MISE_LANGUAGES` explicitly to install ruby/java/go/deno/bun. If you need to opt *out* of any of the y-default prompts, run interactively for that step.
 
 Per-runtime version pins (override any of these; defaults shown):
 
