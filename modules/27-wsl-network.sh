@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 # REQUIRES_ROOT=1
 # DESCRIPTION=WSL network defenses for container hosts (sysctl + wsl-port-check).
+# ROLLBACK=sudo systemctl disable --now wsl-rshared-root.service 2>/dev/null || true
+# ROLLBACK=sudo rm -f /etc/systemd/system/wsl-rshared-root.service
+# ROLLBACK=sudo rm -f /etc/sysctl.d/99-wsl-network.conf /usr/local/bin/wsl-port-check
+# ROLLBACK=sudo systemctl daemon-reload
+# ROLLBACK=sudo sysctl --system >/dev/null
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/idempotent.sh"

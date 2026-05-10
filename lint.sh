@@ -75,5 +75,16 @@ for f in "${FILTERED[@]}"; do
   fi
 done
 
+# Module headers (REQUIRES_ROOT / DESCRIPTION / ROLLBACK). Same validator the
+# PostToolUse hook in .claude/settings.json runs — kept in one place so a Claude
+# edit and a `./lint.sh` invocation enforce identical rules.
+MODULE_FILES=()
+for f in "${FILTERED[@]}"; do
+  case "$f" in modules/*.sh) MODULE_FILES+=("$f") ;; esac
+done
+if [ "${#MODULE_FILES[@]}" -gt 0 ]; then
+  ./.githooks/validate-module-headers "${MODULE_FILES[@]}" || fail=1
+fi
+
 [ "$fail" = "0" ] && echo "lint: ok"
 exit "$fail"

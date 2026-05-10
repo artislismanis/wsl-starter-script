@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # REQUIRES_ROOT=0
 # DESCRIPTION=atuin (shell history) + zoxide (smart cd), wired into bash and zsh
+# ROLLBACK=rm -rf "$HOME/.atuin" "$HOME/.local/share/atuin" "$HOME/.bash-preexec.sh" "$HOME/.local/share/zoxide"
+# ROLLBACK=# rc-block (wsl-starter:atuin-zoxide) is removed by the cross-cutting rc strip below.
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/idempotent.sh"

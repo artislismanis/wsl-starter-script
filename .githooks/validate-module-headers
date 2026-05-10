@@ -1,12 +1,20 @@
 #!/usr/bin/env bash
-# Validate that every modules/*.sh file passed in $@ has the two required
-# headers the dispatcher reads (REQUIRES_ROOT and DESCRIPTION). The
-# `./install.sh --list` parser is permissive — a missing REQUIRES_ROOT line
-# silently falls through to "[user]", and a missing DESCRIPTION leaves the
-# --list column blank — so neither bash -n nor shellcheck catches the bug.
-# Used by the PostToolUse hook in .claude/settings.json and (transitively)
-# by the pre-commit hook.
+# Validate that every modules/*.sh file passed in $@ has the headers the
+# dispatcher reads:
+#   # REQUIRES_ROOT=0|1   — dispatcher's privilege gate
+#   # DESCRIPTION=...     — --list output
+#   # ROLLBACK=<line>     — at least one, when the module has write-sites
+#                           (--rollback dispatcher emits these verbatim)
+# The --list parser is permissive (missing REQUIRES_ROOT → [user]; missing
+# DESCRIPTION → blank column), so neither bash -n nor shellcheck catches
+# these. The ROLLBACK check is presence-based — see CLAUDE.md "Rollback
+# parity" for why presence + reviewer-checked completeness is the right level.
+# Used by the PostToolUse hook in .claude/settings.json and by lint.sh.
 set -euo pipefail
+
+# Primitives that mutate system or user state. Match conservatively: false
+# positives just force a `# ROLLBACK=# ...` comment line, which is cheap.
+WRITE_SITE_RE='(write_file_once|apt_add_signed_repo|apt_hold_unattended|ensure_block|replace_ini_section|systemctl enable|ln -s|useradd|chsh|install -m|chattr|sed -i)'
 
 fail=0
 for f in "$@"; do
@@ -23,6 +31,15 @@ for f in "$@"; do
   if ! grep -qE '^# DESCRIPTION=.+' "$f"; then
     echo "$f: missing '# DESCRIPTION=...' header (--list output will be blank for this module)." >&2
     fail=1
+  fi
+  # Strip header/comment lines before scanning for write-site primitives so
+  # documentation about a primitive doesn't trip the check. The header block
+  # ends at the first non-comment line.
+  if sed -n '/^[^#]/,$p' "$f" | grep -qE "$WRITE_SITE_RE"; then
+    if ! grep -qE '^# ROLLBACK=' "$f"; then
+      echo "$f: contains state-changing primitive(s) but no '# ROLLBACK=<line>' header. See CLAUDE.md 'Rollback parity'. The --rollback dispatcher emits these verbatim; modules with no rollback action declare a single '# ROLLBACK=# Nothing to roll back ...' comment line." >&2
+      fail=1
+    fi
   fi
 done
 

@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 # REQUIRES_ROOT=1
 # DESCRIPTION=Podman (rootless, daemonless container runtime) + docker CLI shim.
+# ROLLBACK=sudo rm -f /etc/containers/nodocker
+# ROLLBACK=# /etc/containers may have been created by this module — 'sudo rmdir /etc/containers' if empty.
+# ROLLBACK=sudo rm -f /etc/apt/apt.conf.d/51unattended-upgrades-podman
+# ROLLBACK=# Packages: podman podman-compose podman-docker (the latter only if installed) plus the shared
+# ROLLBACK=#   rootless plumbing (uidmap slirp4netns passt fuse-overlayfs) — keep the shared deps if rootless docker also uses them.
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/idempotent.sh"

@@ -1,6 +1,30 @@
 #!/usr/bin/env bash
 # REQUIRES_ROOT=1
 # DESCRIPTION=Docker Engine (classic rootful or rootless). Needs systemd from module 00.
+# ROLLBACK=# Two install paths — pick the one your install used.
+# ROLLBACK=#
+# ROLLBACK=# --- Classic mode (DOCKER_MODE=classic) ---
+# ROLLBACK=sudo systemctl disable --now docker.service containerd.service 2>/dev/null || true
+# ROLLBACK=sudo gpasswd -d "$USER" docker 2>/dev/null || true
+# ROLLBACK=sudo groupdel docker 2>/dev/null || true
+# ROLLBACK=sudo rm -f /etc/docker/daemon.json
+# ROLLBACK=#
+# ROLLBACK=# --- Rootless mode (DOCKER_MODE=rootless, default) ---
+# ROLLBACK=systemctl --user disable --now docker 2>/dev/null || true
+# ROLLBACK=command -v dockerd-rootless-setuptool.sh >/dev/null && dockerd-rootless-setuptool.sh uninstall || true
+# ROLLBACK=sudo loginctl disable-linger "$USER"
+# ROLLBACK=rm -rf "$HOME/.config/docker" "$HOME/.config/systemd/user/docker.service.d"
+# ROLLBACK=sudo rm -f /etc/systemd/system/user@.service.d/delegate.conf
+# ROLLBACK=sudo systemctl daemon-reload
+# ROLLBACK=sudo rm -f /etc/tmpfiles.d/wsl-starter-docker-rootless-symlink.conf /var/run/docker.sock
+# ROLLBACK=sudo sed -i '/# >>> wsl-starter:docker-rootless >>>/,/# <<< wsl-starter:docker-rootless <<</d' "$HOME/.bashrc" "$HOME/.zshrc" 2>/dev/null || true
+# ROLLBACK=#
+# ROLLBACK=# --- Common to both modes ---
+# ROLLBACK=sudo rm -f /etc/apt/sources.list.d/docker.list /etc/apt/keyrings/docker.gpg
+# ROLLBACK=sudo rm -f /etc/apt/apt.conf.d/51unattended-upgrades-docker
+# ROLLBACK=# Packages: docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+# ROLLBACK=#   + rootless extras (rootless mode): docker-ce-rootless-extras uidmap dbus-user-session slirp4netns passt fuse-overlayfs
+# ROLLBACK=#   Keep 'passt' / 'slirp4netns' / 'uidmap' / 'fuse-overlayfs' if podman is also installed.
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/idempotent.sh"

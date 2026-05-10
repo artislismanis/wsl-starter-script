@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # REQUIRES_ROOT=0
 # DESCRIPTION=Claude Code CLI + user-global settings + CLAUDE.md + statusline
+# ROLLBACK="$HOME/.local/bin/claude" uninstall 2>/dev/null || rm -f "$HOME/.local/bin/claude"
+# ROLLBACK=rm -rf "$HOME/.claude/scripts"
+# ROLLBACK=rm -f "$HOME/.claude/settings.json" "$HOME/.claude/CLAUDE.md" "$HOME/.claude/mcp.example.json"
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/idempotent.sh"

@@ -25,6 +25,10 @@ wsl-starter-script
   ./install.sh --claude              Claude Code CLI + user-global config.
   ./install.sh --module NAME         Run one module (e.g. 20-cli-modern).
   ./install.sh --list                List available modules.
+  ./install.sh --rollback [NAME]     Print rollback recipe (one module, or all in
+                                     reverse install order). Output is shell-pasteable;
+                                     review before running. Source-of-truth lives in
+                                     each module's '# ROLLBACK=' headers.
 
 Flags:
   --non-interactive   Read answers from env vars. Common ones:
@@ -55,6 +59,53 @@ list_modules() {
 
 module_requires_root() {
   grep -q '^# REQUIRES_ROOT=1' "$MODULES_DIR/$1.sh"
+}
+
+# print_rollback [module-name]
+#   Read each module's '# ROLLBACK=<line>' headers and print them verbatim,
+#   wrapped with a module separator. With no arg, walk every module in reverse
+#   install order (so user-phase + container modules unwind before the base
+#   distro setup). Output is shell-pasteable but never executed: rolling back
+#   a system mutation is the operator's call, not the dispatcher's.
+print_rollback() {
+  local target="${1:-}"
+  local files=()
+  if [ -n "$target" ]; then
+    local f="$MODULES_DIR/$target.sh"
+    [ -f "$f" ] || die "Unknown module: $target (see --list)"
+    files=("$f")
+  else
+    # Reverse install order: walk numeric prefixes from highest to lowest so
+    # 99-cleanup → 50-claude → 40-mise → ... → 00-wsl-base.
+    while IFS= read -r f; do files+=("$f"); done < <(printf '%s\n' "$MODULES_DIR"/*.sh | sort -r)
+  fi
+  cat <<'PREAMBLE'
+#!/usr/bin/env bash
+# wsl-starter-script rollback recipe — review before running.
+# Each module section lists what to undo for that module's writes.
+# Lines beginning with `#` are comments; everything else is shell-executable.
+PREAMBLE
+  local f base
+  for f in "${files[@]}"; do
+    base="$(basename "$f")"
+    printf '\n# ===== %s =====\n' "$base"
+    # cut -d= -f2- preserves any '=' inside the value.
+    grep '^# ROLLBACK=' "$f" | cut -d= -f2- || true
+  done
+  if [ -z "$target" ]; then
+    cat <<'FOOTER'
+
+# ===== Cross-cutting (run once at the end) =====
+# Strip every wsl-starter:* fenced block from the operator's rc files.
+sed -i '/# >>> wsl-starter:/,/# <<< wsl-starter:/d' "$HOME/.bashrc" "$HOME/.zshrc" 2>/dev/null || true
+# Apt cleanup after package removals (run any 'apt-get remove' lines above first).
+sudo apt-get autoremove -y || true
+# Per-session marker files self-clear on tmpfs (no action needed):
+#   /run/wsl-starter-handoff /run/wsl-starter.container-runtime /run/wsl-starter.apt-fresh
+# Final step: from Windows PowerShell so WSL re-reads /etc/wsl.conf:
+#   wsl --shutdown
+FOOTER
+  fi
 }
 
 # Operator-tunable env vars get forwarded across the root→user sudo handoff
@@ -202,6 +253,14 @@ while [ $# -gt 0 ]; do
     --claude)           SELECTED+=(claude) ;;
     --module)           MODE=single; SINGLE="${2:-}"; shift ;;
     --list)             list_modules; exit 0 ;;
+    --rollback)
+      # Optional positional arg: module name. Don't consume the next token if it
+      # starts with `--` (it's another flag, not the rollback target).
+      _rb_target=""
+      if [ $# -ge 2 ] && [ "${2:0:2}" != "--" ]; then
+        _rb_target="$2"; shift
+      fi
+      print_rollback "$_rb_target"; exit 0 ;;
     --non-interactive)  export NON_INTERACTIVE=1 ;;
     --dry-run)          export DRY_RUN=1 ;;
     -h|--help)          usage; exit 0 ;;
