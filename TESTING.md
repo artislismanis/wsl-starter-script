@@ -332,6 +332,34 @@ podman run --rm hello-world 2>&1 | grep -c 'is not a shared mount'   # 0
 
 ---
 
+## Scenario 11b-2 — `--module 27-wsl-network` standalone
+
+The auto-fire path (covered in 11a) only runs 27 after a runtime install. Operators who want the network defenses without Docker/Podman invoke 27 directly:
+
+```bash
+sudo ./install.sh --module 27-wsl-network
+```
+
+**Verify:**
+
+```bash
+ls /etc/sysctl.d/99-wsl-network.conf
+ls /usr/local/bin/wsl-port-check
+systemctl is-enabled wsl-rshared-root.service       # enabled (or "static" pre-reopen)
+```
+
+Re-run to confirm refresh-on-drift for `wsl-port-check`:
+
+```bash
+sudo sed -i '1a # locally edited' /usr/local/bin/wsl-port-check
+sudo ./install.sh --module 27-wsl-network            # should reinstall (cmp differs)
+grep -c 'locally edited' /usr/local/bin/wsl-port-check   # 0 — repo copy restored
+```
+
+**Pass criteria:** standalone run succeeds without prior --docker/--podman; re-run with a locally-edited port-check restores the repo version (since `wsl-port-check` is our artefact, not an operator-tunable file).
+
+---
+
 ## Scenario 11c — wsl-port-check helper
 
 ```bash

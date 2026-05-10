@@ -108,7 +108,7 @@ modules/
   20-cli-modern.sh      [root] zsh, ripgrep, fd, bat, eza, gh
   25-docker-engine.sh   [root] Docker Engine (classic or rootless), optional
   26-podman.sh          [root] Podman (rootless, daemonless) + docker shim, optional
-  27-wsl-network.sh     [root] sysctl tweaks + wsl-port-check helper
+  27-wsl-network.sh     [root] sysctl tweaks, wsl-port-check, rshared-root unit
   30-shell-zsh.sh       [user] oh-my-zsh + plugins (zsh installed by 20)
   31-shell-history.sh   [user] atuin + zoxide (bash & zsh)
   40-mise.sh            [user] mise + selected runtimes + uv

@@ -33,8 +33,12 @@ CONF
 
 PORT_CHECK="/usr/local/bin/wsl-port-check"
 PORT_CHECK_SRC="$(dirname "${BASH_SOURCE[0]}")/files/wsl-port-check"
-if [ -f "$PORT_CHECK" ]; then
-  skip "$PORT_CHECK already present"
+# Refresh on content drift rather than just existence — wsl-port-check is our
+# artefact (not an operator-tunable file like ~/.bashrc), so a newer repo copy
+# should replace an older installed one without making the operator delete it
+# manually. cmp -s exits 0 when files match.
+if [ -f "$PORT_CHECK" ] && cmp -s "$PORT_CHECK_SRC" "$PORT_CHECK"; then
+  skip "$PORT_CHECK already up to date"
 else
   log "Installing $PORT_CHECK"
   run "install -m 0755 '$PORT_CHECK_SRC' '$PORT_CHECK'"

@@ -92,7 +92,7 @@ run_module() {
   RAN_MODULES[$name]=1
   printf "\n${C_BLUE}━━ %s ━━${C_RESET}\n" "$name"
   if module_requires_root "$name"; then
-    if [ "$(id -u)" = "0" ]; then
+    if is_root; then
       bash "$path"
     else
       log "Module '$name' requires root — escalating via sudo."
@@ -104,7 +104,9 @@ run_module() {
       sudo env "${FORWARD_ASSIGNS[@]}" bash "$path"
     fi
   else
-    [ "$(id -u)" = "0" ] && die "Module '$name' must run as your non-root user, not sudo."
+    if is_root; then
+      die "Module '$name' must run as your non-root user, not sudo."
+    fi
     bash "$path"
   fi
 }
@@ -167,7 +169,7 @@ run_group() {
       # auto-escalates). Idempotent and cheap (apt stamp file short-circuits),
       # but the duplicate log lines are intentional, not a bug.
       _run_each "${DEV_ROOT_MODULES[@]}"
-      if [ "$(id -u)" = "0" ]; then
+      if is_root; then
         DEFERRED+=("--dev")
       else
         _run_each "${DEV_USER_MODULES[@]}"
@@ -176,10 +178,10 @@ run_group() {
     docker)  _run_each "${DOCKER_MODULES[@]}" ;;
     podman)  _run_each "${PODMAN_MODULES[@]}" ;;
     claude)
-      if [ "$(id -u)" != "0" ]; then
-        _run_each "${CLAUDE_MODULES[@]}"
-      else
+      if is_root; then
         DEFERRED+=("--claude")
+      else
+        _run_each "${CLAUDE_MODULES[@]}"
       fi
       ;;
     cleanup) run_module 99-cleanup ;;
@@ -224,8 +226,11 @@ case "$MODE" in
     run_group claude
     # Cleanup is root-only; skip when we're running the user-phase tail of
     # --all (user has no apt to autoremove). When root, run it now — handoff
-    # below will take care of the deferred user-phase modules.
-    [ "$(id -u)" = "0" ] && run_group cleanup
+    # below will take care of the deferred user-phase modules. `if` rather
+    # than trailing `&&` so we don't repropagate a non-zero status into the
+    # script's tail (the project's set -e + && footgun, even though it's
+    # benign at top level).
+    if is_root; then run_group cleanup; fi
     ;;
   groups)
     for g in "${SELECTED[@]}"; do run_group "$g"; done
@@ -255,7 +260,7 @@ if { [ -n "${RAN_MODULES[25-docker-engine]:-}" ] || [ -n "${RAN_MODULES[26-podma
   run_module 27-wsl-network
 fi
 
-if [ "$(id -u)" = "0" ] && [ ${#DEFERRED[@]} -gt 0 ]; then
+if is_root && [ ${#DEFERRED[@]} -gt 0 ]; then
   echo
   warn "Root-phase done. User-phase modules (${DEFERRED[*]}) still need to run as your new user."
 

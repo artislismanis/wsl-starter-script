@@ -31,9 +31,8 @@ case "$MODE" in
 esac
 [ "$MODE" = "skip" ] && { ok "Docker install skipped."; exit 0; }
 
-# RUNTIME_STAMP is defined in lib/common.sh; install.sh checks it to decide
-# whether to run 27-wsl-network. Drop it on every success path below, never
-# on skip.
+# mark_runtime_installed (lib/common.sh) drops $RUNTIME_STAMP so install.sh's
+# tail fires 27-wsl-network. Call it on every success path below, never on skip.
 
 # ---- Target user (for both modes) -------------------------------------------
 TARGET_USER="${DOCKER_USER:-${SUDO_USER:-}}"
@@ -84,7 +83,7 @@ JSON
   log "Enabling docker.service"
   run "systemctl enable --now docker.service"
   run "systemctl enable --now containerd.service"
-  : > "$RUNTIME_STAMP"   # marker for install.sh (see lib/common.sh); cheap enough to write under --dry-run too
+  mark_runtime_installed
   ok "Classic Docker installed. $TARGET_USER must log out and back in (or 'wsl --terminate ${WSL_DISTRO_NAME:-<your-distro>}') for group membership to take effect."
   exit 0
 fi
@@ -103,14 +102,23 @@ run "loginctl enable-linger '$TARGET_USER'"
 # Delegate all cgroup v2 controllers to user sessions. By default systemd only
 # delegates memory+pids to user@.service, which leaves rootless dockerd unable
 # to apply cpu/io limits.
-write_file_once /etc/systemd/system/user@.service.d/delegate.conf <<'EOF'
+DELEGATE_CONF=/etc/systemd/system/user@.service.d/delegate.conf
+delegate_was_new=1
+[ -f "$DELEGATE_CONF" ] && delegate_was_new=0
+write_file_once "$DELEGATE_CONF" <<'EOF'
 [Service]
 Delegate=cpu cpuset io memory pids
 EOF
-run "systemctl daemon-reload"
+# Only reload when we actually wrote the drop-in — saves a systemctl invocation
+# on every re-run and keeps the log honest about what changed.
+[ "$delegate_was_new" = "1" ] && run "systemctl daemon-reload"
 
 # Write rootless daemon.json before first start: use the systemd cgroup driver
-# (now viable thanks to the controller delegation above).
+# (now viable thanks to the controller delegation above). Order matters — this
+# must happen *before* the setuptool below so the first daemon start picks up
+# live-restore + the cgroup driver. On re-runs the file is preserved and the
+# operator is responsible for `systemctl --user restart docker` if they
+# manually deleted daemon.json mid-life.
 write_file_once "$TARGET_HOME/.config/docker/daemon.json" "$TARGET_USER" <<'JSON'
 {
   "exec-opts": ["native.cgroupdriver=systemd"],
@@ -122,8 +130,16 @@ UID_N="$(id -u "$TARGET_USER")"
 
 # Run the rootless setuptool as the target user. It creates
 # ~/.config/systemd/user/docker.service and starts the user-level daemon.
-log "Running dockerd-rootless-setuptool.sh as $TARGET_USER"
-run "sudo -iu '$TARGET_USER' env XDG_RUNTIME_DIR=/run/user/${UID_N} dockerd-rootless-setuptool.sh install --force"
+# Skip on re-run when the user-level unit is already present — the setuptool
+# is idempotent under --force, but it prints a wall of output and re-imports
+# the docker group, which is noise the operator doesn't need on every re-run.
+ROOTLESS_UNIT="$TARGET_HOME/.config/systemd/user/docker.service"
+if [ -f "$ROOTLESS_UNIT" ]; then
+  skip "rootless docker.service already installed for $TARGET_USER"
+else
+  log "Running dockerd-rootless-setuptool.sh as $TARGET_USER"
+  run "sudo -iu '$TARGET_USER' env XDG_RUNTIME_DIR=/run/user/${UID_N} dockerd-rootless-setuptool.sh install --force"
+fi
 
 # Persist DOCKER_HOST in both bash and zsh rc files. The helper chowns each
 # touched rc back to TARGET_USER after the root-side write.
@@ -175,7 +191,7 @@ EOF
   ok "Symlinked /var/run/docker.sock → /run/user/${UID_N}/docker.sock for tooling that hardcodes the system path."
 fi
 
-: > "$RUNTIME_STAMP"   # marker for install.sh (see lib/common.sh); cheap enough to write under --dry-run too
+mark_runtime_installed
 ok "Rootless Docker installed for $TARGET_USER. Open a new shell and run: docker info"
 echo "  - DOCKER_HOST is set automatically in new shells."
 echo "  - Daemon lifecycle: systemctl --user {status,restart,stop} docker"
