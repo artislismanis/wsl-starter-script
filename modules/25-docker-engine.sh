@@ -31,6 +31,10 @@ case "$MODE" in
 esac
 [ "$MODE" = "skip" ] && { ok "Docker install skipped."; exit 0; }
 
+# RUNTIME_STAMP is defined in lib/common.sh; install.sh checks it to decide
+# whether to run 27-wsl-network. Drop it on every success path below, never
+# on skip.
+
 # ---- Target user (for both modes) -------------------------------------------
 TARGET_USER="${DOCKER_USER:-${SUDO_USER:-}}"
 if [ -z "$TARGET_USER" ] || ! id "$TARGET_USER" >/dev/null 2>&1; then
@@ -80,6 +84,7 @@ JSON
   log "Enabling docker.service"
   run "systemctl enable --now docker.service"
   run "systemctl enable --now containerd.service"
+  : > "$RUNTIME_STAMP"   # marker for install.sh (see lib/common.sh); cheap enough to write under --dry-run too
   ok "Classic Docker installed. $TARGET_USER must log out and back in (or 'wsl --terminate ${WSL_DISTRO_NAME:-<your-distro>}') for group membership to take effect."
   exit 0
 fi
@@ -113,14 +118,15 @@ write_file_once "$TARGET_HOME/.config/docker/daemon.json" "$TARGET_USER" <<'JSON
 }
 JSON
 
+UID_N="$(id -u "$TARGET_USER")"
+
 # Run the rootless setuptool as the target user. It creates
 # ~/.config/systemd/user/docker.service and starts the user-level daemon.
 log "Running dockerd-rootless-setuptool.sh as $TARGET_USER"
-run "sudo -iu '$TARGET_USER' env XDG_RUNTIME_DIR=/run/user/$(id -u "$TARGET_USER") dockerd-rootless-setuptool.sh install --force"
+run "sudo -iu '$TARGET_USER' env XDG_RUNTIME_DIR=/run/user/${UID_N} dockerd-rootless-setuptool.sh install --force"
 
 # Persist DOCKER_HOST in both bash and zsh rc files. The helper chowns each
 # touched rc back to TARGET_USER after the root-side write.
-UID_N="$(id -u "$TARGET_USER")"
 ensure_block_in_rcs "wsl-starter:docker-rootless" "$TARGET_HOME" \
   "export PATH=\"\$HOME/bin:\$PATH\"
 export DOCKER_HOST=\"unix:///run/user/${UID_N}/docker.sock\"" \
@@ -138,9 +144,8 @@ if [ -z "$USE_PASTA" ]; then
     USE_PASTA=0
   fi
 fi
-case "$USE_PASTA" in 1|yes|true) USE_PASTA=1 ;; *) USE_PASTA=0 ;; esac
 
-if [ "$USE_PASTA" = "1" ]; then
+if truthy "$USE_PASTA"; then
   # dockerd-rootless.sh reads NET and derives the matching --port-driver
   # itself. Passing raw --net=pasta via DOCKERD_ROOTLESS_ROOTLESSKIT_FLAGS
   # collides with the slirp4netns defaults the script has already picked,
@@ -154,6 +159,23 @@ UNIT
   ok "pasta wired as rootlesskit network driver. host.docker.internal:host-gateway should now resolve to the host."
 fi
 
+# ---- Optional: /var/run/docker.sock compatibility symlink -------------------
+# Dev-containers, some CI runners, and other tooling bind-mount
+# /var/run/docker.sock directly. Rootless dockerd listens on
+# /run/user/$UID/docker.sock instead, so those mounts fail with "source path
+# does not exist". A symlink at the well-known path fixes it without exposing
+# root — the target socket still belongs to TARGET_USER. systemd-tmpfiles
+# recreates it on every boot (WSL's systemd honours /etc/tmpfiles.d).
+USE_HOST_SYMLINK="${DOCKER_ROOTLESS_HOST_SYMLINK:-1}"
+if truthy "$USE_HOST_SYMLINK"; then
+  write_file_once /etc/tmpfiles.d/wsl-starter-docker-rootless-symlink.conf <<EOF
+L /var/run/docker.sock - - - - /run/user/${UID_N}/docker.sock
+EOF
+  run "systemd-tmpfiles --create /etc/tmpfiles.d/wsl-starter-docker-rootless-symlink.conf"
+  ok "Symlinked /var/run/docker.sock → /run/user/${UID_N}/docker.sock for tooling that hardcodes the system path."
+fi
+
+: > "$RUNTIME_STAMP"   # marker for install.sh (see lib/common.sh); cheap enough to write under --dry-run too
 ok "Rootless Docker installed for $TARGET_USER. Open a new shell and run: docker info"
 echo "  - DOCKER_HOST is set automatically in new shells."
 echo "  - Daemon lifecycle: systemctl --user {status,restart,stop} docker"

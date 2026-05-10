@@ -7,7 +7,7 @@ Target runtime: a **fresh Ubuntu WSL image** — this repo is never tested on lo
 
 See [README.md § Layout](README.md#layout) for the canonical module list with `[root]/[user]` tags. Notes specific to working on the repo:
 
-- `lib/common.sh` — `log/ok/skip/warn/die`, `ask/confirm/ask_secret`, `run`, `require_root/user`, `is_wsl`.
+- `lib/common.sh` — `log/ok/skip/warn/die`, `ask/confirm/ask_secret`, `run`, `require_root/user`, `truthy`, `is_wsl`.
 - `lib/idempotent.sh` — `command_exists`, `pkg_installed`, `apt_install`, `apt_update_once`, `apt_add_signed_repo`, `apt_hold_unattended`, `ensure_block`, `ensure_block_in_rcs`, `ensure_block_per_shell`, `replace_ini_section`, `write_file_once`.
 - `bootstrap.sh` — remote one-liner entry point. Inlines its own colour helpers (the libs aren't on disk yet at clone time), installs `git`/`curl`/`ca-certificates` if missing, clones (or `git pull --ff-only`s) the repo, then `exec`s `install.sh`. Edit this file if you change clone-time prerequisites or the default clone path.
 - `modules/NN-name.sh` — one installer unit; declares `REQUIRES_ROOT` + `DESCRIPTION` headers the dispatcher reads.
@@ -18,7 +18,7 @@ See [README.md § Layout](README.md#layout) for the canonical module list with `
 ## Module contract (every file in `modules/`)
 
 - Two header lines Claude must preserve:  `# REQUIRES_ROOT=0|1`  and  `# DESCRIPTION=...`
-- First three lines of body:  `set -euo pipefail`  → source both libs  → `require_root` or `require_user`
+- Body bootstrap (first four lines, in order): `set -euo pipefail`; `source ../lib/common.sh`; `source ../lib/idempotent.sh`; `require_root` or `require_user` matching the header.
 - Dispatcher parses the headers to enforce privilege and populate `--list`.
 - Scaffold new modules via `/new-module` (skill in `.claude/skills/new-module/`) so the contract stays intact.
 
@@ -73,7 +73,7 @@ Only `claude/settings.json.tmpl` contains a substitution marker (`__PERMISSION_M
 
 Root modules run before reopen; user modules after. The dispatcher refuses mismatched invocations.
 
-When `install.sh` (running as non-root) hits a root module, it auto-escalates via `sudo env "${FORWARD_ASSIGNS[@]}" bash <module>`. `FORWARD_ASSIGNS` is built by `_collect_forward_assigns`, which sweeps every set env var matching `^(WSL|DOCKER|PODMAN|MISE|CLAUDE|ZSH)_` plus `NON_INTERACTIVE` and `DRY_RUN`, minus the system/SDK vars in the function's `block_re`: `WSL_INTEROP`, `WSL_DISTRO_NAME`, `DOCKER_HOST`, `DOCKER_CONFIG`, `DOCKER_CONTEXT`, `DOCKER_TLS_*`, `DOCKER_CERT_PATH`, `CLAUDE_CODE_*`. The same sweep runs for the in-session `sudo -iu <user>` handoff at the end of root-phase. Do not use plain `sudo -E` — it depends on sudoers `env_keep` and silently drops most tunables.
+When `install.sh` (running as non-root) hits a root module, it auto-escalates via `sudo env "${FORWARD_ASSIGNS[@]}" bash <module>`. `FORWARD_ASSIGNS` is built by `_collect_forward_assigns`, which sweeps every set env var matching `^(WSL|DOCKER|PODMAN|MISE|CLAUDE|ZSH)_` plus `NON_INTERACTIVE` and `DRY_RUN`, minus a blocklist of system/SDK vars (WSL/Docker internals, `CLAUDE_CODE_*`). The same sweep runs for the in-session `sudo -iu <user>` handoff at the end of root-phase. The authoritative blocklist lives in `_collect_forward_assigns` in `install.sh` — don't duplicate it here, just point at the source. Do not use plain `sudo -E` — it depends on sudoers `env_keep` and silently drops most tunables.
 
 To add a new operator-tunable env var: name it with one of the forwarded prefixes (`WSL_`, `DOCKER_`, `PODMAN_`, `MISE_`, `CLAUDE_`, `ZSH_`) and it'll be forwarded automatically. No edit to `install.sh` needed. If the prefix matches but the var should NOT be forwarded (e.g. it's a system or SDK variable), add it to the `block_re` regex inside `_collect_forward_assigns`.
 
@@ -83,7 +83,7 @@ To add a new operator-tunable env var: name it with one of the forwarded prefixe
 
 No unit tests. `TESTING.md` documents manual E2E scenarios against a fresh WSL image — this is the only meaningful test surface.
 
-`./lint.sh` runs `bash -n` and `shellcheck -S warning` over every tracked shell file (and any extensionless file with a bash/sh shebang). The same checks run on staged files via `.githooks/pre-commit` and on each Claude Edit via the PostToolUse hook in `.claude/settings.json`. **Keep `-S warning` consistent across all three** — info-level findings (notably `SC1091` "Not following: ./../lib/common.sh" on every module's dynamic `source` line) aren't actionable and would block every commit if surfaced.
+`./lint.sh` runs `bash -n` and `shellcheck -S warning -x` over every tracked shell file (and any extensionless file with a bash/sh shebang). The same checks run on staged files via `.githooks/pre-commit` and on each Claude Edit via the PostToolUse hook in `.claude/settings.json`. **Keep both `-S warning` and `-x` consistent across all three** — info-level findings (notably `SC1091` "Not following: ./../lib/common.sh" on every module's dynamic `source` line) aren't actionable and would block every commit if surfaced; `-x` lets shellcheck follow the dynamic `source` so cross-file warnings still fire.
 
 ## When adding a new language/tool
 
