@@ -14,7 +14,7 @@ set -euo pipefail
 
 # Primitives that mutate system or user state. Match conservatively: false
 # positives just force a `# ROLLBACK=# ...` comment line, which is cheap.
-WRITE_SITE_RE='(write_file_once|write_if_drift|apt_add_signed_repo|apt_hold_unattended|ensure_block|replace_ini_section|systemctl enable|ln -s|useradd|chsh|install -m|chattr|sed -i)'
+WRITE_SITE_RE='(write_file_once|write_if_drift|copy_if_drift|apt_add_signed_repo|apt_hold_unattended|ensure_block|replace_ini_section|systemctl enable|ln -s|useradd|chsh|install -m|chattr|sed -i)'
 
 fail=0
 for f in "$@"; do
