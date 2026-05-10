@@ -53,8 +53,6 @@ if [ "$INCLUDE_SHIM" = "1" ]; then
 fi
 
 # Drop the container-runtime stamp so install.sh runs 27-wsl-network.
-# RUNTIME_STAMP comes from lib/common.sh; written even under --dry-run since
-# it's a single empty marker on tmpfs (not a substantive mutation).
-: > "$RUNTIME_STAMP"
+mark_runtime_installed
 
 ok "Podman installed. Try: podman run --rm hello-world  (rootless, no group needed)"

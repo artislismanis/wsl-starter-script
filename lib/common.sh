@@ -81,8 +81,13 @@ ask_secret() {
   done
 }
 
-require_root() { [ "$(id -u)" = "0" ] || die "This module must run as root (sudo)."; }
-require_user() { [ "$(id -u)" != "0" ] || die "This module must run as a non-root user (not sudo)."; }
+# Predicate version of the require_* guards — usable in `if` without exiting.
+# require_root/require_user are the hard guards modules call up front; is_root
+# is the soft check the dispatcher uses to branch (run user-phase now vs defer
+# to handoff, etc.).
+is_root()      { [ "$(id -u)" = "0" ]; }
+require_root() { is_root || die "This module must run as root (sudo)."; }
+require_user() { is_root && die "This module must run as a non-root user (not sudo)."; return 0; }
 
 # truthy "value"  -> exit 0 if value is 1/yes/true (case-insensitive), else 1.
 # Single source of truth for env-var booleans (DOCKER_ROOTLESS_*, PODMAN_*,
@@ -102,3 +107,9 @@ export REPO_ROOT
 # Single source of truth — don't repeat the path in modules or the dispatcher.
 RUNTIME_STAMP="${RUNTIME_STAMP:-/run/wsl-starter.container-runtime}"
 export RUNTIME_STAMP
+
+# mark_runtime_installed — drop $RUNTIME_STAMP so the dispatcher's gate at the
+# bottom of install.sh fires 27-wsl-network. Written even under --dry-run so
+# the preview is faithful (single empty marker on tmpfs, cleared on reboot —
+# the one carve-out from "dry-run must be total"; see CLAUDE.md).
+mark_runtime_installed() { : > "$RUNTIME_STAMP"; }

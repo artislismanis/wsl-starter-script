@@ -1,6 +1,6 @@
 ---
 name: module-contract-validator
-description: Verify a `modules/NN-name.sh` file conforms to the dispatcher's contract — REQUIRES_ROOT and DESCRIPTION headers, mandatory first-three-body-lines (set -euo pipefail, source both libs, require_root/user), idempotency-helper usage instead of hand-rolled apt/file mutations, and rollback parity in README. Use after any new module is added or a module's structure changes.
+description: Verify a `modules/NN-name.sh` file conforms to the dispatcher's contract — REQUIRES_ROOT and DESCRIPTION headers, the four mandatory body bootstrap lines (set -euo pipefail, source common.sh, source idempotent.sh, require_root/user), idempotency-helper usage instead of hand-rolled apt/file mutations, and rollback parity in README. Use after any new module is added or a module's structure changes.
 tools: Read, Grep, Bash
 ---
 
@@ -25,12 +25,11 @@ For each `modules/NN-name.sh` file, verify:
 - One of the first ~5 lines: `# DESCRIPTION=<one short sentence>` (no quotes, no trailing period required).
 - The numeric prefix `NN` falls within the documented range — see `.claude/skills/new-module/SKILL.md`'s prefix map.
 
-### 2. Body bootstrap (mandatory first three executable lines)
+### 2. Body bootstrap (four mandatory lines, in order)
 1. `set -euo pipefail`
 2. `source "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"`
 3. `source "$(dirname "${BASH_SOURCE[0]}")/../lib/idempotent.sh"`
-
-Followed *immediately* by either `require_root` or `require_user` (matching the `REQUIRES_ROOT` header).
+4. `require_root` or `require_user` (matching the `REQUIRES_ROOT` header).
 
 ### 3. Idempotency-helper usage
 Flag hand-rolled patterns that have a helper:
