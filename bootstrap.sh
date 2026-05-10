@@ -49,6 +49,8 @@ fi
 # Clone or update
 if [ -d "$DIR/.git" ]; then
   existing_url="$(git -C "$DIR" config --get remote.origin.url 2>/dev/null || true)"
+  # Strip any trailing slash so `…/wsl-starter-script/` matches `…/wsl-starter-script`.
+  existing_url="${existing_url%/}"
   case "$existing_url" in
     "$REPO_URL"|"${REPO_URL}.git"|"${REPO_URL%.git}"|"${REPO_URL%.git}.git")
       log "Updating existing clone at $DIR"

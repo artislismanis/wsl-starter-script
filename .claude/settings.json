@@ -11,6 +11,10 @@
           {
             "type": "command",
             "command": "\"$CLAUDE_PROJECT_DIR/.githooks/validate-module-headers\" $CLAUDE_FILE_PATHS || exit 2"
+          },
+          {
+            "type": "command",
+            "command": "for f in $CLAUDE_FILE_PATHS; do case \"$f\" in */claude/settings.json.tmpl) grep -qF '__PERMISSION_MODE__' \"$f\" || { echo \"Refuse: $f no longer contains the __PERMISSION_MODE__ placeholder. The sed substitution in 50-claude-code.sh would silently no-op and ship an unfilled settings.json.\" >&2; exit 2; } ;; esac; done"
           }
         ]
       }

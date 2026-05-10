@@ -54,9 +54,10 @@ apt_add_signed_repo() {
   else
     printf '%s\n' "$deb_line" > "$list"
     chmod 0644 "$list"
-    # Force the next apt_install to re-run apt-get update so the new repo is seen.
-    rm -f "$APT_INDEX_STAMP"
   fi
+  # Force the next apt_install to re-run apt-get update so the new repo is seen.
+  # Also clear under --dry-run so the preview faithfully shows the apt update.
+  rm -f "$APT_INDEX_STAMP"
 }
 
 # apt_hold_unattended <name> <pkg1> [pkg2 ...]

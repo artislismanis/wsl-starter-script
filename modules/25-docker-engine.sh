@@ -61,7 +61,7 @@ fi
 # swap binaries; if that fires while containers are in use the daemon flaps and
 # clients see disconnect storms. Operator can run `apt-get install docker-ce`
 # on their own schedule.
-apt_hold_unattended "docker" docker-ce docker-ce-cli containerd.io
+apt_hold_unattended "docker" docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
 # ---- Classic (rootful) ------------------------------------------------------
 if [ "$MODE" = "classic" ]; then
@@ -184,8 +184,11 @@ fi
 # recreates it on every boot (WSL's systemd honours /etc/tmpfiles.d).
 USE_HOST_SYMLINK="${DOCKER_ROOTLESS_HOST_SYMLINK:-1}"
 if truthy "$USE_HOST_SYMLINK"; then
+  # L+ (not L) so systemd-tmpfiles replaces a stale file/symlink at the path —
+  # e.g. an operator who left a regular file there from a previous experiment
+  # would otherwise block recreation silently.
   write_file_once /etc/tmpfiles.d/wsl-starter-docker-rootless-symlink.conf <<EOF
-L /var/run/docker.sock - - - - /run/user/${UID_N}/docker.sock
+L+ /var/run/docker.sock - - - - /run/user/${UID_N}/docker.sock
 EOF
   run "systemd-tmpfiles --create /etc/tmpfiles.d/wsl-starter-docker-rootless-symlink.conf"
   ok "Symlinked /var/run/docker.sock → /run/user/${UID_N}/docker.sock for tooling that hardcodes the system path."

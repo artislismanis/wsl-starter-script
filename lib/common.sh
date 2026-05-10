@@ -87,7 +87,10 @@ ask_secret() {
 # to handoff, etc.).
 is_root()      { [ "$(id -u)" = "0" ]; }
 require_root() { is_root || die "This module must run as root (sudo)."; }
-require_user() { is_root && die "This module must run as a non-root user (not sudo)."; return 0; }
+# `if` rather than chained `&&` so the function's exit status is 0 when we
+# don't die — a trailing `cond && cmd` final statement returns 1 on the not-root
+# path, which would trip set -e in callers (the project's set -e + && footgun).
+require_user() { if is_root; then die "This module must run as a non-root user (not sudo)."; fi; }
 
 # truthy "value"  -> exit 0 if value is 1/yes/true (case-insensitive), else 1.
 # Single source of truth for env-var booleans (DOCKER_ROOTLESS_*, PODMAN_*,

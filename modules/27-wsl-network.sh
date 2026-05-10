@@ -20,16 +20,26 @@ require_root
 #    (bind fails but ss shows nothing → smoking gun for the WSL bug).
 
 SYSCTL_FILE="/etc/sysctl.d/99-wsl-network.conf"
-sysctl_was_new=1
-[ -f "$SYSCTL_FILE" ] && sysctl_was_new=0
-write_file_once "$SYSCTL_FILE" <<'CONF'
+SYSCTL_DESIRED="$(cat <<'CONF'
 # wsl-starter: container-host network defenses.
 # Reduces ephemeral-port exhaustion from rapid container churn.
 net.ipv4.tcp_tw_reuse = 1
 net.ipv4.tcp_fin_timeout = 15
 net.ipv4.ip_local_port_range = 10000 65535
 CONF
-[ "$sysctl_was_new" = "1" ] && run "sysctl --system >/dev/null"
+)"
+# Refresh on content drift — this is our artefact (under /etc/sysctl.d), not an
+# operator-tunable, so a newer repo copy should replace an older installed one
+# and trigger `sysctl --system` so the kernel picks up the change.
+if [ -f "$SYSCTL_FILE" ] && printf '%s\n' "$SYSCTL_DESIRED" | cmp -s - "$SYSCTL_FILE"; then
+  skip "$SYSCTL_FILE already up to date"
+else
+  log "Writing $SYSCTL_FILE"
+  if [ "$DRY_RUN" != "1" ]; then
+    printf '%s\n' "$SYSCTL_DESIRED" > "$SYSCTL_FILE"
+  fi
+  run "sysctl --system >/dev/null"
+fi
 
 PORT_CHECK="/usr/local/bin/wsl-port-check"
 PORT_CHECK_SRC="$(dirname "${BASH_SOURCE[0]}")/files/wsl-port-check"
@@ -52,11 +62,7 @@ fi
 # `mount --make-rshared /` fixes it for the current boot; a systemd oneshot
 # keeps it sticky across `wsl --terminate`.
 RSHARED_UNIT="/etc/systemd/system/wsl-rshared-root.service"
-if [ -f "$RSHARED_UNIT" ]; then
-  skip "$RSHARED_UNIT already present"
-else
-  log "Writing $RSHARED_UNIT (rootless-container mount-propagation fix)"
-  write_file_once "$RSHARED_UNIT" <<'UNIT'
+RSHARED_DESIRED="$(cat <<'UNIT'
 [Unit]
 Description=Make / a shared mount (fixes rootless container mount-propagation warnings)
 DefaultDependencies=no
@@ -71,6 +77,17 @@ RemainAfterExit=yes
 [Install]
 WantedBy=multi-user.target
 UNIT
+)"
+# Refresh on content drift — same reasoning as the sysctl drop-in above. An
+# operator who upgraded the repo shouldn't have to delete the unit file by
+# hand to pick up changes we ship.
+if [ -f "$RSHARED_UNIT" ] && printf '%s\n' "$RSHARED_DESIRED" | cmp -s - "$RSHARED_UNIT"; then
+  skip "$RSHARED_UNIT already up to date"
+else
+  log "Writing $RSHARED_UNIT (rootless-container mount-propagation fix)"
+  if [ "$DRY_RUN" != "1" ]; then
+    printf '%s\n' "$RSHARED_DESIRED" > "$RSHARED_UNIT"
+  fi
   if pidof systemd >/dev/null 2>&1; then
     run "systemctl daemon-reload"
     run "systemctl enable --now wsl-rshared-root.service"
