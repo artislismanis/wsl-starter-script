@@ -42,12 +42,16 @@ Current numeric map (do not collide):
 
 ## Conventions to remind the user about when writing the body
 
-- Use `apt_install`, `apt_add_signed_repo` from `lib/idempotent.sh` — don't hand-roll apt work. (`apt_install` invokes `apt_update_once` itself; only call `apt_update_once` directly if you have a raw `apt-get upgrade` or similar that bypasses `apt_install`.)
-- Guard every mutation for idempotency (`command_exists`, `pkg_installed`, `ensure_block`).
+The full helper table lives in **CLAUDE.md § Idempotency discipline** — point the user there for canonical signatures (`apt_install`, `apt_add_signed_repo`, `apt_hold_unattended`, `ensure_block`, `ensure_block_in_rcs`, `ensure_block_per_shell`, `replace_ini_section`, `write_file_once`, `write_if_drift`, `copy_if_drift`). Surface these conventions inline:
+
+- Don't hand-roll apt work — `apt_install` invokes `apt_update_once` itself.
+- Guard every mutation (`command_exists`, `pkg_installed`, the helpers above).
 - Write user-facing progress through `log / ok / skip / warn / die` — no raw `echo` for log lines.
 - Wrap state-changing shell one-liners in `run "..."` so `--dry-run` honours them.
-- rc-file edits: use `ensure_block` with a marker of the form `wsl-starter:<topic>` so re-runs don't duplicate.
-- **Add a `# ROLLBACK=<line>` header for every write-site you introduce** — file path, systemd unit, rc-block marker, apt repo, hold file, symlink. Headers are repeatable; values whose first non-space char is `#` come out as comments in the emitted recipe (use these for prose like "Carve-out: ..."). The dispatcher emits them verbatim via `./install.sh --rollback`. `lint.sh` (and the PostToolUse hook) fails the module if it has any write-site primitive but zero `# ROLLBACK=` headers — see CLAUDE.md § "Rollback parity" for the full rule. Modules with no writes declare a single `# ROLLBACK=# Nothing to roll back ...` comment line.
+- rc-file edits use a `wsl-starter:<topic>` marker so re-runs don't duplicate.
+- For root→user invocations inside a root-phase module, use `_as_target_user` from `25-docker-engine.sh` as a pattern (it's module-local, not a lib helper) — wraps the `sudo -iu '$TARGET_USER' env XDG_RUNTIME_DIR=...` shape.
+- `lib/common.sh` enables `shopt -s inherit_errexit`, so `set -e` propagates through `$(...)` — append `|| true` to any command substitution that's *expected* to fail.
+- **Add a `# ROLLBACK=<line>` header for every write-site you introduce** — file path, systemd unit, rc-block marker, apt repo, hold file, symlink, copied artefact. Headers are repeatable; values whose first non-space char is `#` come out as comments in the emitted recipe (use these for prose like "Carve-out: ..."). The dispatcher emits them verbatim via `./install.sh --rollback`. `lint.sh` (and the PostToolUse hook) fails the module if it has any write-site primitive but zero `# ROLLBACK=` headers — see CLAUDE.md § "Rollback parity" for the full rule. Modules with no writes declare a single `# ROLLBACK=# Nothing to roll back ...` comment line.
 
 ## If the user wants the module wired into a group
 

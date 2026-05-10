@@ -1,5 +1,5 @@
 {
-  "_comment": "Copy to <project>/.mcp.json and uncomment the servers you want. Docs: https://modelcontextprotocol.io",
+  "_comment": "Copy to <project>/.mcp.json, drop the leading underscore from each server you want to enable, and fill in any placeholders. Docs: https://modelcontextprotocol.io/examples",
   "mcpServers": {
     "_memory": {
       "command": "npx",
@@ -12,8 +12,9 @@
       "instructions": "Read/write a specific directory. Scope tightly — do not point at $HOME."
     },
     "_github": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "_comment": "GitHub's official MCP server (Go binary, run via Docker image ghcr.io/github/github-mcp-server). Replaces the deprecated @modelcontextprotocol/server-github npm package. Source: https://github.com/github/github-mcp-server",
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "-e", "GITHUB_PERSONAL_ACCESS_TOKEN", "ghcr.io/github/github-mcp-server"],
       "env": { "GITHUB_PERSONAL_ACCESS_TOKEN": "set-in-settings.local.json-not-here" }
     }
   }

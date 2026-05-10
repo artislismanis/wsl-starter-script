@@ -11,7 +11,10 @@ REPO_URL="${WSL_STARTER_REPO:-https://github.com/artislismanis/wsl-starter-scrip
 BRANCH="${WSL_STARTER_BRANCH:-main}"
 
 # Inline (rather than sourcing lib/common.sh): bootstrap runs before the repo
-# is cloned, so the libs aren't on disk yet.
+# is cloned, so the libs aren't on disk yet. Keep these visually consistent
+# with lib/common.sh's log/ok/die so output looks the same once we hand off
+# to install.sh — same prefix glyphs (`==>`, ` ok`, ` xx`), same colour palette
+# (94/92/91), same stderr routing for die.
 if [ -t 1 ]; then B=$'\033[0;94m'; G=$'\033[0;92m'; R=$'\033[0;91m'; N=$'\033[0m'
 else B=''; G=''; R=''; N=''; fi
 log()  { printf '%s==>%s %s\n' "$B" "$N" "$*"; }
