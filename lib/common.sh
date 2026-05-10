@@ -84,7 +84,21 @@ ask_secret() {
 require_root() { [ "$(id -u)" = "0" ] || die "This module must run as root (sudo)."; }
 require_user() { [ "$(id -u)" != "0" ] || die "This module must run as a non-root user (not sudo)."; }
 
+# truthy "value"  -> exit 0 if value is 1/yes/true (case-insensitive), else 1.
+# Single source of truth for env-var booleans (DOCKER_ROOTLESS_*, PODMAN_*,
+# etc.). ${1,,} requires bash 4+, which Ubuntu has shipped since 14.04.
+truthy() {
+  case "${1,,}" in 1|yes|true) return 0 ;; *) return 1 ;; esac
+}
+
 is_wsl() { grep -qi microsoft /proc/version 2>/dev/null; }
 
 REPO_ROOT="${REPO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 export REPO_ROOT
+
+# Container-runtime modules (25, 26) drop this stamp when they actually
+# install. install.sh checks it (along with RAN_MODULES) to decide whether
+# to invoke 27-wsl-network. /run is tmpfs, so the stamp is per-boot.
+# Single source of truth — don't repeat the path in modules or the dispatcher.
+RUNTIME_STAMP="${RUNTIME_STAMP:-/run/wsl-starter.container-runtime}"
+export RUNTIME_STAMP

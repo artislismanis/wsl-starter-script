@@ -155,11 +155,11 @@ ls -l ~/.claude/mcp.example.json
 Pipe a fake payload through the statusline:
 
 ```bash
-echo '{"model":{"display_name":"opus"},"context_window":{"used_percentage":42,"total_input_tokens":12345,"total_output_tokens":678},"rate_limits":{"five_hour":{"used_percentage":17}}}' \
+echo '{"model":{"display_name":"opus"},"context_window":{"used_percentage":42,"total_input_tokens":12345,"total_output_tokens":678},"rate_limits":{"five_hour":{"used_percentage":17,"resets_at":'"$(($(date +%s) + 5400))"'}}}' \
   | bash ~/.claude/scripts/statusline.sh; echo
 ```
 
-**Pass criteria:** `claude` on PATH, `settings.json` has your chosen `defaultMode` (not the literal `__PERMISSION_MODE__`), statusline prints something like `[opus] ctx:42% in:12.3k out:678 5h:17%` (colour codes stripped here for clarity).
+**Pass criteria:** `claude` on PATH, `settings.json` has your chosen `defaultMode` (not the literal `__PERMISSION_MODE__`), statusline prints something like `[opus] ctx:42% in:12.3k out:678 5h:17% (1h30m)` (colour codes stripped here for clarity). The `(1h30m)` suffix exercises the `resets_at` branch — drop the field from the payload to confirm the suffix disappears cleanly.
 
 ---
 
@@ -253,7 +253,7 @@ sudo ./install.sh --module 40-mise
 ./install.sh --module 20-cli-modern          # auto-escalates via sudo (prompts for password)
 ```
 
-**Pass criteria:** `--list` shows 11 modules; `--module` runs exactly one (auto-escalating via sudo for root modules) and exits cleanly.
+**Pass criteria:** `--list` shows every module from README's Layout section (one row each, `[root]`/`[user]` tag, description); `--module` runs exactly one (auto-escalating via sudo for root modules) and exits cleanly.
 
 ---
 
@@ -275,9 +275,25 @@ systemctl --user is-active docker                    # active
 grep -c '# >>> wsl-starter:docker-rootless >>>' ~/.bashrc   # exactly 1 (re-run twice)
 ls /etc/sysctl.d/99-wsl-network.conf                 # 27-wsl-network ran
 command -v wsl-port-check                            # /usr/local/bin/wsl-port-check
+
+# /var/run/docker.sock compatibility symlink (DOCKER_ROOTLESS_HOST_SYMLINK, default on):
+ls -la /var/run/docker.sock                                   # symlink → /run/user/<uid>/docker.sock
+cat /etc/tmpfiles.d/wsl-starter-docker-rootless-symlink.conf  # the systemd-tmpfiles entry
+docker -H unix:///var/run/docker.sock info >/dev/null && echo ok   # daemon reachable via the well-known path
 ```
 
-**Pass criteria:** rootless daemon up; pasta override file present at `~/.config/systemd/user/docker.service.d/pasta.conf`; rc-file block exactly once after a re-run.
+**Pass criteria:** rootless daemon up; pasta override file present at `~/.config/systemd/user/docker.service.d/pasta.conf`; rc-file block exactly once after a re-run; `/var/run/docker.sock` resolves to the per-user socket and `docker info` succeeds against it.
+
+**Sub-scenario — `DOCKER_MODE=skip` suppresses 27-wsl-network.** On a fresh image (no prior runtime install), as root:
+
+```bash
+sudo rm -f /etc/sysctl.d/99-wsl-network.conf /usr/local/bin/wsl-port-check  # clear any prior 27 install
+sudo DOCKER_MODE=skip ./install.sh --docker --non-interactive
+ls /etc/sysctl.d/99-wsl-network.conf 2>/dev/null && echo "FAIL: 27 ran"
+ls /usr/local/bin/wsl-port-check       2>/dev/null && echo "FAIL: 27 ran"
+```
+
+**Pass criteria:** `--docker` with `DOCKER_MODE=skip` exits cleanly with "Docker install skipped." and leaves the 27-wsl-network artifacts absent.
 
 ---
 

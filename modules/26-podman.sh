@@ -14,43 +14,47 @@ PKGS=(podman uidmap slirp4netns passt fuse-overlayfs)
 
 # podman-compose provides docker-compose-style YAML support. Default on; opt out
 # with PODMAN_COMPOSE=0.
-INCLUDE_COMPOSE="${PODMAN_COMPOSE:-1}"
-case "$INCLUDE_COMPOSE" in 1|yes|true) PKGS+=(podman-compose) ;; esac
+truthy "${PODMAN_COMPOSE:-1}" && PKGS+=(podman-compose)
 
 # podman-docker installs /usr/bin/docker as a shim so the docker CLI works
 # against podman. It conflicts with docker-ce-cli (both ship /usr/bin/docker),
 # so skip it if the real docker CLI is already installed. Default on; opt out
 # with PODMAN_DOCKER_SHIM=0.
-INCLUDE_SHIM="${PODMAN_DOCKER_SHIM:-1}"
-case "$INCLUDE_SHIM" in
-  1|yes|true)
-    if pkg_installed docker-ce-cli; then
-      warn "docker-ce-cli is installed — skipping podman-docker shim (would conflict on /usr/bin/docker)."
-    else
-      PKGS+=(podman-docker)
-    fi
-    ;;
-esac
+INCLUDE_SHIM=0
+if truthy "${PODMAN_DOCKER_SHIM:-1}"; then
+  if pkg_installed docker-ce-cli; then
+    warn "docker-ce-cli is installed — skipping podman-docker shim (would conflict on /usr/bin/docker)."
+  else
+    PKGS+=(podman-docker)
+    INCLUDE_SHIM=1
+  fi
+fi
 
 apt_install "${PKGS[@]}"
 
-# Same rationale as docker: a postinst-driven restart while containers are
-# running corrupts state. Operator decides when to upgrade.
+# Podman is daemonless, so a postinst restart can't bounce a long-running
+# daemon — but in-flight `podman` invocations and conmon-supervised containers
+# can still be disrupted if the binary is replaced mid-operation. Hold so
+# upgrades happen on the operator's schedule, matching 25-docker-engine's
+# rationale.
 apt_hold_unattended "podman" podman
 
 # Silence the "Emulate Docker CLI using podman. Create /etc/containers/nodocker
 # to quiet msg." notice that the podman-docker shim prints on every invocation.
 # The file's existence is the signal — its content is ignored.
-case "$INCLUDE_SHIM" in
-  1|yes|true)
-    if [ -e /etc/containers/nodocker ]; then
-      skip "/etc/containers/nodocker already present"
-    elif pkg_installed podman-docker; then
-      log "Touching /etc/containers/nodocker to silence the docker-shim notice"
-      run "install -m 0755 -d /etc/containers"
-      run "touch /etc/containers/nodocker"
-    fi
-    ;;
-esac
+if [ "$INCLUDE_SHIM" = "1" ]; then
+  if [ -e /etc/containers/nodocker ]; then
+    skip "/etc/containers/nodocker already present"
+  elif pkg_installed podman-docker; then
+    log "Touching /etc/containers/nodocker to silence the docker-shim notice"
+    run "install -m 0755 -d /etc/containers"
+    run "touch /etc/containers/nodocker"
+  fi
+fi
+
+# Drop the container-runtime stamp so install.sh runs 27-wsl-network.
+# RUNTIME_STAMP comes from lib/common.sh; written even under --dry-run since
+# it's a single empty marker on tmpfs (not a substantive mutation).
+: > "$RUNTIME_STAMP"
 
 ok "Podman installed. Try: podman run --rm hello-world  (rootless, no group needed)"

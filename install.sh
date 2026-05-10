@@ -31,6 +31,7 @@ Flags:
                       WSL_USER, WSL_PASSWORD, WSL_HOSTNAME, WSL_DNS, WSL_APT_UPGRADE,
                       MISE_LANGUAGES (csv), MISE_<LANG>_VERSION,
                       DOCKER_MODE, DOCKER_USER, DOCKER_ROOTLESS_PASTA,
+                      DOCKER_ROOTLESS_HOST_SYMLINK,
                       PODMAN_COMPOSE, PODMAN_DOCKER_SHIM,
                       ZSH_THEME, ZSH_PLUGINS, CLAUDE_PERMISSION_MODE.
                       Full list and defaults in README.md.
@@ -114,9 +115,9 @@ DEV_USER_MODULES=(30-shell-zsh 31-shell-history 40-mise)
 DOCKER_MODULES=(25-docker-engine)
 PODMAN_MODULES=(26-podman)
 CLAUDE_MODULES=(50-claude-code)
-# 27-wsl-network applies to *any* container host; install.sh appends it after
-# whichever runtime(s) ran, so combining --docker --podman in one invocation
-# doesn't queue it twice.
+# 27-wsl-network is fired once at the bottom of the script (see the gate after
+# the case block) when a container-runtime module ran AND actually installed.
+# Combining --docker --podman in one invocation runs it once via RAN_MODULES.
 
 interactive_menu() {
   echo "Select what to run:"
@@ -150,7 +151,6 @@ interactive_menu() {
 # Each runs one logical group. User-phase modules are silently deferred when
 # the group is invoked as root; they surface in the handoff banner at the end.
 DEFERRED=()
-NEED_WSL_NETWORK=0
 
 _run_each() { for m in "$@"; do run_module "$m"; done; }
 
@@ -173,8 +173,8 @@ run_group() {
         _run_each "${DEV_USER_MODULES[@]}"
       fi
       ;;
-    docker)  _run_each "${DOCKER_MODULES[@]}"; NEED_WSL_NETWORK=1 ;;
-    podman)  _run_each "${PODMAN_MODULES[@]}"; NEED_WSL_NETWORK=1 ;;
+    docker)  _run_each "${DOCKER_MODULES[@]}" ;;
+    podman)  _run_each "${PODMAN_MODULES[@]}" ;;
     claude)
       if [ "$(id -u)" != "0" ]; then
         _run_each "${CLAUDE_MODULES[@]}"
@@ -243,8 +243,17 @@ case "$MODE" in
     ;;
 esac
 
-# Apply container-host network defenses once if any container runtime ran.
-[ "$NEED_WSL_NETWORK" = "1" ] && run_module 27-wsl-network
+# Apply container-host network defenses iff *this* invocation ran a runtime
+# module that actually installed. Two gates: RAN_MODULES says "we touched a
+# runtime here" (stops the user-phase --all tail from re-firing 27 because
+# the root-phase wrote the stamp); the stamp says "install actually happened"
+# (stops DOCKER_MODE=skip from triggering 27 for nothing). The stamp is
+# written even under --dry-run (it's a single empty marker on tmpfs, not a
+# substantive mutation) so previews remain faithful for both skip and install.
+if { [ -n "${RAN_MODULES[25-docker-engine]:-}" ] || [ -n "${RAN_MODULES[26-podman]:-}" ]; } \
+   && [ -f "$RUNTIME_STAMP" ]; then
+  run_module 27-wsl-network
+fi
 
 if [ "$(id -u)" = "0" ] && [ ${#DEFERRED[@]} -gt 0 ]; then
   echo

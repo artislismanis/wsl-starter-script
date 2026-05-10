@@ -64,11 +64,11 @@ Ubuntu ships `fd` as `fdfind` and `bat` as `batcat` to avoid namespace clashes; 
 Two install modes, chosen interactively or via `DOCKER_MODE`:
 
 - **classic** — upstream Docker apt repo, `docker.service` enabled under systemd, target user added to the `docker` group. Simplest, works like every Docker tutorial on the internet.
-- **rootless** — the same packages plus `docker-ce-rootless-extras`, `uidmap`, `slirp4netns`, `fuse-overlayfs`; runs `dockerd-rootless-setuptool.sh` as your user, enables linger so the daemon survives logout, sets `DOCKER_HOST=unix:///run/user/<uid>/docker.sock` in `~/.bashrc` + `~/.zshrc`. No daemon running as root, no `docker` group to worry about.
+- **rootless** — the same packages plus `docker-ce-rootless-extras`, `uidmap`, `slirp4netns`, `fuse-overlayfs`; runs `dockerd-rootless-setuptool.sh` as your user, enables linger so the daemon survives logout, sets `DOCKER_HOST=unix:///run/user/<uid>/docker.sock` in `~/.bashrc` + `~/.zshrc`. No daemon running as root, no `docker` group to worry about. The module also drops a `systemd-tmpfiles` entry (`/etc/tmpfiles.d/wsl-starter-docker-rootless-symlink.conf`) that recreates `/var/run/docker.sock` as a symlink to the per-user socket on every boot — dev-containers, some CI runners, and other tooling bind-mount the well-known path directly and would otherwise fail with "source path does not exist". Default on; opt out with `DOCKER_ROOTLESS_HOST_SYMLINK=0`.
 
 Both modes include `docker-buildx-plugin` (multi-arch builds, BuildKit) and `docker-compose-plugin` (the `docker compose` subcommand — not the legacy `docker-compose` binary). Both also get `live-restore: true` written to their `daemon.json` (`/etc/docker/daemon.json` for classic, `~/.config/docker/daemon.json` for rootless) before first start, so running containers survive a daemon restart (apt upgrade, post-resume daemon flap). Rootless additionally writes `exec-opts: ["native.cgroupdriver=systemd"]` (paired with the `Delegate=cpu cpuset io memory pids` drop-in for `user@.service` so cgroup v2 controllers are actually delegated to the user session). Requires systemd, which is why `00-wsl-base` enables it and a WSL reopen is needed first.
 
-The `--docker` group also runs module `27-wsl-network` (sysctl + `wsl-port-check`), described below.
+The `--docker` group also runs module `27-wsl-network` (sysctl + `wsl-port-check`, described below) — but only after a successful Docker install. Setting `DOCKER_MODE=skip` (or picking "skip" interactively) suppresses 27 too.
 
 ---
 
@@ -83,15 +83,15 @@ The `--docker` group also runs module `27-wsl-network` (sysctl + `wsl-port-check
 | `podman-compose` *(default on)* | `docker-compose`-style YAML support. Opt out with `PODMAN_COMPOSE=0`. |
 | `podman-docker` *(default on)* | Installs `/usr/bin/docker` as a shim so `docker` CLI works against podman. **Auto-skipped** if `docker-ce-cli` is present (file conflict). Opt out with `PODMAN_DOCKER_SHIM=0`. The module also touches `/etc/containers/nodocker` to silence the per-invocation "Emulate Docker CLI using podman" notice that the shim prints otherwise. |
 
-`apt_hold_unattended` excludes podman from unattended-upgrades for the same reason as docker — a postinst-driven restart while containers are running corrupts state.
+`apt_hold_unattended` excludes podman from unattended-upgrades. Podman is daemonless, so there's no daemon to bounce — but a binary swap mid-operation can disrupt in-flight `podman` invocations and conmon-supervised containers, same end result as the docker case.
 
-The `--podman` group also runs module `27-wsl-network` (below).
+The `--podman` group also runs module `27-wsl-network` (below) after a successful install.
 
 ---
 
 ## Module `27-wsl-network` — container-host network defenses *(root)*
 
-Two small defenses that pay off heavily on container-hosting WSL distros. Pulled into both the `--docker` and `--podman` groups.
+Two small defenses that pay off heavily on container-hosting WSL distros. Auto-invoked at the end of any `--docker` or `--podman` run that actually installed a runtime (the modules drop `/run/wsl-starter.container-runtime` on success; install.sh checks for it).
 
 | What | File / command | Purpose |
 |---|---|---|
