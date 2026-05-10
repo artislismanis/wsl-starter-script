@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # REQUIRES_ROOT=0
 # DESCRIPTION=Claude Code CLI + user-global settings + CLAUDE.md + statusline
-# ROLLBACK="$HOME/.local/bin/claude" uninstall 2>/dev/null || rm -f "$HOME/.local/bin/claude"
+# ROLLBACK=rm -f "$HOME/.local/bin/claude"
 # ROLLBACK=rm -rf "$HOME/.claude/scripts"
 # ROLLBACK=rm -f "$HOME/.claude/settings.json" "$HOME/.claude/CLAUDE.md" "$HOME/.claude/mcp.example.json"
 set -euo pipefail
@@ -11,11 +11,16 @@ require_user
 
 # Native installer drops a standalone binary into ~/.local/bin/claude, independent
 # of any mise-managed node version's per-prefix npm globals.
-if ! command_exists claude && [ ! -x "$HOME/.local/bin/claude" ]; then
+CLAUDE_BIN=""
+command_exists claude && CLAUDE_BIN="$(command -v claude)"
+[ -z "$CLAUDE_BIN" ] && [ -x "$HOME/.local/bin/claude" ] && CLAUDE_BIN="$HOME/.local/bin/claude"
+if [ -z "$CLAUDE_BIN" ]; then
   log "Installing Claude Code (native installer)"
   run "curl -fsSL https://claude.ai/install.sh | bash"
 else
-  skip "claude-code already installed ($(claude --version 2>/dev/null || echo unknown))"
+  # Use the resolved path explicitly — `claude` may not be on PATH yet in the
+  # root-spawned user-phase shell where ~/.local/bin/ wiring hasn't loaded.
+  skip "claude-code already installed ($("$CLAUDE_BIN" --version 2>/dev/null || echo unknown))"
 fi
 
 # ---- Permission mode --------------------------------------------------------
@@ -52,10 +57,12 @@ done
 # settings.json is the only template that needs substitution; the rest are
 # copied byte-for-byte. write_file_once preserves operator edits (skip-if-exists),
 # handles dry-run, and creates parent dirs.
-write_file_once "$SETTINGS" < <(sed "s/__PERMISSION_MODE__/$PERM_MODE/" "$REPO_ROOT/claude/settings.json.tmpl")
-write_file_once "$CLAUDE_MD" < "$REPO_ROOT/claude/CLAUDE.md.tmpl"
-write_file_once "$STATUSLINE" "" 0755 < "$REPO_ROOT/claude/statusline.sh.tmpl"
-write_file_once "$MCP_EXAMPLE" < "$REPO_ROOT/claude/mcp.example.json"
+write_file_once "$SETTINGS"     < <(sed "s/__PERMISSION_MODE__/$PERM_MODE/" "$REPO_ROOT/claude/settings.json.tmpl")
+write_file_once "$CLAUDE_MD"    < "$REPO_ROOT/claude/CLAUDE.md.tmpl"
+# 4th-positional `0755` for mode; owner left default since this module runs as
+# the target user, so the file is already user-owned.
+write_file_once "$STATUSLINE" "$USER" 0755 < "$REPO_ROOT/claude/statusline.sh.tmpl"
+write_file_once "$MCP_EXAMPLE"  < "$REPO_ROOT/claude/mcp.example.json"
 
 # statusline reads stdin via jq; without it the line silently goes blank.
 # 10-apt-core installs jq, but --claude can be invoked standalone, so warn

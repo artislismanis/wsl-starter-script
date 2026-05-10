@@ -32,18 +32,13 @@ net.ipv4.tcp_fin_timeout = 15
 net.ipv4.ip_local_port_range = 10000 65535
 CONF
 
-PORT_CHECK="/usr/local/bin/wsl-port-check"
-PORT_CHECK_SRC="$(dirname "${BASH_SOURCE[0]}")/files/wsl-port-check"
-# Refresh on content drift rather than just existence — wsl-port-check is our
-# artefact (not an operator-tunable file like ~/.bashrc), so a newer repo copy
-# should replace an older installed one without making the operator delete it
-# manually. cmp -s exits 0 when files match.
-if [ -f "$PORT_CHECK" ] && cmp -s "$PORT_CHECK_SRC" "$PORT_CHECK"; then
-  skip "$PORT_CHECK already up to date"
-else
-  log "Installing $PORT_CHECK"
-  run "install -m 0755 '$PORT_CHECK_SRC' '$PORT_CHECK'"
-fi
+# wsl-port-check is our artefact (not an operator-tunable file), so refresh on
+# content drift — an older installed copy gets replaced without making the
+# operator delete it manually. copy_if_drift uses cmp -s for the comparison.
+copy_if_drift \
+  "$(dirname "${BASH_SOURCE[0]}")/files/wsl-port-check" \
+  /usr/local/bin/wsl-port-check \
+  0755
 
 # Rootless container engines (rootless docker, rootless podman) emit
 #   WARN[0000] "/" is not a shared mount, this could cause issues or missing

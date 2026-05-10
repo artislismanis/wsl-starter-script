@@ -127,7 +127,9 @@ FOOTER
 _collect_forward_assigns() {
   local always=(NON_INTERACTIVE DRY_RUN)
   local prefix_re='^(WSL|DOCKER|PODMAN|MISE|CLAUDE|ZSH)_'
-  local block_re='^(WSL_INTEROP|DOCKER_(HOST|CONFIG|CONTEXT|TLS_.*|CERT_PATH)|CLAUDE_CODE_.*)$'
+  # WSL_STARTER_* are bootstrap-only (clone source/branch/dir); no module
+  # reads them, so blocking keeps them out of every per-module sudo env.
+  local block_re='^(WSL_INTEROP|WSL_STARTER_.*|DOCKER_(HOST|CONFIG|CONTEXT|TLS_.*|CERT_PATH)|CLAUDE_CODE_.*)$'
   local v
   FORWARD_ASSIGNS=()
   for v in "${always[@]}"; do
@@ -138,6 +140,21 @@ _collect_forward_assigns() {
     [[ "$v" =~ $block_re ]] && continue
     [ -n "${!v+set}" ] && FORWARD_ASSIGNS+=("$v=$(printf '%q' "${!v}")")
   done < <(compgen -v)
+}
+
+# _sudo_with_forwards <bash-args...>
+#   Re-collect FORWARD_ASSIGNS (cheap), then run `sudo env ASSIGNS… bash <args…>`.
+#   Single source of truth for the array vs. string distinction:
+#   - This helper passes FORWARD_ASSIGNS as argv ("${...[@]}") because env(1)
+#     takes argv directly.
+#   - The post-handoff `sudo -iu USER bash -lc "..."` path at the bottom of
+#     this file builds ONE shell-string argument and uses ${...[*]} because
+#     the elements are already %q-quoted by _collect_forward_assigns and the
+#     IFS-space join produces a shell-safe `KEY=val KEY=val` token list.
+#   If you touch either pattern, keep them aligned.
+_sudo_with_forwards() {
+  _collect_forward_assigns
+  sudo env "${FORWARD_ASSIGNS[@]}" bash "$@"
 }
 
 declare -A RAN_MODULES=()
@@ -155,12 +172,7 @@ run_module() {
       bash "$path"
     else
       log "Module '$name' requires root — escalating via sudo."
-      _collect_forward_assigns
-      # Array form here ("${...[@]}") because env(1) takes argv directly.
-      # The handoff path below uses ${...[*]} because it builds a single
-      # bash -lc command string. Both are correct in their context — keep
-      # them aligned if either is touched.
-      sudo env "${FORWARD_ASSIGNS[@]}" bash "$path"
+      _sudo_with_forwards "$path"
     fi
   else
     if is_root; then
@@ -259,13 +271,15 @@ while [ $# -gt 0 ]; do
     --docker)           SELECTED+=(docker) ;;
     --podman)           SELECTED+=(podman) ;;
     --claude)           SELECTED+=(claude) ;;
-    --module)           MODE=single; SINGLE="${2:-}"; shift ;;
+    --module)
+      [ -z "$SINGLE" ] || die "--module specified twice (got '$SINGLE' then '${2:-}'). Pick one."
+      MODE=single; SINGLE="${2:-}"; shift ;;
     --list)             list_modules; exit 0 ;;
     --rollback)
       # Optional positional arg: module name. Don't consume the next token if it
-      # starts with `--` (it's another flag, not the rollback target).
+      # starts with `-` (any flag form — `--foo`, `-h`, etc.).
       _rb_target=""
-      if [ $# -ge 2 ] && [ "${2:0:2}" != "--" ]; then
+      if [ $# -ge 2 ] && [ "${2:0:1}" != "-" ]; then
         _rb_target="$2"; shift
       fi
       print_rollback "$_rb_target"; exit 0 ;;
@@ -366,16 +380,13 @@ if is_root && [ ${#DEFERRED[@]} -gt 0 ]; then
     log "Handing off to $TARGET_USER via sudo -iu"
     # sudo -i gives a login shell so PATH, HOME, rc files are right.
     # bash -lc re-sources login files so mise/atuin wiring added mid-run is picked up.
-    # _collect_forward_assigns harvests every WSL_*/DOCKER_*/PODMAN_*/MISE_*/
-    # CLAUDE_*/ZSH_* var the operator set (minus a system blocklist), so the
-    # user-phase modules see the same tuning the root invocation did.
+    # We can't use the _sudo_with_forwards helper here — it's argv-style, while
+    # this path needs a single shell-string for bash -lc. Doing it inline:
+    # FORWARD_ASSIGNS entries are already %q-quoted by _collect_forward_assigns,
+    # so the IFS-space join from [*] expands into shell-safe `KEY=quoted-val`
+    # tokens. printf %q TARGET_REPO so a path with whitespace/quotes survives
+    # the bash -lc layer. DEFERRED holds only --flag tokens.
     _collect_forward_assigns
-    # FORWARD_ASSIGNS entries are already printf %q-quoted, so the IFS-space
-    # join from [*] expands into shell-safe `KEY=quoted-val` tokens for env(1).
-    # Don't "fix" the [*] to [@] with quoting — bash -lc "..." takes one string.
-    # printf %q TARGET_REPO so a path with whitespace/quotes survives the
-    # bash -lc layer. FORWARD_ASSIGNS entries are already %q-quoted by
-    # _collect_forward_assigns, and DEFERRED holds only --flag tokens.
     sudo -iu "$TARGET_USER" bash -lc "cd $(printf '%q' "$TARGET_REPO") && env ${FORWARD_ASSIGNS[*]} ./install.sh ${DEFERRED[*]}"
     echo
     warn "In-session handoff complete. You're still root in *this* shell, though."

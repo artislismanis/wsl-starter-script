@@ -47,14 +47,11 @@ apt_hold_unattended "podman" podman
 # Silence the "Emulate Docker CLI using podman. Create /etc/containers/nodocker
 # to quiet msg." notice that the podman-docker shim prints on every invocation.
 # The file's existence is the signal — its content is ignored.
-if [ "$INCLUDE_SHIM" = "1" ]; then
-  if [ -e /etc/containers/nodocker ]; then
-    skip "/etc/containers/nodocker already present"
-  elif pkg_installed podman-docker; then
-    log "Touching /etc/containers/nodocker to silence the docker-shim notice"
-    run "install -m 0755 -d /etc/containers"
-    run "touch /etc/containers/nodocker"
-  fi
+if [ "$INCLUDE_SHIM" = "1" ] && pkg_installed podman-docker; then
+  run "install -m 0755 -d /etc/containers"
+  # write_file_once preserves any operator content and handles dry-run; the
+  # file is just a presence marker so empty stdin is fine.
+  write_file_once /etc/containers/nodocker </dev/null
 fi
 
 # Drop the container-runtime stamp so install.sh runs 27-wsl-network.

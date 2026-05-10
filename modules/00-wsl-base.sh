@@ -6,7 +6,7 @@
 # ROLLBACK=# /etc/resolv.conf was rewritten — restore from a fresh image, or 'sudo dpkg-reconfigure resolvconf'.
 # ROLLBACK=# Then 'wsl --shutdown' from Windows so WSL re-reads /etc/wsl.conf and regenerates resolv.conf.
 # ROLLBACK=# Carve-out: the non-root user account created by this module is NOT removed automatically.
-# ROLLBACK=#   sudo userdel -r <username>   # (also drops home dir + the repo copy under it)
+# ROLLBACK=#   sudo userdel -r <username>   # (also drops home dir AND the repo copy this module placed under it)
 # ROLLBACK=# Per-session: /run/wsl-starter-handoff is on tmpfs and self-clears on shutdown.
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
@@ -15,12 +15,16 @@ require_root
 is_wsl || warn "This doesn't look like WSL — continuing anyway."
 
 apt_update_once
-# WSL_APT_UPGRADE: 1 = upgrade, 0 = skip, unset = ask (default yes).
+# WSL_APT_UPGRADE: 1/yes/true = upgrade, 0/no/false = skip, unset OR empty = ask
+# (default yes). Use ${VAR:-unset} (with the colon) so a set-but-empty value
+# falls through to the prompt rather than silently no-op'ing — empty is
+# typically a YAML/CI artefact ("WSL_APT_UPGRADE: ""), not a deliberate "skip".
 DO_UPGRADE=0
-case "${WSL_APT_UPGRADE-unset}" in
+case "${WSL_APT_UPGRADE:-unset}" in
   1|yes|true) DO_UPGRADE=1 ;;
   0|no|false) DO_UPGRADE=0 ;;
   unset)      confirm "Run 'apt upgrade' now? (slow on a fresh image)" y && DO_UPGRADE=1 ;;
+  *)          die "WSL_APT_UPGRADE must be one of: 1/yes/true, 0/no/false, or unset (got: ${WSL_APT_UPGRADE})" ;;
 esac
 [ "$DO_UPGRADE" = "1" ] && run "DEBIAN_FRONTEND=noninteractive apt-get upgrade -y"
 
@@ -29,13 +33,19 @@ apt_install sudo systemd
 replace_ini_section "wsl-starter:boot" /etc/wsl.conf boot "[boot]
 systemd=true"
 
+# Validate WSL_USER (if set) BEFORE the prompt so a bad env value fails fast
+# with a message that names the env var; otherwise the operator gets a generic
+# "Invalid username" error after a successful interactive prompt.
+# useradd's NAME_REGEX (Debian default): start with a letter or underscore;
+# alnum, dash, underscore body; optional trailing $; <=32 chars.
+_user_re='^[a-z_][a-z0-9_-]{0,30}\$?$'
+if [ -n "${WSL_USER:-}" ] && ! [[ "$WSL_USER" =~ $_user_re ]]; then
+  die "WSL_USER='$WSL_USER' is invalid — must match useradd NAME_REGEX (lowercase, _, -; start with letter/underscore; <=32 chars)."
+fi
 USER_NAME="${WSL_USER:-}"
 [ -n "$USER_NAME" ] || USER_NAME="$(ask "Non-root username to create")"
 [ -n "$USER_NAME" ] || die "Username is required."
-# useradd's NAME_REGEX (Debian default): start with a letter or underscore;
-# alnum, dash, underscore body; optional trailing $; <=32 chars. Validate up
-# front so the error surfaces here, not deep inside `run "useradd ..."`.
-[[ "$USER_NAME" =~ ^[a-z_][a-z0-9_-]{0,30}\$?$ ]] \
+[[ "$USER_NAME" =~ $_user_re ]] \
   || die "Invalid username '$USER_NAME' — must match useradd NAME_REGEX (lowercase, _, -; start with letter/underscore; <=32 chars)."
 
 if id "$USER_NAME" >/dev/null 2>&1; then

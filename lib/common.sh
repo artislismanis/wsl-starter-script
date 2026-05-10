@@ -1,6 +1,14 @@
 # shellcheck shell=bash
 # Common helpers sourced by install.sh and every module.
 
+# Make `set -e` propagate failures through command substitution. Without this,
+# `x="$(curl ... | sh)"` and `x="$(false)"` succeed silently when their inner
+# commands fail — see the omz/curl bug we hit at modules/30-shell-zsh.sh.
+# Bash 4.4+ (Ubuntu 18.04+ ships 4.4; 24.04 ships 5.x). Apply globally so
+# every module inherits it; the few `$(...)` call sites that intentionally
+# tolerate failure already use `|| true` and remain unaffected.
+shopt -s inherit_errexit 2>/dev/null || true
+
 # Colours (disabled when stdout is not a tty)
 if [ -t 1 ]; then
   C_BLUE='\033[0;94m'; C_GREEN='\033[0;92m'; C_YELLOW='\033[0;93m'

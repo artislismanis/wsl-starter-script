@@ -113,10 +113,14 @@ JSON
 fi
 
 # ---- Rootless --------------------------------------------------------------
-# Disable any system-wide Docker to avoid socket conflicts.
-if systemctl is-active --quiet docker.service 2>/dev/null; then
-  log "Stopping system-wide docker.service (rootless will own the daemon)"
-  run "systemctl disable --now docker.service docker.socket"
+# Disable any system-wide Docker to avoid socket conflicts. is-active misses the
+# "installed-and-enabled-but-currently-stopped" case (e.g. a prior classic
+# install that hadn't started yet); is-enabled covers both. Fall through to a
+# best-effort disable when the unit isn't installed at all (returns non-zero).
+if systemctl is-enabled --quiet docker.service 2>/dev/null \
+   || systemctl is-active  --quiet docker.service 2>/dev/null; then
+  log "Disabling system-wide docker.service (rootless will own the daemon)"
+  run "systemctl disable --now docker.service docker.socket 2>/dev/null || true"
 fi
 
 # Allow the user's systemd --user instance to run without an active login.
@@ -125,17 +129,14 @@ run "loginctl enable-linger '$TARGET_USER'"
 
 # Delegate all cgroup v2 controllers to user sessions. By default systemd only
 # delegates memory+pids to user@.service, which leaves rootless dockerd unable
-# to apply cpu/io limits.
-DELEGATE_CONF=/etc/systemd/system/user@.service.d/delegate.conf
-delegate_was_new=1
-[ -f "$DELEGATE_CONF" ] && delegate_was_new=0
-write_file_once "$DELEGATE_CONF" <<'EOF'
+# to apply cpu/io limits. write_if_drift refreshes our drop-in if its content
+# changes (e.g. we add a controller in a future release) and only fires the
+# daemon-reload when something actually changed.
+run "mkdir -p /etc/systemd/system/user@.service.d"
+write_if_drift /etc/systemd/system/user@.service.d/delegate.conf "systemctl daemon-reload" <<'EOF'
 [Service]
 Delegate=cpu cpuset io memory pids
 EOF
-# Only reload when we actually wrote the drop-in — saves a systemctl invocation
-# on every re-run and keeps the log honest about what changed.
-[ "$delegate_was_new" = "1" ] && run "systemctl daemon-reload"
 
 # Write rootless daemon.json before first start: use the systemd cgroup driver
 # (now viable thanks to the controller delegation above). Order matters — this
@@ -152,6 +153,15 @@ JSON
 
 UID_N="$(id -u "$TARGET_USER")"
 
+# Wrap the three `sudo -iu ... env XDG_RUNTIME_DIR=...` invocations below in a
+# single helper so the env-overlay + login-shell shape lives in one place. The
+# XDG_RUNTIME_DIR pin is needed because `sudo -iu` produces a fresh env that
+# may not have it set (depends on PAM config), and dockerd-rootless-setuptool
+# / `systemctl --user` both rely on it pointing at /run/user/<uid>.
+_as_target_user() {
+  run "sudo -iu '$TARGET_USER' env XDG_RUNTIME_DIR=/run/user/${UID_N} $*"
+}
+
 # Run the rootless setuptool as the target user. It creates
 # ~/.config/systemd/user/docker.service and starts the user-level daemon.
 # Skip on re-run when the user-level unit is already present — the setuptool
@@ -162,7 +172,7 @@ if [ -f "$ROOTLESS_UNIT" ]; then
   skip "rootless docker.service already installed for $TARGET_USER"
 else
   log "Running dockerd-rootless-setuptool.sh as $TARGET_USER"
-  run "sudo -iu '$TARGET_USER' env XDG_RUNTIME_DIR=/run/user/${UID_N} dockerd-rootless-setuptool.sh install --force"
+  _as_target_user "dockerd-rootless-setuptool.sh install --force"
 fi
 
 # Persist DOCKER_HOST in both bash and zsh rc files. The helper chowns each
@@ -194,8 +204,8 @@ if truthy "$USE_PASTA"; then
 [Service]
 Environment="NET=pasta"
 UNIT
-  run "sudo -iu '$TARGET_USER' env XDG_RUNTIME_DIR=/run/user/${UID_N} systemctl --user daemon-reload"
-  run "sudo -iu '$TARGET_USER' env XDG_RUNTIME_DIR=/run/user/${UID_N} systemctl --user restart docker.service"
+  _as_target_user "systemctl --user daemon-reload"
+  _as_target_user "systemctl --user restart docker.service"
   ok "pasta wired as rootlesskit network driver. host.docker.internal:host-gateway should now resolve to the host."
 fi
 

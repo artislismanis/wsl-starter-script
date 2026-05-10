@@ -6,11 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "for f in $CLAUDE_FILE_PATHS; do case \"$f\" in *.sh) bash -n \"$f\" || exit 2; command -v shellcheck >/dev/null 2>&1 && shellcheck -S warning -x \"$f\" || true ;; esac; done"
-          },
-          {
-            "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR/.githooks/validate-module-headers\" $CLAUDE_FILE_PATHS || exit 2"
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && ./lint.sh $CLAUDE_FILE_PATHS || exit 2"
           },
           {
             "type": "command",

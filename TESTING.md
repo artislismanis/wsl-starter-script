@@ -193,8 +193,9 @@ grep 'MY CUSTOM MARKER' ~/.claude/CLAUDE.md   # still there
 - No new packages installed, no new blocks in rc files.
 
 ```bash
-# Compare before/after:
-sha256sum ~/.bashrc ~/.zshrc
+# Compare before/after. ~/.zshrc may not exist yet on a fresh image (oh-my-zsh
+# only creates it on the real --dev run); 2>/dev/null avoids a noisy stderr.
+sha256sum ~/.bashrc ~/.zshrc 2>/dev/null
 ```
 
 **Pass criteria:** hashes unchanged after a `--dry-run`.
@@ -485,6 +486,17 @@ Smoke-test the rollback recipe generator. No state changes — `--rollback` only
 ```
 
 **Pass criteria:** every module surfaces in the all-modules output once, in reverse install order; ROLLBACK comment lines (those starting with `#` after `=`) render verbatim with no shell interpretation; the cross-cutting tail is emitted only when no target is given; unknown targets exit non-zero.
+
+Flag-edge-case spot checks (no-op outside the parser):
+
+```bash
+./install.sh --module foo --module bar; echo "exit=$?"     # exit=1: "specified twice"
+# Single-dash and double-dash tokens are now treated as flags (not consumed as
+# the rollback target). --rollback -h prints the full rollback recipe (the -h
+# is silently dropped after the exit 0); previously it tried to load module -h.
+./install.sh --rollback -h | head -3
+./install.sh --rollback --help | head -3
+```
 
 ---
 

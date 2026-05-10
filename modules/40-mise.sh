@@ -5,6 +5,9 @@
 # ROLLBACK=rm -rf "$HOME/.local/bin/mise" "$HOME/.local/share/mise" "$HOME/.config/mise"
 # ROLLBACK=# uv (if installed):
 # ROLLBACK=rm -rf "$HOME/.local/bin/uv" "$HOME/.local/bin/uvx" "$HOME/.local/share/uv"
+# ROLLBACK=# uv's installer may have appended a PATH line to ~/.bashrc / ~/.zshrc OUTSIDE
+# ROLLBACK=#   our wsl-starter:* fence — the cross-cutting rc strip won't touch it. Remove
+# ROLLBACK=#   manually if you want a clean rc, or leave it (harmless).
 # ROLLBACK=# rc-block (wsl-starter:mise) is removed by the cross-cutting rc strip below.
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
@@ -31,6 +34,16 @@ command -v mise >/dev/null 2>&1 && eval "$("$HOME/.local/bin/mise" activate zsh)
 # ---- Runtimes ---------------------------------------------------------------
 # MISE_LANGUAGES env var overrides the prompts (comma-separated).
 # Per-language version overrides via env: MISE_<LANG>_VERSION (e.g. MISE_NODE_VERSION=22).
+# Validate version values up front — they get interpolated into `mise use -g
+# node@<value>` shell strings, so a value containing whitespace or shell
+# metachars would split or inject. Allow alnum, dot, dash, underscore, plus.
+_ver_re='^[A-Za-z0-9._+-]+$'
+for v in MISE_NODE_VERSION MISE_PYTHON_VERSION MISE_RUBY_VERSION MISE_JAVA_VERSION \
+         MISE_GO_VERSION MISE_DENO_VERSION MISE_BUN_VERSION; do
+  if [ -n "${!v:-}" ] && ! [[ "${!v}" =~ $_ver_re ]]; then
+    die "$v='${!v}' contains unsafe characters (allowed: alnum, dot, dash, underscore, plus)."
+  fi
+done
 declare -A SPECS=(
   [node]="node@${MISE_NODE_VERSION:-lts}"
   [python]="python@${MISE_PYTHON_VERSION:-3.12}"
