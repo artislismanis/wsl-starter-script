@@ -30,6 +30,10 @@ EOF
 if [ -n "$total_in" ] || [ -n "$total_out" ]; then
     in_val=${total_in:-0}
     out_val=${total_out:-0}
+    # Awk program is built by string interpolation; safe here because the
+    # input is Claude Code's own statusline payload (a trusted source). If
+    # this is ever repurposed for untrusted input, switch to passing values
+    # through awk -v.
     in_fmt=$(awk "BEGIN { v=$in_val; if(v>=1000) printf \"%.1fk\", v/1000; else printf \"%d\", v }")
     out_fmt=$(awk "BEGIN { v=$out_val; if(v>=1000) printf \"%.1fk\", v/1000; else printf \"%d\", v }")
     printf ' \033[02;37min:%s out:%s\033[00m' "$in_fmt" "$out_fmt"

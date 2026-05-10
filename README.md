@@ -83,7 +83,7 @@ sudo DOCKER_MODE=classic DOCKER_USER=$USER ./install.sh --module 25-docker-engin
 
 Requires systemd (enabled by `00-wsl-base`, so reopen your WSL distro after `--base`).
 
-**Rootless + WSL mirrored networking:** the default `slirp4netns` rootlesskit driver doesn't route to the WSL host, so `host.docker.internal` / `host-gateway` don't resolve to anything useful. The installer offers to swap in `pasta` (newer rootlesskit backend, installs the `passt` package and drops a systemd user override setting `DOCKERD_ROOTLESS_ROOTLESSKIT_FLAGS=--net=pasta`). Opt in at the prompt, or set `DOCKER_ROOTLESS_PASTA=1` non-interactively. Then in any compose file:
+**Rootless + WSL mirrored networking:** the default `slirp4netns` rootlesskit driver doesn't route to the WSL host, so `host.docker.internal` / `host-gateway` don't resolve to anything useful. The installer swaps in `pasta` (newer rootlesskit backend, installs the `passt` package and writes a systemd user override setting `NET=pasta`) — default-on at the prompt and under `--non-interactive`. Opt out with `DOCKER_ROOTLESS_PASTA=0`. Then in any compose file:
 
 ```yaml
 extra_hosts:
@@ -132,8 +132,11 @@ claude/
                       default; set DOCKER_MODE=skip to opt out or =rootless to switch.
 --base                Root-phase only (modules 00, 10).
 --dev                 cli-modern + zsh + history + mise. (apt-core is in --base.)
---docker              Docker Engine (classic or rootless) + WSL network defenses.
---podman              Podman (rootless, daemonless) + WSL network defenses.
+--docker              Docker Engine (classic or rootless). WSL network defenses
+                      (27-wsl-network) auto-fire when a runtime actually installs;
+                      DOCKER_MODE=skip suppresses both.
+--podman              Podman (rootless, daemonless). Same auto-fire of 27-wsl-network
+                      after a successful install.
 --claude              Claude Code + user-global config.
 --module NAME         Run one module (see --list).
 --list                List modules with descriptions.
@@ -162,7 +165,7 @@ claude/
 | `ZSH_PLUGINS`             | Replace the full `plugins=(...)` line in `~/.zshrc` |
 | `CLAUDE_PERMISSION_MODE`  | `default` / `acceptEdits` / `plan` |
 
-Bootstrap-only env vars (`WSL_STARTER_REPO`, `WSL_STARTER_BRANCH`, `WSL_STARTER_DIR`) are documented in [§ Quick start option 1](#1-fastest--one-liner-on-a-fresh-wsl-image) — they affect the clone target, not module behaviour.
+Bootstrap-only env vars (`WSL_STARTER_REPO`, `WSL_STARTER_BRANCH`, `WSL_STARTER_DIR`) are documented in [§ Quick start option 1](#1-fastest--one-liner-on-a-fresh-wsl-image) — they affect the clone target, not module behaviour. The dispatcher's env-forward sweep blocklists `WSL_STARTER_*` so they don't propagate into per-module sudo escalations or the user-phase handoff.
 
 A handful of yes/no prompts have no env override and default to "yes" under `--non-interactive`: disable Windows PATH appending, set automount metadata options, make zsh the default shell, install `uv`. Note: mise's "show other runtimes" prompt defaults to *no*, so under `--non-interactive` only node and python are installed — set `MISE_LANGUAGES` explicitly to install ruby/java/go/deno/bun. If you need to opt *out* of any of the y-default prompts, run interactively for that step.
 
@@ -195,7 +198,7 @@ sudo \
 
 - **Idempotent.** Every module guards its changes; re-running is safe and expected.
 - **Root vs user.** Modules declare `REQUIRES_ROOT=1|0` in a header; the dispatcher refuses to run the wrong kind under the wrong privilege.
-- **No curl | bash chains pointing elsewhere.** Everything is vendored in `modules/` and reviewable.
+- **No hidden remote chains.** Modules do `curl | sh` upstream installers (oh-my-zsh, atuin, zoxide, mise, uv, claude-code) but every chain lives in a checked-in module so you can read what it does before running it. The `bootstrap.sh` entry point itself only fetches this repo, nothing else.
 - **mise over nvm/rvm/sdkman/pyenv.** One tool for Node, Python, Ruby, Java, Go, Deno, Bun.
 - **Claude Code starter.** Writes `~/.claude/settings.json`, `~/.claude/CLAUDE.md`, `~/.claude/scripts/statusline.sh`, and drops a commented `mcp.example.json` — existing files are preserved, never clobbered.
 
@@ -223,5 +226,7 @@ Carve-outs not rolled back automatically:
 
 - The non-root user account created by `00-wsl-base` is left in place. Use `sudo userdel -r <username>` for a clean slate (drops the home dir and the repo copy under it).
 - Per-session markers under `/run/wsl-starter*` self-clear on `wsl --shutdown`.
+- `30-shell-zsh` edits the `ZSH_THEME=` and `plugins=(...)` lines of `~/.zshrc` in place (outside any `wsl-starter:*` fence — these lines were authored by oh-my-zsh's installer, not us). The cross-cutting rc-block strip can't unwind them; cleanest reset is `rm ~/.zshrc` and re-run `--dev` (oh-my-zsh recreates a fresh `.zshrc`).
+- `40-mise` may invoke uv's installer (`https://astral.sh/uv/install.sh`), which appends a PATH line to `~/.bashrc` / `~/.zshrc` outside our fence. Strip with `sed -i '/\\.local\\/bin/d'` or by hand.
 
 When you add a new write-site to a module, add the matching `# ROLLBACK=` line in the same edit. `lint.sh` enforces **presence** (any module with a write-site primitive must have at least one `# ROLLBACK=` header) but cannot verify path-level coverage — reviewers still check that every new path has its own header.

@@ -80,7 +80,10 @@ done
 # edit and a `./lint.sh` invocation enforce identical rules.
 MODULE_FILES=()
 for f in "${FILTERED[@]}"; do
-  case "$f" in modules/*.sh) MODULE_FILES+=("$f") ;; esac
+  # Accept both relative (modules/foo.sh, from `git ls-files` or staged paths)
+  # and absolute (/.../modules/foo.sh, from the PostToolUse hook's
+  # CLAUDE_FILE_PATHS which is typically absolute) forms.
+  case "$f" in modules/*.sh|*/modules/*.sh) MODULE_FILES+=("$f") ;; esac
 done
 if [ "${#MODULE_FILES[@]}" -gt 0 ]; then
   ./.githooks/validate-module-headers "${MODULE_FILES[@]}" || fail=1

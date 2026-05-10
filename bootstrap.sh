@@ -53,10 +53,21 @@ if [ -d "$DIR/.git" ]; then
   existing_url="${existing_url%/}"
   case "$existing_url" in
     "$REPO_URL"|"${REPO_URL}.git"|"${REPO_URL%.git}"|"${REPO_URL%.git}.git")
+      # Refuse to clobber operator work-in-progress. `git pull --ff-only` would
+      # also fail in these cases but with raw git error messages; flag them
+      # up front with names the operator can act on.
+      if [ -n "$(git -C "$DIR" status --porcelain 2>/dev/null)" ]; then
+        die "$DIR has uncommitted changes. Stash them, commit, or move them aside before re-running bootstrap."
+      fi
+      if ! git -C "$DIR" symbolic-ref -q HEAD >/dev/null 2>&1; then
+        die "$DIR is on a detached HEAD. Check out a branch (e.g. 'git -C $DIR checkout $BRANCH') or move it aside."
+      fi
       log "Updating existing clone at $DIR"
       git -C "$DIR" fetch --quiet origin "$BRANCH"
       git -C "$DIR" checkout --quiet "$BRANCH"
-      git -C "$DIR" pull --ff-only --quiet origin "$BRANCH"
+      if ! git -C "$DIR" pull --ff-only --quiet origin "$BRANCH"; then
+        die "Fast-forward pull failed in $DIR — local commits diverge from origin/$BRANCH. Inspect with 'git -C $DIR log --oneline origin/$BRANCH..HEAD' and rebase or move the clone aside."
+      fi
       ;;
     *)
       die "$DIR exists as a different git repo (origin: ${existing_url:-unknown}). Set WSL_STARTER_DIR to choose a different path."

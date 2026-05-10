@@ -29,7 +29,12 @@ if [ -d "$ZSH_DIR" ]; then
   skip "oh-my-zsh already installed at $ZSH_DIR"
 else
   log "Installing oh-my-zsh"
-  run "RUNZSH=no CHSH=no KEEP_ZSHRC=yes sh -c \"\$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)\""
+  # Pipe form (curl | sh) rather than `sh -c "$(curl ...)"` so a curl failure
+  # propagates via pipefail. Bash's set -e does NOT inherit into command
+  # substitution by default (would need shopt -s inherit_errexit), so the
+  # `$()` form silently runs `sh -c ""` on a curl 4xx/5xx and the module
+  # appears to "succeed" with omz uninstalled.
+  run "curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh | RUNZSH=no CHSH=no KEEP_ZSHRC=yes sh"
 fi
 
 ZSH_CUSTOM="${ZSH_CUSTOM:-$ZSH_DIR/custom}"

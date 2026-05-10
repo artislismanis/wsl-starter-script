@@ -65,6 +65,11 @@ apt_add_signed_repo() {
 #   Package-Blacklist directive so unattended-upgrades skips these packages.
 #   Use for long-running daemons (docker, podman) where a mid-day auto-restart
 #   to swap binaries would kill active containers. Caller must be root.
+#
+#   The `51` prefix is deliberate: apt loads /etc/apt/apt.conf.d/* in lexical
+#   order, so `51` comes after `50unattended-upgrades` (the default config) and
+#   our blacklist takes effect. Do not pick a number lower than 50, or the
+#   default's blacklist may overwrite ours.
 apt_hold_unattended() {
   local name="$1"; shift
   [ "$#" -gt 0 ] || die "apt_hold_unattended: need at least one package"
@@ -124,6 +129,33 @@ write_if_drift() {
   if [ -n "$reload" ]; then
     run "$reload"
   fi
+}
+
+# copy_if_drift <src> <dst> [mode]
+#   Same drift semantics as write_if_drift, but the source is a file on disk
+#   (not stdin) — used when shipping a binary or static artefact from
+#   modules/files/. Sets WIF_CHANGED for callers that gate on it. Mode applies
+#   only when we actually copy (preserves any chmod the operator made on a
+#   skipped destination).
+copy_if_drift() {
+  local src="$1" dst="$2" mode="${3:-}"
+  [ -r "$src" ] || die "copy_if_drift: source unreadable: $src"
+  if [ -f "$dst" ] && cmp -s "$src" "$dst"; then
+    skip "$dst already up to date"
+    # shellcheck disable=SC2034  # see write_if_drift
+    WIF_CHANGED=0
+    return 0
+  fi
+  log "Installing $dst"
+  if [ "$DRY_RUN" != "1" ]; then
+    if [ -n "$mode" ]; then
+      install -m "$mode" "$src" "$dst"
+    else
+      install "$src" "$dst"
+    fi
+  fi
+  # shellcheck disable=SC2034  # see write_if_drift
+  WIF_CHANGED=1
 }
 
 # _strip_unmanaged_ini_section <file> <section>
