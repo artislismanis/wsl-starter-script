@@ -227,6 +227,5 @@ Carve-outs not rolled back automatically:
 - The non-root user account created by `00-wsl-base` is left in place. Use `sudo userdel -r <username>` for a clean slate (drops the home dir and the repo copy under it).
 - Per-session markers under `/run/wsl-starter*` self-clear on `wsl --shutdown`.
 - `30-shell-zsh` edits the `ZSH_THEME=` and `plugins=(...)` lines of `~/.zshrc` in place (outside any `wsl-starter:*` fence — these lines were authored by oh-my-zsh's installer, not us). The cross-cutting rc-block strip can't unwind them; cleanest reset is `rm ~/.zshrc` and re-run `--dev` (oh-my-zsh recreates a fresh `.zshrc`).
-- `40-mise` may invoke uv's installer (`https://astral.sh/uv/install.sh`), which appends a PATH line to `~/.bashrc` / `~/.zshrc` outside our fence. Strip with `sed -i '/\\.local\\/bin/d'` or by hand.
 
 When you add a new write-site to a module, add the matching `# ROLLBACK=` line in the same edit. `lint.sh` enforces **presence** (any module with a write-site primitive must have at least one `# ROLLBACK=` header) but cannot verify path-level coverage — reviewers still check that every new path has its own header.

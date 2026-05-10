@@ -131,14 +131,16 @@ write_if_drift() {
   fi
 }
 
-# copy_if_drift <src> <dst> [mode]
+# copy_if_drift <src> <dst> [mode] [reload-cmd]
 #   Same drift semantics as write_if_drift, but the source is a file on disk
 #   (not stdin) — used when shipping a binary or static artefact from
 #   modules/files/. Sets WIF_CHANGED for callers that gate on it. Mode applies
 #   only when we actually copy (preserves any chmod the operator made on a
-#   skipped destination).
+#   skipped destination). reload-cmd runs only when we wrote (parity with
+#   write_if_drift; current callers don't need it but a future binary that
+#   requires `systemctl reload <thing>` after a refresh would).
 copy_if_drift() {
-  local src="$1" dst="$2" mode="${3:-}"
+  local src="$1" dst="$2" mode="${3:-}" reload="${4:-}"
   [ -r "$src" ] || die "copy_if_drift: source unreadable: $src"
   if [ -f "$dst" ] && cmp -s "$src" "$dst"; then
     skip "$dst already up to date"
@@ -156,6 +158,11 @@ copy_if_drift() {
   fi
   # shellcheck disable=SC2034  # see write_if_drift
   WIF_CHANGED=1
+  # `if` rather than `&&` so an empty reload doesn't return 1 from the
+  # function — set -e + && footgun.
+  if [ -n "$reload" ]; then
+    run "$reload"
+  fi
 }
 
 # _strip_unmanaged_ini_section <file> <section>

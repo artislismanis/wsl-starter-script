@@ -3,11 +3,9 @@
 # DESCRIPTION=mise (unified version manager) + optional runtimes + uv
 # ROLLBACK=# Per runtime first (clean removal of toolchains): mise uninstall <node|python|ruby|java|go|deno|bun>
 # ROLLBACK=rm -rf "$HOME/.local/bin/mise" "$HOME/.local/share/mise" "$HOME/.config/mise"
-# ROLLBACK=# uv (if installed):
-# ROLLBACK=rm -rf "$HOME/.local/bin/uv" "$HOME/.local/bin/uvx" "$HOME/.local/share/uv"
-# ROLLBACK=# uv's installer may have appended a PATH line to ~/.bashrc / ~/.zshrc OUTSIDE
-# ROLLBACK=#   our wsl-starter:* fence — the cross-cutting rc strip won't touch it. Remove
-# ROLLBACK=#   manually if you want a clean rc, or leave it (harmless).
+# ROLLBACK=# uv (if installed): we pass UV_NO_MODIFY_PATH=1 to its installer so all rc
+# ROLLBACK=#   wiring stays inside our wsl-starter:mise block — no separate rc-strip needed.
+# ROLLBACK=rm -rf "$HOME/.local/bin/uv" "$HOME/.local/bin/uvx" "$HOME/.local/share/uv" "$HOME/.local/bin/env"
 # ROLLBACK=# rc-block (wsl-starter:mise) is removed by the cross-cutting rc strip below.
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
@@ -84,9 +82,13 @@ for lang in "${choices[@]}"; do
 done
 
 # uv — project-local Python env manager (complements mise-managed python).
+# UV_NO_MODIFY_PATH=1 stops Astral's installer from appending its own
+# `. "$HOME/.local/bin/env"` line to ~/.bashrc / ~/.zshrc — the wsl-starter:mise
+# block above already adds ~/.local/bin to PATH, so the second wiring would be
+# redundant noise that lives outside our fence and survives a --rollback.
 if confirm "Install uv (fast Python project/env manager)?" y; then
   if ! command_exists uv; then
-    run "curl -LsSf https://astral.sh/uv/install.sh | sh"
+    run "curl -LsSf https://astral.sh/uv/install.sh | env UV_NO_MODIFY_PATH=1 sh"
   else
     skip "uv already installed"
   fi

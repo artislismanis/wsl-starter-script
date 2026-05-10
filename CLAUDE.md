@@ -37,7 +37,7 @@ Every installer step must be safe to re-run. Use the helpers — do not hand-rol
 | Strip + replace an INI section in one call | `replace_ini_section "wsl-starter:<topic>" /file section "[section]\nkey=val"` |
 | Write a file only if absent (preserves operator edits; reads stdin) | `write_file_once /path [owner] [mode] <<EOF ... EOF` |
 | Refresh a file we own when its content drifts (sysctl drop-in, systemd unit) | `write_if_drift /path "reload-cmd" <<EOF ... EOF` (use *only* for our artefacts, never operator-tunable files) |
-| Drift-refresh a binary/static artefact from `modules/files/` to `/usr/local/bin/` etc. | `copy_if_drift <src> <dst> [mode]` (same drift semantics as `write_if_drift` but reads from a file on disk, not stdin) |
+| Drift-refresh a binary/static artefact from `modules/files/` to `/usr/local/bin/` etc. | `copy_if_drift <src> <dst> [mode] [reload-cmd]` (same drift semantics as `write_if_drift` but reads from a file on disk, not stdin) |
 
 rc-file blocks use the `wsl-starter:<topic>` marker convention so re-runs don't duplicate. Keep the prefix.
 
