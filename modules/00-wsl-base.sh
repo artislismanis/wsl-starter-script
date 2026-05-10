@@ -25,6 +25,11 @@ systemd=true"
 USER_NAME="${WSL_USER:-}"
 [ -n "$USER_NAME" ] || USER_NAME="$(ask "Non-root username to create")"
 [ -n "$USER_NAME" ] || die "Username is required."
+# useradd's NAME_REGEX (Debian default): start with a letter or underscore;
+# alnum, dash, underscore body; optional trailing $; <=32 chars. Validate up
+# front so the error surfaces here, not deep inside `run "useradd ..."`.
+[[ "$USER_NAME" =~ ^[a-z_][a-z0-9_-]{0,30}\$?$ ]] \
+  || die "Invalid username '$USER_NAME' — must match useradd NAME_REGEX (lowercase, _, -; start with letter/underscore; <=32 chars)."
 
 if id "$USER_NAME" >/dev/null 2>&1; then
   skip "User $USER_NAME already exists"
@@ -45,6 +50,10 @@ replace_ini_section "wsl-starter:user" /etc/wsl.conf user "[user]
 default=$USER_NAME"
 
 HOST_NAME="${WSL_HOSTNAME:-$(ask "Hostname" "$(hostname)")}"
+# RFC 1123: alnum + hyphen, no leading/trailing hyphen, 1–63 chars per label.
+# WSL only honours a single label (no dots) for /etc/wsl.conf [network] hostname=.
+[[ "$HOST_NAME" =~ ^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?$ ]] \
+  || die "Invalid hostname '$HOST_NAME' — must be 1–63 chars of alnum or hyphen, no leading/trailing hyphen."
 replace_ini_section "wsl-starter:network" /etc/wsl.conf network "[network]
 generateResolvConf=false
 hostname=$HOST_NAME"
@@ -59,6 +68,15 @@ if [ -z "${WSL_DNS+set}" ]; then
   esac
 fi
 if [ -n "$DNS_CHOICE" ]; then
+  # Sanity-check each token before it lands in /etc/resolv.conf verbatim. We
+  # accept IPv4 dotted-quads and IPv6 colon-hex strings; anything else (e.g. a
+  # hostname or a typo'd value) would silently break name resolution at next
+  # reopen. This is a boundary check, not a security boundary — the file is
+  # root-owned — but a wrong value here is painful to diagnose.
+  for ns in $DNS_CHOICE; do
+    [[ "$ns" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ || "$ns" =~ ^[0-9A-Fa-f:]+$ ]] \
+      || die "Invalid DNS server '$ns' — expected an IPv4 or IPv6 address."
+  done
   log "Writing /etc/resolv.conf with DNS: $DNS_CHOICE"
   # Three-step block (chattr -i, rm, redirected heredoc-style write) — kept as
   # an inline DRY_RUN guard rather than three separate `run` calls because the

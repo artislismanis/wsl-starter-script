@@ -35,7 +35,11 @@ ZSH_CUSTOM="${ZSH_CUSTOM:-$ZSH_DIR/custom}"
 # If set in the env, we replace the full plugins=() line — caller is in charge.
 # ZSH_THEME: if set, replaces the ZSH_THEME="..." line omz wrote.
 PLUGINS_OVERRIDE=0
-if [ -n "${ZSH_PLUGINS+set}" ]; then
+# Treat an empty value the same as unset — otherwise the override branch would
+# rewrite the .zshrc plugins line to `plugins=()`, silently zeroing the
+# operator's plugins. If the operator really wants no plugins, that's a
+# deliberate choice they should make by editing .zshrc directly.
+if [ -n "${ZSH_PLUGINS+set}" ] && [ -n "${ZSH_PLUGINS}" ]; then
   PLUGINS_OVERRIDE=1
 else
   ZSH_PLUGINS="git zsh-autosuggestions zsh-syntax-highlighting"

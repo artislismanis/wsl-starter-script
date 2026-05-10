@@ -216,7 +216,13 @@ if [ "$MODE" = "all" ] || [ "$MODE" = "single" ]; then
 fi
 
 [ "$MODE" = "" ] && [ ${#SELECTED[@]} -gt 0 ] && MODE=groups
-[ -z "$MODE" ] && interactive_menu
+if [ -z "$MODE" ]; then
+  # Refuse to drop into the interactive menu under --non-interactive — `read`
+  # would block on the closed stdin (CI, sudo handoff). Operator must say
+  # explicitly which group(s) to run.
+  [ "$NON_INTERACTIVE" = "1" ] && die "--non-interactive requires --all, --module, or one of --base/--dev/--docker/--podman/--claude."
+  interactive_menu
+fi
 
 case "$MODE" in
   all)
