@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 # REQUIRES_ROOT=1
 # DESCRIPTION=WSL base: systemd, non-root user, hostname, DNS, automount
+# ROLLBACK=# Strip the wsl-starter:* blocks from /etc/wsl.conf (boot/user/network/interop/automount):
+# ROLLBACK=sudo sed -i '/# >>> wsl-starter:/,/# <<< wsl-starter:/d' /etc/wsl.conf
+# ROLLBACK=# /etc/resolv.conf was rewritten — restore from a fresh image, or 'sudo dpkg-reconfigure resolvconf'.
+# ROLLBACK=# Then 'wsl --shutdown' from Windows so WSL re-reads /etc/wsl.conf and regenerates resolv.conf.
+# ROLLBACK=# Carve-out: the non-root user account created by this module is NOT removed automatically.
+# ROLLBACK=#   sudo userdel -r <username>   # (also drops home dir + the repo copy under it)
+# ROLLBACK=# Per-session: /run/wsl-starter-handoff is on tmpfs and self-clears on shutdown.
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/idempotent.sh"

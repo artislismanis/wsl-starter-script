@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # REQUIRES_ROOT=0
 # DESCRIPTION=oh-my-zsh + plugins (autosuggestions, syntax-highlighting); needs zsh from 20-cli-modern
+# ROLLBACK=sudo chsh -s /bin/bash "$USER"
+# ROLLBACK=rm -rf "$HOME/.oh-my-zsh"
+# ROLLBACK=# ~/.zshrc has ZSH_THEME / plugins=() lines edited in place (outside any wsl-starter:* fence).
+# ROLLBACK=#   Simplest unwind: 'rm -f ~/.zshrc' (oh-my-zsh re-creates it on next install).
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/idempotent.sh"

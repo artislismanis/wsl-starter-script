@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 # REQUIRES_ROOT=1
 # DESCRIPTION=Core apt packages (build-essential, git, tmux, locales, ...)
+# ROLLBACK=# Re-comment en_US.UTF-8 in /etc/locale.gen, regenerate, reset default:
+# ROLLBACK=sudo sed -i 's/^en_US.UTF-8 UTF-8/# en_US.UTF-8 UTF-8/' /etc/locale.gen
+# ROLLBACK=sudo locale-gen
+# ROLLBACK=sudo update-locale LANG=C.UTF-8
+# ROLLBACK=# Packages installed here are removed by the cross-cutting 'sudo apt-get autoremove' below.
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/idempotent.sh"

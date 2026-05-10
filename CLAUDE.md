@@ -18,6 +18,7 @@ See [README.md § Layout](README.md#layout) for the canonical module list with `
 ## Module contract (every file in `modules/`)
 
 - Two header lines Claude must preserve:  `# REQUIRES_ROOT=0|1`  and  `# DESCRIPTION=...`
+- Plus one or more `# ROLLBACK=<line>` headers — see "Rollback parity" below. Required whenever the module makes any state-changing write.
 - Body bootstrap (first four lines, in order): `set -euo pipefail`; `source ../lib/common.sh`; `source ../lib/idempotent.sh`; `require_root` or `require_user` matching the header.
 - Dispatcher parses the headers to enforce privilege and populate `--list`.
 - Scaffold new modules via `/new-module` (skill in `.claude/skills/new-module/`) so the contract stays intact.
@@ -41,15 +42,29 @@ rc-file blocks use the `wsl-starter:<topic>` marker convention so re-runs don't 
 
 ## Rollback parity (paired-write rule)
 
-Every state-changing path a module touches must have a matching teardown line in `README.md` § Rollback. This is the operator's only escape hatch — undocumented mutations strand them. The rule applies to:
+Every state-changing path a module touches must have a matching `# ROLLBACK=<line>` header in the same module file. Headers are repeatable; values whose first non-space char is `#` come out as comments in the emitted recipe (use these for prose like "Carve-out: ..." or "Per runtime: mise uninstall ..."). The README's Rollback section is a thin pointer — there is no per-resource prose to keep in sync any more.
 
-- Files written via `write_file_once` (the path goes in Rollback as `sudo rm <path>`).
-- systemd units enabled via `systemctl enable` (also `disable --now` before `rm`, and a `daemon-reload` after).
-- rc-file blocks (`ensure_block` / `ensure_block_in_rcs` / `ensure_block_per_shell`) — the `wsl-starter:<marker>` already lets `sed -i '/# >>> wsl-starter:/,/# <<< wsl-starter:/d'` strip them, so a generic line covers all of them; add a marker-specific line only when the unwind needs extra steps (uninstall command, parent-dir cleanup, etc.).
-- apt repos added via `apt_add_signed_repo` (the `.list` and `/etc/apt/keyrings/<name>.gpg`).
-- Unattended-upgrade holds via `apt_hold_unattended` (already covered by a generic line in Rollback — extend it when adding a hold for a new package).
+The dispatcher reads them:
 
-When you add a new write-site to a module, audit Rollback in the same edit. Reviewers should reject PRs that introduce a write without a corresponding Rollback line.
+```
+./install.sh --rollback              # all modules in reverse install order
+./install.sh --rollback 25-docker-engine
+```
+
+Output is a shell-pasteable recipe with module separators and a cross-cutting tail (rc-block strip, `apt-get autoremove`, `wsl --shutdown` reminder). The dispatcher never executes anything itself — operators paste/edit, then run.
+
+The rule applies to:
+
+- Files written via `write_file_once` → `# ROLLBACK=sudo rm -f <path>`.
+- systemd units enabled via `systemctl enable` → `disable --now`, `rm`, then `daemon-reload`.
+- rc-file blocks (`ensure_block` / `ensure_block_in_rcs` / `ensure_block_per_shell`) — the cross-cutting rc-block strip the dispatcher prints at the end already covers `wsl-starter:*` markers, so a one-line comment pointing at it is enough; add a marker-specific line only when the unwind needs extra steps.
+- apt repos added via `apt_add_signed_repo` → both `.list` and `/etc/apt/keyrings/<name>.gpg`.
+- Unattended-upgrade holds via `apt_hold_unattended` → `/etc/apt/apt.conf.d/51unattended-upgrades-<name>`.
+- Symlinks / artefacts under `/usr/local/bin/`, `/etc/tmpfiles.d/`, `/etc/sysctl.d/`, `/etc/systemd/system/`.
+
+`lint.sh` and the PostToolUse hook fail any module that contains a write-site primitive but zero `# ROLLBACK=` headers. The check is presence-based, not coverage-based — it can't tell you *which* paths you forgot, so reviewers still verify path-level completeness in PRs. Modules with no writes (e.g. `99-cleanup`) declare a single `# ROLLBACK=# Nothing to roll back ...` comment line to satisfy the lint and document intent.
+
+When you add a new write-site, add the paired `# ROLLBACK=` line in the same edit. Reviewers should reject PRs that add a write without a header line.
 
 ## `run` + `--dry-run`
 

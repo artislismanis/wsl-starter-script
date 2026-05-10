@@ -210,16 +210,16 @@ The pre-commit hook is plain shell (`.githooks/pre-commit`) — no Python, no `p
 
 ## Rollback
 
-- WSL base: remove the `# >>> wsl-starter:* >>>` blocks from `/etc/wsl.conf`, then `wsl --terminate <your-distro>` (or `wsl --shutdown` to stop all distros). `00-wsl-base` also rewrites `/etc/resolv.conf` and (in `10-apt-core`) uncomments `en_US.UTF-8` in `/etc/locale.gen` — to undo, restore those from a fresh image or rerun `dpkg-reconfigure resolvconf` / `dpkg-reconfigure locales`. Note: stripping the `[network]` block alone won't make WSL regenerate `/etc/resolv.conf` — `00-wsl-base` set `generateResolvConf=false`, so you also need `wsl --shutdown` (so the next launch sees the section gone) before WSL will rebuild the file.
-- Shell rc-file blocks: remove the `# >>> wsl-starter:* >>>` blocks from `~/.bashrc` / `~/.zshrc`.
-- zsh setup (30-shell-zsh): the `ZSH_THEME="..."` and `plugins=(...)` lines in `~/.zshrc` are sed-edited *outside* the wsl-starter blocks, so the line above doesn't undo them — delete `~/.zshrc` (oh-my-zsh's installer wrote it; it'll regenerate on next install) or hand-edit. Reset the login shell with `chsh -s /bin/bash $USER`. Remove `~/.oh-my-zsh/` and the cloned plugin dirs under `~/.oh-my-zsh/custom/plugins/zsh-{autosuggestions,syntax-highlighting}/`.
-- Shell history (31-shell-history): `rm -rf ~/.atuin ~/.local/share/atuin ~/.bash-preexec.sh ~/.local/share/zoxide` (atuin and zoxide ship no uninstall command; newer atuin defaults to `~/.local/share/atuin` for the database).
-- mise + runtimes (40-mise): `mise uninstall <lang>` per runtime, then `rm -rf ~/.local/bin/mise ~/.local/share/mise ~/.config/mise`. uv: `rm -rf ~/.local/bin/uv ~/.local/bin/uvx ~/.local/share/uv` (uv's installer also writes a shell-init snippet under `~/.local/bin/env`; the `wsl-starter:*` rc-block strip already covers any sourcing line we added).
-- Packages: `sudo apt-get remove <pkg>` (apt-installed CLI tools, language extras), then `sudo apt-get autoremove`.
-- Classic docker (25-docker-engine, classic mode): `sudo systemctl disable --now docker.service containerd.service`; `sudo apt-get remove docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin`; `sudo gpasswd -d $USER docker` (then `sudo groupdel docker` if no other members); `sudo rm -f /etc/docker/daemon.json` and the apt repo files `sudo rm -f /etc/apt/sources.list.d/docker.list /etc/apt/keyrings/docker.gpg`.
-- Rootless docker (25-docker-engine, rootless mode): `systemctl --user disable --now docker`; `dockerd-rootless-setuptool.sh uninstall`; `sudo loginctl disable-linger $USER` (so the user systemd instance doesn't keep running without a login); `sudo apt-get remove docker-ce docker-ce-cli containerd.io docker-ce-rootless-extras uidmap slirp4netns passt fuse-overlayfs docker-buildx-plugin docker-compose-plugin` (drop `passt` if you still want it for podman); remove `~/.config/docker/`, `~/.config/systemd/user/docker.service.d/` (parent dir, not just `pasta.conf`), `/etc/systemd/system/user@.service.d/delegate.conf` (then `sudo systemctl daemon-reload`), `sudo rm -f /etc/tmpfiles.d/wsl-starter-docker-rootless-symlink.conf /var/run/docker.sock`, and the `wsl-starter:docker-rootless` block from `~/.bashrc`/`~/.zshrc`. Same apt-repo files as classic above.
-- Podman: `sudo apt-get remove podman podman-compose podman-docker` (the latter only if installed); also drop the rootless plumbing (`uidmap slirp4netns passt fuse-overlayfs`) if no other runtime needs it, and `sudo rm -f /etc/containers/nodocker` if you removed the shim. No per-user state to clean up.
-- WSL network defenses: `sudo systemctl disable --now wsl-rshared-root.service 2>/dev/null; sudo rm -f /etc/sysctl.d/99-wsl-network.conf /usr/local/bin/wsl-port-check /etc/systemd/system/wsl-rshared-root.service && sudo systemctl daemon-reload && sudo sysctl --system`.
-- Unattended-upgrades holds: `sudo rm -f /etc/apt/apt.conf.d/51unattended-upgrades-docker /etc/apt/apt.conf.d/51unattended-upgrades-podman` (per-runtime; extend the glob if a future module adds another hold).
-- Claude Code (50-claude-code): `~/.local/bin/claude uninstall` (or delete the binary). Configs: `rm -f ~/.claude/settings.json ~/.claude/CLAUDE.md ~/.claude/scripts/statusline.sh ~/.claude/mcp.example.json`.
-- Per-session marker files: `/run/wsl-starter-handoff`, `/run/wsl-starter.container-runtime`, `/run/wsl-starter.apt-fresh` all live on tmpfs and self-clear on `wsl --shutdown` / next boot — no rollback action needed; listed here so an audit doesn't flag them as undocumented mutations.
+```sh
+./install.sh --rollback              # all modules in reverse install order
+./install.sh --rollback 25-docker-engine   # one module
+```
+
+Output is a shell-pasteable recipe assembled from each module's `# ROLLBACK=` headers — the single source of truth lives next to the write-sites. Review before running; the dispatcher never executes anything itself. The script also emits cross-cutting cleanup at the end (rc-block strip, `apt-get autoremove`, `wsl --shutdown` reminder).
+
+Carve-outs not rolled back automatically:
+
+- The non-root user account created by `00-wsl-base` is left in place. Use `sudo userdel -r <username>` for a clean slate (drops the home dir and the repo copy under it).
+- Per-session markers under `/run/wsl-starter*` self-clear on `wsl --shutdown`.
+
+When you add a new write-site to a module, add the matching `# ROLLBACK=` line in the same edit — `lint.sh` enforces parity.
