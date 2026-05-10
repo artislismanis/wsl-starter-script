@@ -280,6 +280,7 @@ command -v wsl-port-check                            # /usr/local/bin/wsl-port-c
 ls -la /var/run/docker.sock                                   # symlink → /run/user/<uid>/docker.sock
 cat /etc/tmpfiles.d/wsl-starter-docker-rootless-symlink.conf  # the systemd-tmpfiles entry
 docker -H unix:///var/run/docker.sock info >/dev/null && echo ok   # daemon reachable via the well-known path
+ls /etc/apt/apt.conf.d/51unattended-upgrades-docker           # hold in place (docker-ce, plugins, containerd.io)
 ```
 
 **Pass criteria:** rootless daemon up; pasta override file present at `~/.config/systemd/user/docker.service.d/pasta.conf`; rc-file block exactly once after a re-run; `/var/run/docker.sock` resolves to the per-user socket and `docker info` succeeds against it.
