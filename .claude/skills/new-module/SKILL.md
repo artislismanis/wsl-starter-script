@@ -1,6 +1,6 @@
 ---
 name: new-module
-description: Scaffold a new modules/NN-name.sh following the project's module contract (REQUIRES_ROOT header, DESCRIPTION, required lib sources, privilege guard). Use when the user asks to add/create a new module.
+description: Scaffold a new modules/NN-name.sh following the project's module contract (REQUIRES_ROOT/DESCRIPTION/ROLLBACK headers, required lib sources, privilege guard). Use when the user asks to add/create a new module.
 disable-model-invocation: true
 ---
 
@@ -47,6 +47,7 @@ Current numeric map (do not collide):
 - Write user-facing progress through `log / ok / skip / warn / die` — no raw `echo` for log lines.
 - Wrap state-changing shell one-liners in `run "..."` so `--dry-run` honours them.
 - rc-file edits: use `ensure_block` with a marker of the form `wsl-starter:<topic>` so re-runs don't duplicate.
+- **Add a `# ROLLBACK=<line>` header for every write-site you introduce** — file path, systemd unit, rc-block marker, apt repo, hold file, symlink. Headers are repeatable; values whose first non-space char is `#` come out as comments in the emitted recipe (use these for prose like "Carve-out: ..."). The dispatcher emits them verbatim via `./install.sh --rollback`. `lint.sh` (and the PostToolUse hook) fails the module if it has any write-site primitive but zero `# ROLLBACK=` headers — see CLAUDE.md § "Rollback parity" for the full rule. Modules with no writes declare a single `# ROLLBACK=# Nothing to roll back ...` comment line.
 
 ## If the user wants the module wired into a group
 

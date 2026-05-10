@@ -115,6 +115,8 @@ The `zsh` package itself is installed by `20-cli-modern` (root); this user-phase
 
 Both plugins get auto-registered in `~/.zshrc`. With your permission the module also runs `chsh -s $(command -v zsh)` so new sessions start in zsh.
 
+> **Non-interactive note:** `chsh` needs sudo auth, and under `--non-interactive` sudo can't prompt. If there's no cached sudo credential, the module warns and skips the `chsh` step rather than dying — run `sudo chsh -s "$(command -v zsh)" "$USER"` yourself afterwards. (Interactive runs fall through to a normal sudo prompt.)
+
 **Overrides for non-interactive runs:**
 
 - `ZSH_THEME=agnoster` — replaces the omz-written `ZSH_THEME="..."` line with your choice.

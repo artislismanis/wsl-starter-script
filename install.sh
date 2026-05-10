@@ -3,8 +3,9 @@
 # Usage: ./install.sh [--all|--base|--dev|--claude|--module NAME] [--non-interactive] [--dry-run]
 set -euo pipefail
 
+# lib/common.sh re-derives + exports REPO_ROOT itself; we set it here so the
+# source line below works without recomputing the path.
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-export REPO_ROOT
 source "$REPO_ROOT/lib/common.sh"
 source "$REPO_ROOT/lib/idempotent.sh"
 
@@ -16,7 +17,7 @@ wsl-starter-script
 
   ./install.sh                       Interactive menu.
   ./install.sh --all                 Run every module in order.
-  ./install.sh --base                Root-phase WSL setup only.
+  ./install.sh --base                Root-phase only: 00-wsl-base + 10-apt-core.
   ./install.sh --dev                 cli-modern (root, auto-escalates) + zsh + history + mise.
                                      If invoked as root the user-phase is deferred to the
                                      post-handoff/reopen user run.
@@ -98,7 +99,10 @@ PREAMBLE
 # ===== Cross-cutting (run once at the end) =====
 # Strip every wsl-starter:* fenced block from the operator's rc files.
 sed -i '/# >>> wsl-starter:/,/# <<< wsl-starter:/d' "$HOME/.bashrc" "$HOME/.zshrc" 2>/dev/null || true
-# Apt cleanup after package removals (run any 'apt-get remove' lines above first).
+# Module ROLLBACK comments above list packages by name but do NOT emit
+# 'apt-get remove' lines (deciding what to keep is the operator's call —
+# e.g. you may want to keep podman after uninstalling docker). Pick what to
+# remove from those lists, run 'sudo apt-get remove <packages>', then:
 sudo apt-get autoremove -y || true
 # Per-session marker files self-clear on tmpfs (no action needed):
 #   /run/wsl-starter-handoff /run/wsl-starter.container-runtime /run/wsl-starter.apt-fresh
@@ -113,13 +117,17 @@ FOOTER
 # tunable to a module doesn't require touching this file. The blocklist
 # excludes well-known system/SDK vars that share a tunable's prefix but
 # would corrupt module behavior or leak secrets if forwarded:
-#   WSL_INTEROP / WSL_DISTRO_NAME — set by WSL itself, session-specific
+#   WSL_INTEROP — IPC socket path, valid only in the originating session
 #   DOCKER_HOST / DOCKER_CONFIG / DOCKER_CONTEXT / DOCKER_TLS_*  — Docker CLI
 #   CLAUDE_CODE_*  — Claude Code internals (auth tokens, telemetry)
+# WSL_DISTRO_NAME is *not* blocked — it's a stable identifier set by /init in
+# the outer login shell and used in module banners ("wsl --terminate <distro>").
+# A `sudo env …` child gets a scrubbed env, so without forwarding we'd surface
+# the literal "<your-distro>" placeholder in those messages.
 _collect_forward_assigns() {
   local always=(NON_INTERACTIVE DRY_RUN)
   local prefix_re='^(WSL|DOCKER|PODMAN|MISE|CLAUDE|ZSH)_'
-  local block_re='^(WSL_(INTEROP|DISTRO_NAME)|DOCKER_(HOST|CONFIG|CONTEXT|TLS_.*|CERT_PATH)|CLAUDE_CODE_.*)$'
+  local block_re='^(WSL_INTEROP|DOCKER_(HOST|CONFIG|CONTEXT|TLS_.*|CERT_PATH)|CLAUDE_CODE_.*)$'
   local v
   FORWARD_ASSIGNS=()
   for v in "${always[@]}"; do
@@ -365,7 +373,10 @@ if is_root && [ ${#DEFERRED[@]} -gt 0 ]; then
     # FORWARD_ASSIGNS entries are already printf %q-quoted, so the IFS-space
     # join from [*] expands into shell-safe `KEY=quoted-val` tokens for env(1).
     # Don't "fix" the [*] to [@] with quoting — bash -lc "..." takes one string.
-    sudo -iu "$TARGET_USER" bash -lc "cd '$TARGET_REPO' && env ${FORWARD_ASSIGNS[*]} ./install.sh ${DEFERRED[*]}"
+    # printf %q TARGET_REPO so a path with whitespace/quotes survives the
+    # bash -lc layer. FORWARD_ASSIGNS entries are already %q-quoted by
+    # _collect_forward_assigns, and DEFERRED holds only --flag tokens.
+    sudo -iu "$TARGET_USER" bash -lc "cd $(printf '%q' "$TARGET_REPO") && env ${FORWARD_ASSIGNS[*]} ./install.sh ${DEFERRED[*]}"
     echo
     warn "In-session handoff complete. You're still root in *this* shell, though."
     warn "Finish up from Windows PowerShell so the distro default user takes effect:"

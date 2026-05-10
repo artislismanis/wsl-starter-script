@@ -237,12 +237,18 @@ CLAUDE_PERMISSION_MODE=acceptEdits \
 # Expect: log "Module '00-wsl-base' requires root — escalating via sudo."
 # then sudo prompts for the password and the module runs as root.
 
+# Same auto-escalation should apply to every root module — spot-check
+# 26-podman alongside the docker path:
+./install.sh --module 26-podman --dry-run
+# Expect: same "requires root — escalating via sudo." log line, then dry-run
+# preview of the sudo'd module body. No die.
+
 # As root, try to run a user-only module:
 sudo ./install.sh --module 40-mise
 # Expect: error "Module '40-mise' must run as your non-root user, not sudo."
 ```
 
-**Pass criteria:** the root-only module auto-escalates via sudo (does *not* die); the user-only-as-root case refuses with a clear error and exits non-zero.
+**Pass criteria:** root-only modules auto-escalate via sudo (does *not* die) — confirmed for both 00-wsl-base and 26-podman; the user-only-as-root case refuses with a clear error and exits non-zero.
 
 ---
 
@@ -442,6 +448,43 @@ Follow the on-screen guidance to `wsl --shutdown` after the root phase, reopen a
 ```
 
 **Pass criteria:** at the end, `claude --version`, `mise ls`, `rg --version`, `eza --version`, `gh --version`, `zsh --version`, `atuin --version`, `zoxide --version` all succeed in a fresh shell, and `~/.claude/` contains the three generated files.
+
+---
+
+## Scenario 13 — `--rollback` dispatcher
+
+Smoke-test the rollback recipe generator. No state changes — `--rollback` only prints; safe to run on any host (including outside WSL).
+
+```bash
+./install.sh --rollback              # all modules, reverse install order
+```
+
+**Verify:**
+
+```bash
+# Module sections appear in reverse install order (99 first, 00 last):
+./install.sh --rollback | grep '^# =====' | head -1    # ===== 99-cleanup.sh =====
+./install.sh --rollback | grep '^# =====' | tail -2 | head -1   # ===== 00-wsl-base.sh =====
+# Cross-cutting tail is appended once when no target is given:
+./install.sh --rollback | grep -c 'apt-get autoremove'    # >= 1
+./install.sh --rollback | grep -c 'wsl --shutdown'        # >= 1
+```
+
+```bash
+./install.sh --rollback 25-docker-engine     # one module
+```
+
+**Verify:**
+
+```bash
+# Single-module form has exactly one module section header and NO cross-cutting tail:
+./install.sh --rollback 25-docker-engine | grep -c '^# =====' # 1
+./install.sh --rollback 25-docker-engine | grep -c 'apt-get autoremove'  # 0
+# Unknown target exits non-zero with a helpful error:
+./install.sh --rollback nope; echo "exit=$?"               # exit=1
+```
+
+**Pass criteria:** every module surfaces in the all-modules output once, in reverse install order; ROLLBACK comment lines (those starting with `#` after `=`) render verbatim with no shell interpretation; the cross-cutting tail is emitted only when no target is given; unknown targets exit non-zero.
 
 ---
 

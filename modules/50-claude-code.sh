@@ -40,6 +40,15 @@ CLAUDE_MD="$CLAUDE_DIR/CLAUDE.md"
 STATUSLINE="$CLAUDE_DIR/scripts/statusline.sh"
 MCP_EXAMPLE="$CLAUDE_DIR/mcp.example.json"
 
+# Verify every source template is readable up front. Without this, a missing
+# template would silently produce an empty file at the destination
+# (`< <(sed ... missing)` succeeds with empty output; `< missing` errors out
+# in the middle of the run, leaving partial state). Better to fail before any
+# write happens.
+for tmpl in claude/settings.json.tmpl claude/CLAUDE.md.tmpl claude/statusline.sh.tmpl claude/mcp.example.json; do
+  [ -r "$REPO_ROOT/$tmpl" ] || die "Missing template: $REPO_ROOT/$tmpl (repo broken or partial clone?)"
+done
+
 # settings.json is the only template that needs substitution; the rest are
 # copied byte-for-byte. write_file_once preserves operator edits (skip-if-exists),
 # handles dry-run, and creates parent dirs.
