@@ -8,7 +8,7 @@ Target runtime: a **fresh Ubuntu WSL image** — this repo is never tested on lo
 See [README.md § Layout](README.md#layout) for the canonical module list with `[root]/[user]` tags. Notes specific to working on the repo:
 
 - `lib/common.sh` — `log/ok/skip/warn/die`, `ask/confirm/ask_secret`, `run`, `require_root/user`, `is_root` (predicate; for branching, doesn't exit), `truthy`, `is_wsl`, `mark_runtime_installed` (drops `$RUNTIME_STAMP`).
-- `lib/idempotent.sh` — `command_exists`, `pkg_installed`, `apt_install`, `apt_update_once`, `apt_add_signed_repo`, `apt_hold_unattended`, `ensure_block`, `ensure_block_in_rcs`, `ensure_block_per_shell`, `replace_ini_section`, `write_file_once`.
+- `lib/idempotent.sh` — `command_exists`, `pkg_installed`, `apt_install`, `apt_update_once`, `apt_add_signed_repo`, `apt_hold_unattended`, `ensure_block`, `ensure_block_in_rcs`, `ensure_block_per_shell`, `replace_ini_section`, `write_file_once`, `write_if_drift`.
 - `bootstrap.sh` — remote one-liner entry point. Inlines its own colour helpers (the libs aren't on disk yet at clone time), installs `git`/`curl`/`ca-certificates` if missing, clones (or `git pull --ff-only`s) the repo, then `exec`s `install.sh`. Edit this file if you change clone-time prerequisites or the default clone path.
 - `modules/NN-name.sh` — one installer unit; declares `REQUIRES_ROOT` + `DESCRIPTION` headers the dispatcher reads.
 - `claude/*.tmpl` (and `claude/mcp.example.json`) — source files materialised into `~/.claude/` by `modules/50-claude-code.sh`. **Not** consumed by this repo itself — edit the source, not the rendered copy. (`mcp.example.json` keeps its name unchanged because it's copied verbatim with no substitution.)
@@ -17,9 +17,8 @@ See [README.md § Layout](README.md#layout) for the canonical module list with `
 
 ## Module contract (every file in `modules/`)
 
-- Two header lines Claude must preserve:  `# REQUIRES_ROOT=0|1`  and  `# DESCRIPTION=...`
-- Plus one or more `# ROLLBACK=<line>` headers — see "Rollback parity" below. Required whenever the module makes any state-changing write.
-- Body bootstrap (first four lines, in order): `set -euo pipefail`; `source ../lib/common.sh`; `source ../lib/idempotent.sh`; `require_root` or `require_user` matching the header.
+- Header block (top of file, all required): `# REQUIRES_ROOT=0|1`; `# DESCRIPTION=<one short sentence>`; one or more `# ROLLBACK=<line>` headers — see "Rollback parity" below; required whenever the module performs any state-changing write. Modules with no writes declare a single `# ROLLBACK=# Nothing to roll back ...` comment line so the lint passes.
+- Body bootstrap (first four non-comment lines after the header block, in order): `set -euo pipefail`; `source ../lib/common.sh`; `source ../lib/idempotent.sh`; `require_root` or `require_user` matching the header.
 - Dispatcher parses the headers to enforce privilege and populate `--list`.
 - Scaffold new modules via `/new-module` (skill in `.claude/skills/new-module/`) so the contract stays intact.
 
@@ -37,6 +36,7 @@ Every installer step must be safe to re-run. Use the helpers — do not hand-rol
 | Mirror an rc-file block into bash + zsh with **per-shell** content | `ensure_block_per_shell "wsl-starter:<topic>" "$HOME" "<bash>" "<zsh>"` |
 | Strip + replace an INI section in one call | `replace_ini_section "wsl-starter:<topic>" /file section "[section]\nkey=val"` |
 | Write a file only if absent (preserves operator edits; reads stdin) | `write_file_once /path [owner] [mode] <<EOF ... EOF` |
+| Refresh a file we own when its content drifts (sysctl drop-in, systemd unit) | `write_if_drift /path "reload-cmd" <<EOF ... EOF` (use *only* for our artefacts, never operator-tunable files) |
 
 rc-file blocks use the `wsl-starter:<topic>` marker convention so re-runs don't duplicate. Keep the prefix.
 
@@ -90,7 +90,9 @@ Only `claude/settings.json.tmpl` contains a substitution marker (`__PERMISSION_M
 
 Root modules run before reopen; user modules after. The dispatcher refuses mismatched invocations.
 
-When `install.sh` (running as non-root) hits a root module, it auto-escalates via `sudo env "${FORWARD_ASSIGNS[@]}" bash <module>`. `FORWARD_ASSIGNS` is built by `_collect_forward_assigns`, which sweeps every set env var matching `^(WSL|DOCKER|PODMAN|MISE|CLAUDE|ZSH)_` plus `NON_INTERACTIVE` and `DRY_RUN`, minus a blocklist of system/SDK vars (WSL/Docker internals, `CLAUDE_CODE_*`). The same sweep runs for the in-session `sudo -iu <user>` handoff at the end of root-phase. The authoritative blocklist lives in `_collect_forward_assigns` in `install.sh` — don't duplicate it here, just point at the source. Do not use plain `sudo -E` — it depends on sudoers `env_keep` and silently drops most tunables.
+When `install.sh` (running as non-root) hits a root module, it auto-escalates via `sudo env "${FORWARD_ASSIGNS[@]}" bash <module>`. `FORWARD_ASSIGNS` is built by `_collect_forward_assigns`, which sweeps every set env var matching `^(WSL|DOCKER|PODMAN|MISE|CLAUDE|ZSH)_` plus `NON_INTERACTIVE` and `DRY_RUN`, minus a blocklist of system/SDK vars (`WSL_INTEROP`, Docker CLI internals, `CLAUDE_CODE_*`). The same sweep runs for the in-session `sudo -iu <user>` handoff at the end of root-phase. The authoritative blocklist lives in `_collect_forward_assigns` in `install.sh` — don't duplicate it here, just point at the source. Do not use plain `sudo -E` — it depends on sudoers `env_keep` and silently drops most tunables.
+
+Note: `WSL_DISTRO_NAME` is *not* blocked even though it shares the WSL prefix. It's a stable identifier set by /init in the outer login shell and shows up in operator-facing banners ("wsl --terminate `<distro>`"); a `sudo env …` child gets a scrubbed env, so without explicit forwarding those banners would surface the literal `<your-distro>` placeholder. Don't add it to the blocklist.
 
 To add a new operator-tunable env var: name it with one of the forwarded prefixes (`WSL_`, `DOCKER_`, `PODMAN_`, `MISE_`, `CLAUDE_`, `ZSH_`) and it'll be forwarded automatically. No edit to `install.sh` needed. If the prefix matches but the var should NOT be forwarded (e.g. it's a system or SDK variable), add it to the `block_re` regex inside `_collect_forward_assigns`.
 

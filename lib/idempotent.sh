@@ -74,7 +74,10 @@ apt_hold_unattended() {
     return 0
   fi
   log "Writing $file"
-  [ "$DRY_RUN" = "1" ] && return 0
+  if [ "$DRY_RUN" = "1" ]; then
+    printf "  $ printf '%%s\\n' <Package-Blacklist directive for: %s> > %s\n" "$*" "$file"
+    return 0
+  fi
   # Direct brace-group write — write_file_once would need this content on stdin
   # and the brace-group producer can race the function's early returns under
   # pipefail. Same pattern used by apt_add_signed_repo above for the .list
@@ -85,6 +88,42 @@ apt_hold_unattended() {
     printf '};\n'
   } > "$file"
   chmod 0644 "$file"
+}
+
+# write_if_drift <path> [reload-cmd]   — content read from stdin (heredoc).
+#   Compare stdin to <path>; if different (or file missing), write and run the
+#   optional reload-cmd. Refresh-on-drift for *our own* artefacts (sysctl
+#   drop-ins, systemd units) — operator-tunable files like ~/.bashrc should use
+#   write_file_once / ensure_block instead so operator edits aren't clobbered.
+#   Caller must already have the privileges needed to write <path>; the helper
+#   does no chown/chmod (artefacts under /etc/* are root-owned 0644 by default,
+#   which is what every current caller wants).
+#
+#   Sets WIF_CHANGED=1 if the file was (re-)written, 0 if it was already up to
+#   date. Always returns 0 so callers that don't care can ignore the status
+#   without tripping set -e; callers that DO care (e.g. "only warn when content
+#   actually changed") inspect $WIF_CHANGED after the call.
+write_if_drift() {
+  local path="$1" reload="${2:-}"
+  local content
+  content="$(cat)"
+  if [ -f "$path" ] && printf '%s\n' "$content" | cmp -s - "$path"; then
+    skip "$path already up to date"
+    # shellcheck disable=SC2034  # consumed by callers that gate post-write actions on whether we wrote
+    WIF_CHANGED=0
+    return 0
+  fi
+  log "Writing $path"
+  if [ "$DRY_RUN" != "1" ]; then
+    printf '%s\n' "$content" > "$path"
+  fi
+  # shellcheck disable=SC2034  # see comment above
+  WIF_CHANGED=1
+  # `if` rather than `&&` so an empty reload doesn't return 1 from the
+  # function — set -e + && footgun.
+  if [ -n "$reload" ]; then
+    run "$reload"
+  fi
 }
 
 # _strip_unmanaged_ini_section <file> <section>
@@ -143,23 +182,12 @@ replace_ini_section() {
 }
 
 # ensure_block_in_rcs <marker> <home_dir> <content> [owner]
-#   Write the same marked block into ~/.bashrc (always) and ~/.zshrc (only if
-#   it already exists — zsh wiring lives in 30-shell-zsh, which creates it).
-#   If [owner] is given, chown the touched files to that user; use this when
-#   root is editing rc files in another user's home (rootless-docker handoff).
+#   Same content into bash + zsh rc files. Thin wrapper around
+#   ensure_block_per_shell — kept as a separate name so call sites that write
+#   identical content in both shells don't have to duplicate the string.
 ensure_block_in_rcs() {
   local marker="$1" home="$2" content="$3" owner="${4:-}"
-  local rc
-  for rc in "$home/.bashrc" "$home/.zshrc"; do
-    [ "$rc" = "$home/.zshrc" ] && [ ! -f "$rc" ] && continue
-    ensure_block "$marker" "$rc" "$content"
-    # `if` rather than chained `&&` so a missing owner doesn't make the loop
-    # body return 1 — that would make the whole function return 1 and trip
-    # set -e in the caller.
-    if [ -n "$owner" ] && [ "$DRY_RUN" != "1" ]; then
-      chown "$owner:$owner" "$rc"
-    fi
-  done
+  ensure_block_per_shell "$marker" "$home" "$content" "$content" "$owner"
 }
 
 # write_file_once <path> [owner] [mode]   — content read from stdin (heredoc).
@@ -194,16 +222,24 @@ write_file_once() {
   fi
 }
 
-# ensure_block_per_shell <marker> <home> <bash_content> <zsh_content>
-#   Like ensure_block_in_rcs but with shell-specific content. Use when the
-#   block needs to differ between bash and zsh (e.g. `mise activate bash` vs
-#   `mise activate zsh`). .zshrc is only touched if it already exists.
+# ensure_block_per_shell <marker> <home> <bash_content> <zsh_content> [owner]
+#   Write a marked block into ~/.bashrc (always) and ~/.zshrc (only if it
+#   already exists — zsh wiring lives in 30-shell-zsh, which creates it).
+#   If [owner] is given, chown the touched rc files to that user; use this
+#   when root is editing rc files in another user's home (rootless-docker
+#   handoff). For identical bash/zsh content, prefer ensure_block_in_rcs.
 ensure_block_per_shell() {
-  local marker="$1" home="$2" bash_content="$3" zsh_content="$4"
+  local marker="$1" home="$2" bash_content="$3" zsh_content="$4" owner="${5:-}"
   ensure_block "$marker" "$home/.bashrc" "$bash_content"
+  if [ -n "$owner" ] && [ "$DRY_RUN" != "1" ]; then
+    chown "$owner:$owner" "$home/.bashrc"
+  fi
   # `if` rather than `[ -f X ] && cmd` so the function's exit status is 0
   # when zshrc is absent (set -e in callers would otherwise trip).
   if [ -f "$home/.zshrc" ]; then
     ensure_block "$marker" "$home/.zshrc" "$zsh_content"
+    if [ -n "$owner" ] && [ "$DRY_RUN" != "1" ]; then
+      chown "$owner:$owner" "$home/.zshrc"
+    fi
   fi
 }

@@ -110,13 +110,16 @@ enabled=true
 options=\"metadata,umask=22,fmask=11\""
 fi
 
-# If the repo lives under /root (bootstrap's default when run as root), copy it
-# into the new user's home so they can re-invoke ./install.sh after reopen.
+# Place the repo in the new user's home so they can re-invoke ./install.sh
+# after reopen. Skip when REPO_ROOT is already under that home (operator ran
+# from there) — otherwise copy. This catches /root/* (bootstrap default) and
+# any other out-of-home location like /opt/foo or /tmp/clone.
 USER_HOME="$(getent passwd "$USER_NAME" | cut -d: -f6)"
 HANDOFF_DIR="$REPO_ROOT"
 if [ -n "$USER_HOME" ] && [ -d "$USER_HOME" ]; then
   case "$REPO_ROOT" in
-    /root/*)
+    "$USER_HOME"/*) ;;   # already in target user's home; nothing to do
+    *)
       DEST="$USER_HOME/$(basename "$REPO_ROOT")"
       if [ -e "$DEST" ] && [ ! -d "$DEST/.git" ]; then
         warn "$DEST exists and is not a git clone; leaving it alone."

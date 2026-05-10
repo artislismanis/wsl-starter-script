@@ -1,6 +1,6 @@
 ---
 name: module-contract-validator
-description: Verify a `modules/NN-name.sh` file conforms to the dispatcher's contract — REQUIRES_ROOT and DESCRIPTION headers, the four mandatory body bootstrap lines (set -euo pipefail, source common.sh, source idempotent.sh, require_root/user), idempotency-helper usage instead of hand-rolled apt/file mutations, and rollback parity in README. Use after any new module is added or a module's structure changes.
+description: Verify a `modules/NN-name.sh` file conforms to the dispatcher's contract — REQUIRES_ROOT/DESCRIPTION/ROLLBACK headers, the four mandatory body bootstrap lines after the header block (set -euo pipefail, source common.sh, source idempotent.sh, require_root/user), idempotency-helper usage instead of hand-rolled apt/file mutations, and per-module rollback header parity. Use after any new module is added or a module's structure changes.
 tools: Read, Grep, Bash
 ---
 
@@ -21,11 +21,12 @@ For each `modules/NN-name.sh` file, verify:
 
 ### 1. Header contract
 - Line 1: `#!/usr/bin/env bash`
-- One of the first ~5 lines: `# REQUIRES_ROOT=0` or `# REQUIRES_ROOT=1` (exact spelling, no spaces around `=`).
-- One of the first ~5 lines: `# DESCRIPTION=<one short sentence>` (no quotes, no trailing period required).
+- Within the header comment block: `# REQUIRES_ROOT=0` or `# REQUIRES_ROOT=1` (exact spelling, no spaces around `=`).
+- Within the header comment block: `# DESCRIPTION=<one short sentence>` (no quotes, no trailing period required).
+- Within the header comment block: at least one `# ROLLBACK=<line>` header when the module has any state-changing write-site. Modules with no writes (e.g. `99-cleanup`) declare a single `# ROLLBACK=# Nothing to roll back ...` comment line.
 - The numeric prefix `NN` falls within the documented range — see `.claude/skills/new-module/SKILL.md`'s prefix map.
 
-### 2. Body bootstrap (four mandatory lines, in order)
+### 2. Body bootstrap (first four lines after the header block, in order)
 1. `set -euo pipefail`
 2. `source "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"`
 3. `source "$(dirname "${BASH_SOURCE[0]}")/../lib/idempotent.sh"`
@@ -49,7 +50,8 @@ Flag hand-rolled patterns that have a helper:
 - Inline `[ "$DRY_RUN" = "1" ]` guards exist where a helper does direct file writes that `run` can't wrap (heredocs, brace-group writes).
 
 ### 5. Rollback parity
-- For every new file path the module creates (or systemd unit it enables, or rc-block marker it introduces), confirm there is a matching line in `README.md` § Rollback. Missing rollback = bug; flag the path that's unaccounted for.
+- For every new file path the module creates (or systemd unit it enables, or rc-block marker it introduces), confirm there is a matching `# ROLLBACK=<line>` header in the same module file. The `--rollback` dispatcher emits these verbatim; `.githooks/validate-module-headers` enforces presence (at least one header when any write-site primitive is detected) but cannot verify path-level coverage — that's your job.
+- Flag any write-site (file path, systemd unit, rc-block marker, apt repo, hold file, symlink) without a corresponding header line.
 
 ### 6. Group wiring (informational)
 - If the module belongs in an `--all` flow, check that `install.sh`'s `BASE_MODULES` / `DEV_ROOT_MODULES` / `DEV_USER_MODULES` / `DOCKER_MODULES` / `PODMAN_MODULES` / `CLAUDE_MODULES` array has been updated. Standalone modules invokable only via `--module` need no array entry.
@@ -72,7 +74,7 @@ End with: `<N> modules audited, <K> contract violations`.
 
 ## Reference
 
-`CLAUDE.md` § "Module contract" and § "Idempotency discipline" are the source of truth. `.claude/skills/new-module/SKILL.md` documents the prefix-range map. PRs #16 and #18 are the canonical examples of contract-tightening work.
+`CLAUDE.md` § "Module contract", § "Idempotency discipline", and § "Rollback parity (paired-write rule)" are the source of truth. `.githooks/validate-module-headers` is the lint that enforces header presence. `.claude/skills/new-module/SKILL.md` documents the prefix-range map.
 
 ## Out of scope
 

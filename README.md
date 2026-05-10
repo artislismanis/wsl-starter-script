@@ -101,7 +101,9 @@ Download the tarball (`https://github.com/artislismanis/wsl-starter-script/archi
 ```
 install.sh              entry point — flags, TUI, dispatch
 lib/common.sh           colours, prompts, root checks
-lib/idempotent.sh       apt guards, ensure_block / replace_ini_section / write_file_once
+lib/idempotent.sh       apt guards, repo/hold helpers, ensure_block family,
+                        replace_ini_section, write_file_once, write_if_drift
+                        (full list in CLAUDE.md § Layout)
 modules/
   00-wsl-base.sh        [root] /etc/wsl.conf, user, hostname, DNS
   10-apt-core.sh        [root] build-essential, git, tmux, locales, ...
@@ -222,4 +224,4 @@ Carve-outs not rolled back automatically:
 - The non-root user account created by `00-wsl-base` is left in place. Use `sudo userdel -r <username>` for a clean slate (drops the home dir and the repo copy under it).
 - Per-session markers under `/run/wsl-starter*` self-clear on `wsl --shutdown`.
 
-When you add a new write-site to a module, add the matching `# ROLLBACK=` line in the same edit — `lint.sh` enforces parity.
+When you add a new write-site to a module, add the matching `# ROLLBACK=` line in the same edit. `lint.sh` enforces **presence** (any module with a write-site primitive must have at least one `# ROLLBACK=` header) but cannot verify path-level coverage — reviewers still check that every new path has its own header.

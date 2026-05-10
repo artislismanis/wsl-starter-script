@@ -63,8 +63,7 @@ else
   fi
 fi
 
-for lang in "${choices[@]:-}"; do
-  [ -z "$lang" ] && continue
+for lang in "${choices[@]}"; do
   spec="${SPECS[$lang]:-}"
   [ -z "$spec" ] && { warn "Unknown language: $lang"; continue; }
   log "mise use -g $spec"
