@@ -1,3 +1,4 @@
 .claude/settings.local.json
 *.swp
 *.bak
+.claude/scheduled_tasks.lock
