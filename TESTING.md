@@ -500,6 +500,51 @@ Flag-edge-case spot checks (no-op outside the parser):
 
 ---
 
+## Scenario 14 — env-var validation (no fresh image needed)
+
+These are pure validators that run inside dry-run; safe on any host.
+
+```bash
+# WSL_USER must match useradd NAME_REGEX. Bad input names itself in the error.
+WSL_USER='Bad!User' ./install.sh --module 00-wsl-base --dry-run --non-interactive 2>&1 | grep -c 'WSL_USER='   # >= 1
+# (The error fires inside the sudo'd module body, so see it without sudo by
+# running the module directly:)
+sudo WSL_USER='Bad!User' bash modules/00-wsl-base.sh; echo "exit=$?"        # exit=1
+
+# WSL_APT_UPGRADE accepts 1/yes/true | 0/no/false | unset. Empty falls through
+# to prompt (treated as unset). Garbage dies cleanly.
+sudo WSL_APT_UPGRADE=garbage bash modules/00-wsl-base.sh; echo "exit=$?"    # exit=1
+
+# MISE_<LANG>_VERSION must be alnum/dot/dash/underscore/plus only — anything
+# else would land in the `mise use -g node@<value>` shell string.
+MISE_NODE_VERSION='22; rm -rf /' \
+  ./install.sh --module 40-mise --dry-run --non-interactive 2>&1 | grep -c 'unsafe characters'   # >= 1
+
+# CLAUDE_PERMISSION_MODE must be default | acceptEdits | plan
+CLAUDE_PERMISSION_MODE=invalid \
+  ./install.sh --module 50-claude-code --dry-run --non-interactive 2>&1 | grep -c 'CLAUDE_PERMISSION_MODE'    # >= 1
+
+# DOCKER_MODE must be classic | rootless | skip
+sudo DOCKER_MODE=invalid bash modules/25-docker-engine.sh; echo "exit=$?"   # exit=1
+```
+
+**Pass criteria:** every bad value fails fast with an error message that names the offending env var.
+
+---
+
+## Scenario 15 — `set -e` propagates through `$()` (inherit_errexit)
+
+`lib/common.sh` enables `shopt -s inherit_errexit`. Verify by reproducing the omz silent-fail class outside the modules:
+
+```bash
+bash -c 'set -euo pipefail; source lib/common.sh; x="$(false)"; echo "should not reach: $x"'; echo "exit=$?"
+# Expected: exit=1, no "should not reach" output
+```
+
+**Pass criteria:** the script exits 1 inside the failing `$()` rather than silently producing an empty string.
+
+---
+
 ## Quick regression checklist (after changes)
 
 If you edit a module, run at minimum:

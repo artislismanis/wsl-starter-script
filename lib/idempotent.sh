@@ -61,15 +61,11 @@ apt_add_signed_repo() {
 }
 
 # apt_hold_unattended <name> <pkg1> [pkg2 ...]
-#   Writes /etc/apt/apt.conf.d/51unattended-upgrades-<name> with a
-#   Package-Blacklist directive so unattended-upgrades skips these packages.
-#   Use for long-running daemons (docker, podman) where a mid-day auto-restart
-#   to swap binaries would kill active containers. Caller must be root.
-#
-#   The `51` prefix is deliberate: apt loads /etc/apt/apt.conf.d/* in lexical
-#   order, so `51` comes after `50unattended-upgrades` (the default config) and
-#   our blacklist takes effect. Do not pick a number lower than 50, or the
-#   default's blacklist may overwrite ours.
+#   Excludes packages from unattended-upgrades by writing a Package-Blacklist
+#   directive to /etc/apt/apt.conf.d/51unattended-upgrades-<name>. Use for
+#   long-running daemons whose postinst restarts would disrupt active work.
+#   Caller must be root. The `51` prefix loads after `50unattended-upgrades`
+#   so the default's blacklist doesn't overwrite ours — pick >=51 for new files.
 apt_hold_unattended() {
   local name="$1"; shift
   [ "$#" -gt 0 ] || die "apt_hold_unattended: need at least one package"
@@ -83,10 +79,8 @@ apt_hold_unattended() {
     printf "  $ printf '%%s\\n' <Package-Blacklist directive for: %s> > %s\n" "$*" "$file"
     return 0
   fi
-  # Direct brace-group write — write_file_once would need this content on stdin
-  # and the brace-group producer can race the function's early returns under
-  # pipefail. Same pattern used by apt_add_signed_repo above for the .list
-  # file write.
+  # Direct brace-group write rather than write_file_once: that helper reads
+  # content from stdin, and a heredoc here can't carry the for-loop body.
   {
     printf 'Unattended-Upgrade::Package-Blacklist {\n'
     for p in "$@"; do printf '    "%s";\n' "$p"; done
