@@ -95,9 +95,7 @@ if [ "$MODE" = "classic" ]; then
     log "Adding $TARGET_USER to the docker group"
     run "usermod -aG docker '$TARGET_USER'"
   fi
-  # Write daemon.json with live-restore=true before first start. Containers
-  # then survive dockerd restarts (apt upgrade, post-resume daemon flap), which
-  # is the difference between a dev disconnect storm and a no-op restart.
+  # live-restore: containers survive dockerd restarts (apt upgrade, post-resume).
   write_file_once /etc/docker/daemon.json <<'JSON'
 {
   "live-restore": true
@@ -113,37 +111,29 @@ JSON
 fi
 
 # ---- Rootless --------------------------------------------------------------
-# Disable any system-wide Docker to avoid socket conflicts. is-active misses the
-# "installed-and-enabled-but-currently-stopped" case (e.g. a prior classic
-# install that hadn't started yet); is-enabled covers both. Fall through to a
-# best-effort disable when the unit isn't installed at all (returns non-zero).
+# Disable any system-wide Docker to avoid socket conflicts. is-enabled covers
+# the installed-but-stopped case that is-active misses; the disable is
+# best-effort (no-op if the unit isn't installed).
 if systemctl is-enabled --quiet docker.service 2>/dev/null \
    || systemctl is-active  --quiet docker.service 2>/dev/null; then
   log "Disabling system-wide docker.service (rootless will own the daemon)"
   run "systemctl disable --now docker.service docker.socket 2>/dev/null || true"
 fi
 
-# Allow the user's systemd --user instance to run without an active login.
 log "Enabling linger for $TARGET_USER (user systemd units run without a login session)"
 run "loginctl enable-linger '$TARGET_USER'"
 
-# Delegate all cgroup v2 controllers to user sessions. By default systemd only
-# delegates memory+pids to user@.service, which leaves rootless dockerd unable
-# to apply cpu/io limits. write_if_drift refreshes our drop-in if its content
-# changes (e.g. we add a controller in a future release) and only fires the
-# daemon-reload when something actually changed.
+# Delegate all cgroup v2 controllers to user sessions — systemd defaults to just
+# memory+pids, which blocks rootless dockerd from applying cpu/io limits.
 run "mkdir -p /etc/systemd/system/user@.service.d"
 write_if_drift /etc/systemd/system/user@.service.d/delegate.conf "systemctl daemon-reload" <<'EOF'
 [Service]
 Delegate=cpu cpuset io memory pids
 EOF
 
-# Write rootless daemon.json before first start: use the systemd cgroup driver
-# (now viable thanks to the controller delegation above). Order matters — this
-# must happen *before* the setuptool below so the first daemon start picks up
-# live-restore + the cgroup driver. On re-runs the file is preserved and the
-# operator is responsible for `systemctl --user restart docker` if they
-# manually deleted daemon.json mid-life.
+# Write rootless daemon.json BEFORE the setuptool runs so the first daemon
+# start picks up live-restore + the systemd cgroup driver (paired with the
+# delegation above). write_file_once preserves operator edits on re-run.
 write_file_once "$TARGET_HOME/.config/docker/daemon.json" "$TARGET_USER" <<'JSON'
 {
   "exec-opts": ["native.cgroupdriver=systemd"],
@@ -153,20 +143,15 @@ JSON
 
 UID_N="$(id -u "$TARGET_USER")"
 
-# Wrap the three `sudo -iu ... env XDG_RUNTIME_DIR=...` invocations below in a
-# single helper so the env-overlay + login-shell shape lives in one place. The
-# XDG_RUNTIME_DIR pin is needed because `sudo -iu` produces a fresh env that
-# may not have it set (depends on PAM config), and dockerd-rootless-setuptool
-# / `systemctl --user` both rely on it pointing at /run/user/<uid>.
+# Run a single shell-string as $TARGET_USER under sudo -iu, with
+# XDG_RUNTIME_DIR pinned (sudo -iu may not set it depending on PAM config;
+# dockerd-rootless-setuptool and `systemctl --user` both need it).
 _as_target_user() {
   run "sudo -iu '$TARGET_USER' env XDG_RUNTIME_DIR=/run/user/${UID_N} $*"
 }
 
-# Run the rootless setuptool as the target user. It creates
-# ~/.config/systemd/user/docker.service and starts the user-level daemon.
-# Skip on re-run when the user-level unit is already present — the setuptool
-# is idempotent under --force, but it prints a wall of output and re-imports
-# the docker group, which is noise the operator doesn't need on every re-run.
+# Run the rootless setuptool as the target user. Skip on re-run — the setuptool
+# is idempotent under --force but prints a wall of output we don't need every time.
 ROOTLESS_UNIT="$TARGET_HOME/.config/systemd/user/docker.service"
 if [ -f "$ROOTLESS_UNIT" ]; then
   skip "rootless docker.service already installed for $TARGET_USER"

@@ -112,46 +112,39 @@ FOOTER
   fi
 }
 
-# Operator-tunable env vars get forwarded across the root→user sudo handoff
-# (and into per-module sudo-escalations). Sweep by prefix so adding a new
-# tunable to a module doesn't require touching this file. The blocklist
-# excludes well-known system/SDK vars that share a tunable's prefix but
-# would corrupt module behavior or leak secrets if forwarded:
-#   WSL_INTEROP — IPC socket path, valid only in the originating session
-#   DOCKER_HOST / DOCKER_CONFIG / DOCKER_CONTEXT / DOCKER_TLS_*  — Docker CLI
-#   CLAUDE_CODE_*  — Claude Code internals (auth tokens, telemetry)
-# WSL_DISTRO_NAME is *not* blocked — it's a stable identifier set by /init in
-# the outer login shell and used in module banners ("wsl --terminate <distro>").
-# A `sudo env …` child gets a scrubbed env, so without forwarding we'd surface
-# the literal "<your-distro>" placeholder in those messages.
+# Sweep WSL_*/DOCKER_*/PODMAN_*/MISE_*/CLAUDE_*/ZSH_* env vars (plus
+# NON_INTERACTIVE/DRY_RUN) into FORWARD_ASSIGNS for sudo handoffs. Blocklist
+# covers SDK/system vars that share a prefix but would corrupt behaviour or
+# leak secrets. WSL_DISTRO_NAME is intentionally NOT blocked — it's needed for
+# operator-facing "wsl --terminate <distro>" banners after the env scrub.
 _collect_forward_assigns() {
   local always=(NON_INTERACTIVE DRY_RUN)
   local prefix_re='^(WSL|DOCKER|PODMAN|MISE|CLAUDE|ZSH)_'
-  # WSL_STARTER_* are bootstrap-only (clone source/branch/dir); no module
-  # reads them, so blocking keeps them out of every per-module sudo env.
   local block_re='^(WSL_INTEROP|WSL_STARTER_.*|DOCKER_(HOST|CONFIG|CONTEXT|TLS_.*|CERT_PATH)|CLAUDE_CODE_.*)$'
   local v
   FORWARD_ASSIGNS=()
+  # `if` rather than `&&` so a never-set var (no FORWARD_ASSIGNS append) doesn't
+  # return 1 from the final statement of the loop body — set -e + && footgun.
+  # Today protected by upstream invariants (compgen -v only emits set names;
+  # ${always[@]} entries are :- defaulted in common.sh) but defensive anyway.
   for v in "${always[@]}"; do
-    [ -n "${!v+set}" ] && FORWARD_ASSIGNS+=("$v=$(printf '%q' "${!v}")")
+    if [ -n "${!v+set}" ]; then
+      FORWARD_ASSIGNS+=("$v=$(printf '%q' "${!v}")")
+    fi
   done
   while IFS= read -r v; do
     [[ "$v" =~ $prefix_re ]] || continue
     [[ "$v" =~ $block_re ]] && continue
-    [ -n "${!v+set}" ] && FORWARD_ASSIGNS+=("$v=$(printf '%q' "${!v}")")
+    if [ -n "${!v+set}" ]; then
+      FORWARD_ASSIGNS+=("$v=$(printf '%q' "${!v}")")
+    fi
   done < <(compgen -v)
 }
 
-# _sudo_with_forwards <bash-args...>
-#   Re-collect FORWARD_ASSIGNS (cheap), then run `sudo env ASSIGNS… bash <args…>`.
-#   Single source of truth for the array vs. string distinction:
-#   - This helper passes FORWARD_ASSIGNS as argv ("${...[@]}") because env(1)
-#     takes argv directly.
-#   - The post-handoff `sudo -iu USER bash -lc "..."` path at the bottom of
-#     this file builds ONE shell-string argument and uses ${...[*]} because
-#     the elements are already %q-quoted by _collect_forward_assigns and the
-#     IFS-space join produces a shell-safe `KEY=val KEY=val` token list.
-#   If you touch either pattern, keep them aligned.
+# _sudo_with_forwards <bash-args...> — argv-style sudo+env+bash.
+# The post-handoff path at the bottom of this file builds a single bash -lc
+# string instead and uses ${...[*]} (FORWARD_ASSIGNS entries are %q-quoted, so
+# the IFS-space join is shell-safe). Keep both patterns aligned.
 _sudo_with_forwards() {
   _collect_forward_assigns
   sudo env "${FORWARD_ASSIGNS[@]}" bash "$@"
@@ -231,14 +224,10 @@ run_group() {
   case "$1" in
     base)    _run_each "${BASE_MODULES[@]}" ;;
     dev)
-      # Root-phase modules always run; run_module auto-escalates them when
-      # the caller is non-root. As root we can't run user-phase modules
-      # (require_user refuses) so we defer them to the post-handoff/reopen
-      # user run. As user, we run the user-phase right after the root-phase.
-      # Note: under `--all` as root, DEV_ROOT_MODULES run here AND again in the
-      # deferred user-phase invocation (which re-enters this case branch and
-      # auto-escalates). Idempotent and cheap (apt stamp file short-circuits),
-      # but the duplicate log lines are intentional, not a bug.
+      # Root-phase always runs (run_module auto-escalates if non-root). User-phase
+      # is deferred to post-handoff/reopen when invoked as root. Under --all as
+      # root the dev root-phase runs twice (here + in the deferred re-invocation);
+      # idempotent and cheap, just a duplicate log line.
       _run_each "${DEV_ROOT_MODULES[@]}"
       if is_root; then
         DEFERRED+=("--dev")
@@ -311,12 +300,7 @@ case "$MODE" in
     run_group dev
     run_group docker
     run_group claude
-    # Cleanup is root-only; skip when we're running the user-phase tail of
-    # --all (user has no apt to autoremove). When root, run it now — handoff
-    # below will take care of the deferred user-phase modules. `if` rather
-    # than trailing `&&` so we don't repropagate a non-zero status into the
-    # script's tail (the project's set -e + && footgun, even though it's
-    # benign at top level).
+    # Cleanup is root-only; skip when we're running the user-phase tail of --all.
     if is_root; then run_group cleanup; fi
     ;;
   groups)
@@ -335,13 +319,9 @@ case "$MODE" in
     ;;
 esac
 
-# Apply container-host network defenses iff *this* invocation ran a runtime
-# module that actually installed. Two gates: RAN_MODULES says "we touched a
-# runtime here" (stops the user-phase --all tail from re-firing 27 because
-# the root-phase wrote the stamp); the stamp says "install actually happened"
-# (stops DOCKER_MODE=skip from triggering 27 for nothing). The stamp is
-# written even under --dry-run (it's a single empty marker on tmpfs, not a
-# substantive mutation) so previews remain faithful for both skip and install.
+# Auto-fire 27 only when this invocation ran a runtime module AND that module
+# wrote $RUNTIME_STAMP (i.e. install actually happened, not DOCKER_MODE=skip).
+# RAN_MODULES gates re-fire across the user-phase --all tail; stamp gates skip.
 if { [ -n "${RAN_MODULES[25-docker-engine]:-}" ] || [ -n "${RAN_MODULES[26-podman]:-}" ]; } \
    && [ -f "$RUNTIME_STAMP" ]; then
   run_module 27-wsl-network
@@ -378,14 +358,9 @@ if is_root && [ ${#DEFERRED[@]} -gt 0 ]; then
 
   if [ "$CAN_CONTINUE" = "1" ] && confirm "Continue as '$TARGET_USER' now in this WSL session (skips reopen for ${DEFERRED[*]})?" y; then
     log "Handing off to $TARGET_USER via sudo -iu"
-    # sudo -i gives a login shell so PATH, HOME, rc files are right.
-    # bash -lc re-sources login files so mise/atuin wiring added mid-run is picked up.
-    # We can't use the _sudo_with_forwards helper here — it's argv-style, while
-    # this path needs a single shell-string for bash -lc. Doing it inline:
-    # FORWARD_ASSIGNS entries are already %q-quoted by _collect_forward_assigns,
-    # so the IFS-space join from [*] expands into shell-safe `KEY=quoted-val`
-    # tokens. printf %q TARGET_REPO so a path with whitespace/quotes survives
-    # the bash -lc layer. DEFERRED holds only --flag tokens.
+    # sudo -i + bash -lc → login shell, rc files re-sourced (picks up mid-run
+    # mise/atuin wiring). FORWARD_ASSIGNS is %q-quoted so [*] join is shell-safe;
+    # see _sudo_with_forwards for the argv-vs-string split.
     _collect_forward_assigns
     sudo -iu "$TARGET_USER" bash -lc "cd $(printf '%q' "$TARGET_REPO") && env ${FORWARD_ASSIGNS[*]} ./install.sh ${DEFERRED[*]}"
     echo
