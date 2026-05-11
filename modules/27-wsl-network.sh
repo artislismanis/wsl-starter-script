@@ -36,7 +36,7 @@ CONF
 # content drift — an older installed copy gets replaced without making the
 # operator delete it manually. copy_if_drift uses cmp -s for the comparison.
 copy_if_drift \
-  "$(dirname "${BASH_SOURCE[0]}")/files/wsl-port-check" \
+  "$REPO_ROOT/modules/files/wsl-port-check" \
   /usr/local/bin/wsl-port-check \
   0755
 
@@ -73,10 +73,10 @@ WantedBy=multi-user.target
 UNIT
 # Only fire the one-shot mount when the unit was actually (re-)written this
 # run AND systemd isn't PID 1 to enable+start it. write_if_drift sets
-# WIF_CHANGED for exactly this kind of "did anything happen?" branching.
+# DRIFT_CHANGED for exactly this kind of "did anything happen?" branching.
 # Skipping when the unit is already in place avoids a noisy warn on every
 # repeat run before the operator's first 'wsl --terminate'.
-if [ -z "$RSHARED_RELOAD" ] && [ "${WIF_CHANGED:-0}" = "1" ]; then
+if [ -z "$RSHARED_RELOAD" ] && [ "${DRIFT_CHANGED:-0}" = "1" ]; then
   warn "systemd is not yet PID 1 — applying 'mount --make-rshared /' once for this session; the unit takes over after 'wsl --terminate' + reopen."
   run "mount --make-rshared / 2>/dev/null || true"
 fi

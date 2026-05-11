@@ -18,7 +18,7 @@ See [README.md § Layout](README.md#layout) for the canonical module list with `
 ## Module contract (every file in `modules/`)
 
 - Header block (top of file, all required): `# REQUIRES_ROOT=0|1`; `# DESCRIPTION=<one short sentence>`; one or more `# ROLLBACK=<line>` headers — see "Rollback parity" below; required whenever the module performs any state-changing write. Modules with no writes declare a single `# ROLLBACK=# Nothing to roll back ...` comment line so the lint passes.
-- Body bootstrap (first four non-comment lines after the header block, in order): `set -euo pipefail`; `source ../lib/common.sh`; `source ../lib/idempotent.sh`; `require_root` or `require_user` matching the header.
+- Body bootstrap (first four non-comment lines after the header block, in order): `set -euo pipefail`; `source "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"`; `source "$(dirname "${BASH_SOURCE[0]}")/../lib/idempotent.sh"`; `require_root` or `require_user` matching the header. The `$(dirname …)` prefix is required — the dispatcher runs `bash <path>` from arbitrary CWDs, so a bare `../lib/...` would miss.
 - Dispatcher parses the headers to enforce privilege and populate `--list`.
 - Scaffold new modules via `/new-module` (skill in `.claude/skills/new-module/`) so the contract stays intact.
 

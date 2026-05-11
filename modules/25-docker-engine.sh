@@ -64,7 +64,9 @@ if [ -z "$TARGET_USER" ] || ! id "$TARGET_USER" >/dev/null 2>&1; then
   TARGET_USER="$(ask "Non-root user to grant Docker access to")"
 fi
 id "$TARGET_USER" >/dev/null 2>&1 || die "User '$TARGET_USER' doesn't exist. Run 00-wsl-base.sh first."
-TARGET_HOME="$(getent passwd "$TARGET_USER" | cut -d: -f6)"
+# || true: under inherit_errexit a getent miss would kill the script before the
+# downstream [ -n "$TARGET_HOME" ] test — keep the empty-result path explicit.
+TARGET_HOME="$(getent passwd "$TARGET_USER" | cut -d: -f6 || true)"
 [ -n "$TARGET_HOME" ] && [ -d "$TARGET_HOME" ] || die "Cannot determine home directory for $TARGET_USER."
 
 # ---- Docker apt repo (same pattern as eza/gh) -------------------------------
@@ -146,8 +148,11 @@ UID_N="$(id -u "$TARGET_USER")"
 # Run a single shell-string as $TARGET_USER under sudo -iu, with
 # XDG_RUNTIME_DIR pinned (sudo -iu may not set it depending on PAM config;
 # dockerd-rootless-setuptool and `systemctl --user` both need it).
+# Single-arg by contract — matches `run`'s contract enforcement so a caller
+# accidentally passing two strings can't get a flattened concatenation.
 _as_target_user() {
-  run "sudo -iu '$TARGET_USER' env XDG_RUNTIME_DIR=/run/user/${UID_N} $*"
+  [ "$#" -eq 1 ] || die "_as_target_user: expected one shell-string argument, got $#"
+  run "sudo -iu '$TARGET_USER' env XDG_RUNTIME_DIR=/run/user/${UID_N} $1"
 }
 
 # Run the rootless setuptool as the target user. Skip on re-run — the setuptool

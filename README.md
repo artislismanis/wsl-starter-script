@@ -102,8 +102,8 @@ Download the tarball (`https://github.com/artislismanis/wsl-starter-script/archi
 install.sh              entry point — flags, TUI, dispatch
 lib/common.sh           colours, prompts, root checks
 lib/idempotent.sh       apt guards, repo/hold helpers, ensure_block family,
-                        replace_ini_section, write_file_once, write_if_drift
-                        (full list in CLAUDE.md § Layout)
+                        replace_ini_section, write_file_once, write_if_drift,
+                        copy_if_drift (full list in CLAUDE.md § Layout)
 modules/
   00-wsl-base.sh        [root] /etc/wsl.conf, user, hostname, DNS
   10-apt-core.sh        [root] build-essential, git, tmux, locales, ...

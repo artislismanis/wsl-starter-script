@@ -48,9 +48,8 @@ apt_hold_unattended "podman" podman
 # to quiet msg." notice that the podman-docker shim prints on every invocation.
 # The file's existence is the signal — its content is ignored.
 if [ "$INCLUDE_SHIM" = "1" ] && pkg_installed podman-docker; then
-  run "install -m 0755 -d /etc/containers"
-  # write_file_once preserves any operator content and handles dry-run; the
-  # file is just a presence marker so empty stdin is fine.
+  # write_file_once mkdir -p's the parent and preserves any operator content;
+  # the file is just a presence marker so empty stdin is fine.
   write_file_once /etc/containers/nodocker </dev/null
 fi
 

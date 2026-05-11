@@ -43,6 +43,8 @@ Flag hand-rolled patterns that have a helper:
 | Writing `/etc/apt/apt.conf.d/51unattended-*` | `apt_hold_unattended` |
 | Appending raw blocks to `~/.bashrc` / `~/.zshrc` | `ensure_block` / `ensure_block_in_rcs` / `ensure_block_per_shell` |
 | `cat > /etc/foo` for a new file | `write_file_once` |
+| `if ! cmp -s …; then cat > /etc/foo; reload; fi` (refresh-on-drift for our artefact) | `write_if_drift` |
+| `if ! cmp -s …; then install -m … src dst; fi` (refresh-on-drift for a static binary/asset from `modules/files/`) | `copy_if_drift` |
 | Editing `/etc/wsl.conf` sections | `replace_ini_section` |
 
 ### 4. State-mutation discipline
