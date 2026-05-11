@@ -13,8 +13,11 @@
 set -euo pipefail
 
 # Primitives that mutate system or user state. Match conservatively: false
-# positives just force a `# ROLLBACK=# ...` comment line, which is cheap.
-WRITE_SITE_RE='(write_file_once|write_if_drift|copy_if_drift|apt_add_signed_repo|apt_hold_unattended|ensure_block|replace_ini_section|systemctl enable|ln -s|useradd|chsh|install -m|chattr|sed -i)'
+# positives just force a `# ROLLBACK=# ...` comment line, which is cheap. The
+# `systemctl --user` arm is intentionally separate so the regex doesn't have to
+# anchor — bare `systemctl enable` and `systemctl --user enable` are distinct
+# state mutations (system unit vs user unit) and both deserve a ROLLBACK header.
+WRITE_SITE_RE='(write_file_once|write_if_drift|copy_if_drift|apt_add_signed_repo|apt_hold_unattended|ensure_block|replace_ini_section|systemctl enable|systemctl --user|ln -s|useradd|usermod|loginctl|chsh|chpasswd|chown|install -m|chattr|cp -a|sed -i|tee )'
 
 fail=0
 for f in "$@"; do

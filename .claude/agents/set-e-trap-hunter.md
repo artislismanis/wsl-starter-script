@@ -1,6 +1,6 @@
 ---
 name: set-e-trap-hunter
-description: Scan shell code for the trailing-`&&` set-e footgun — `[ test ] && cmd` as the final statement of a function or loop body, which silently makes the function return 1 and trips set -e in the caller. Use when reviewing bash diffs in lib/*.sh or modules/*.sh, or proactively after any edit to those files. Reports line numbers and suggests `if`-block rewrites.
+description: Scan shell code for the trailing-`&&` set-e footgun — `[ test ] && cmd` as the final statement of a function or loop body, which silently makes the function return 1 and trips set -e in the caller. Use when reviewing bash diffs in install.sh, lib/*.sh, or modules/*.sh, or proactively after any edit to those files. Reports line numbers and suggests `if`-block rewrites.
 tools: Read, Grep, Bash
 ---
 
@@ -10,13 +10,13 @@ You hunt for one specific bug class in this repo: a function or loop body whose 
 
 ## When to invoke
 
-- After any `Edit` / `Write` / `MultiEdit` that touched `lib/*.sh` or `modules/*.sh`.
+- After any `Edit` / `Write` / `MultiEdit` that touched `install.sh`, `lib/*.sh`, or `modules/*.sh`.
 - During pre-PR review of any diff that adds or moves shell functions.
 - When the user reports "install.sh exited silently" or similar smoke-test failures.
 
 ## What to scan
 
-Inspect the changed files (or the whole `lib/` + `modules/` tree if no diff context). For each shell function and each `for`/`while`/`until` loop body, identify the **last statement before the closing `}` or `done`**. Flag it if it matches any of:
+Inspect the changed files (or the whole `install.sh` + `lib/` + `modules/` tree if no diff context). For each shell function and each `for`/`while`/`until` loop body, identify the **last statement before the closing `}` or `done`**. Flag it if it matches any of:
 
 - `[ ... ] && cmd`
 - `[[ ... ]] && cmd`

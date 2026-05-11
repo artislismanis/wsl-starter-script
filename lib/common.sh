@@ -22,7 +22,9 @@ fi
 
 # Render a prompt string with a neon tag. Uses printf to interpret escapes,
 # then passes the baked string to `read -p` (which does not expand escapes).
-_fmt_prompt() { printf "${C_PROMPT} ??${C_RESET} ${C_BOLD}%s${C_RESET} " "$*"; }
+# Public because install.sh's interactive_menu uses it directly for `read -r -p`
+# (ask/confirm/ask_secret all return values via stdout, which `read` can't use).
+fmt_prompt() { printf "${C_PROMPT} ??${C_RESET} ${C_BOLD}%s${C_RESET} " "$*"; }
 
 log()     { printf "${C_BLUE}==>${C_RESET} %s\n" "$*"; }
 ok()      { printf "${C_GREEN} ok${C_RESET} %s\n" "$*"; }
@@ -54,10 +56,10 @@ ask() {
     return 0
   fi
   if [ -n "$default" ]; then
-    read -r -p "$(_fmt_prompt "$prompt [$default]:")" reply || true
+    read -r -p "$(fmt_prompt "$prompt [$default]:")" reply || true
     printf "%s\n" "${reply:-$default}"
   else
-    read -r -p "$(_fmt_prompt "$prompt:")" reply || true
+    read -r -p "$(fmt_prompt "$prompt:")" reply || true
     printf "%s\n" "$reply"
   fi
 }
@@ -69,7 +71,7 @@ confirm() {
     [ "$default" = "y" ]; return
   fi
   local hint="[y/N]"; [ "$default" = "y" ] && hint="[Y/n]"
-  read -r -p "$(_fmt_prompt "$prompt $hint")" reply || true
+  read -r -p "$(fmt_prompt "$prompt $hint")" reply || true
   reply="${reply:-$default}"
   case "$reply" in y|Y|yes|YES) return 0;; *) return 1;; esac
 }
@@ -82,8 +84,8 @@ ask_secret() {
     return 0
   fi
   while :; do
-    read -r -s -p "$(_fmt_prompt "$prompt:")" p1; echo >&2
-    read -r -s -p "$(_fmt_prompt "Confirm:")" p2; echo >&2
+    read -r -s -p "$(fmt_prompt "$prompt:")" p1; echo >&2
+    read -r -s -p "$(fmt_prompt "Confirm:")" p2; echo >&2
     [ "$p1" = "$p2" ] && { printf "%s\n" "$p1"; return 0; }
     warn "Passwords don't match, try again."
   done

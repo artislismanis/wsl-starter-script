@@ -96,12 +96,16 @@ apt_hold_unattended() {
 #   write_file_once / ensure_block instead so operator edits aren't clobbered.
 #   Caller must already have the privileges needed to write <path>; the helper
 #   does no chown/chmod (artefacts under /etc/* are root-owned 0644 by default,
-#   which is what every current caller wants).
+#   which is what every current caller wants). For static-artefact copies that
+#   also need a mode, use copy_if_drift; write_if_drift intentionally takes no
+#   mode arg because the heredoc-style call shape is for /etc/* drop-ins where
+#   0644 root:root is the universal expectation.
 #
-#   Sets WIF_CHANGED=1 if the file was (re-)written, 0 if it was already up to
-#   date. Always returns 0 so callers that don't care can ignore the status
-#   without tripping set -e; callers that DO care (e.g. "only warn when content
-#   actually changed") inspect $WIF_CHANGED after the call.
+#   Sets the global DRIFT_CHANGED=1 if the file was (re-)written, 0 if it was
+#   already up to date. Shared with copy_if_drift — only the most recent call
+#   is observable, so callers that need the status must read it before calling
+#   another drift helper. Always returns 0 so callers that don't care can ignore
+#   the status without tripping set -e.
 write_if_drift() {
   local path="$1" reload="${2:-}"
   local content
@@ -109,7 +113,7 @@ write_if_drift() {
   if [ -f "$path" ] && printf '%s\n' "$content" | cmp -s - "$path"; then
     skip "$path already up to date"
     # shellcheck disable=SC2034  # consumed by callers that gate post-write actions on whether we wrote
-    WIF_CHANGED=0
+    DRIFT_CHANGED=0
     return 0
   fi
   log "Writing $path"
@@ -117,7 +121,7 @@ write_if_drift() {
     printf '%s\n' "$content" > "$path"
   fi
   # shellcheck disable=SC2034  # see comment above
-  WIF_CHANGED=1
+  DRIFT_CHANGED=1
   # `if` rather than `&&` so an empty reload doesn't return 1 from the
   # function — set -e + && footgun.
   if [ -n "$reload" ]; then
@@ -128,18 +132,18 @@ write_if_drift() {
 # copy_if_drift <src> <dst> [mode] [reload-cmd]
 #   Same drift semantics as write_if_drift, but the source is a file on disk
 #   (not stdin) — used when shipping a binary or static artefact from
-#   modules/files/. Sets WIF_CHANGED for callers that gate on it. Mode applies
-#   only when we actually copy (preserves any chmod the operator made on a
-#   skipped destination). reload-cmd runs only when we wrote (parity with
-#   write_if_drift; current callers don't need it but a future binary that
-#   requires `systemctl reload <thing>` after a refresh would).
+#   modules/files/. Mode applies only when we actually copy (preserves any
+#   chmod the operator made on a skipped destination). reload-cmd runs only
+#   when we wrote (parity with write_if_drift; current callers don't need it
+#   but a future binary that requires `systemctl reload <thing>` after a
+#   refresh would). Sets the shared global DRIFT_CHANGED — see write_if_drift.
 copy_if_drift() {
   local src="$1" dst="$2" mode="${3:-}" reload="${4:-}"
   [ -r "$src" ] || die "copy_if_drift: source unreadable: $src"
   if [ -f "$dst" ] && cmp -s "$src" "$dst"; then
     skip "$dst already up to date"
     # shellcheck disable=SC2034  # see write_if_drift
-    WIF_CHANGED=0
+    DRIFT_CHANGED=0
     return 0
   fi
   log "Installing $dst"
@@ -151,7 +155,7 @@ copy_if_drift() {
     fi
   fi
   # shellcheck disable=SC2034  # see write_if_drift
-  WIF_CHANGED=1
+  DRIFT_CHANGED=1
   # `if` rather than `&&` so an empty reload doesn't return 1 from the
   # function — set -e + && footgun.
   if [ -n "$reload" ]; then
@@ -168,10 +172,22 @@ copy_if_drift() {
 _strip_unmanaged_ini_section() {
   local file="$1" section="$2"
   [ -f "$file" ] || return 0
-  if ! grep -qE "^\[${section}\][[:space:]]*$" "$file" 2>/dev/null; then
+  # Precondition: a literal `[section]` line outside any managed fence.
+  # A plain `grep -qE "^\[section\]"` matches inside managed fences too, which
+  # would trip the strip path (awk is fence-aware, so no real harm) but emit a
+  # misleading "stripped unmanaged" log every idempotent re-run.
+  if ! awk -v sec="[$section]" '
+    /^# >>> wsl-starter:/ { in_managed=1; next }
+    /^# <<< wsl-starter:/ { in_managed=0; next }
+    !in_managed && $0 == sec { found=1; exit }
+    END { exit !found }
+  ' "$file"; then
     return 0
   fi
   [ "$DRY_RUN" = "1" ] && { printf "  (would strip unmanaged [%s] section from %s)\n" "$section" "$file"; return 0; }
+  # `awk ... && mv` would mask awk failure: the `&&` exempts the LHS from set -e,
+  # leaving a stale .tmp and a lying "stripped" log. Use sequential statements so
+  # set -e bubbles a real awk error.
   awk -v sec="[$section]" '
     /^# >>> wsl-starter:/ { in_managed=1; print; next }
     /^# <<< wsl-starter:/ { in_managed=0; print; next }
@@ -183,7 +199,8 @@ _strip_unmanaged_ini_section() {
       if (!in_managed && $0 == sec) { in_strip=1; next }
       print
     }
-  ' "$file" > "$file.tmp" && mv "$file.tmp" "$file"
+  ' "$file" > "$file.tmp"
+  mv "$file.tmp" "$file"
   log "stripped unmanaged [$section] from $file"
 }
 

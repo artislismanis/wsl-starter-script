@@ -197,7 +197,7 @@ interactive_menu() {
   echo "  8) Single module"
   echo "  9) List modules"
   echo "  q) Quit"
-  read -r -p "$(_fmt_prompt "Choice >")" sel
+  read -r -p "$(fmt_prompt "Choice >")" sel
   case "$sel" in
     1) MODE=guided ;;
     2) MODE=all ;;
@@ -206,7 +206,7 @@ interactive_menu() {
     5) MODE=groups; SELECTED=(docker) ;;
     6) MODE=groups; SELECTED=(podman) ;;
     7) MODE=groups; SELECTED=(claude) ;;
-    8) list_modules; read -r -p "$(_fmt_prompt "Module name:")" SINGLE; MODE=single ;;
+    8) list_modules; read -r -p "$(fmt_prompt "Module name:")" SINGLE; MODE=single ;;
     9) list_modules; exit 0 ;;
     q|Q) exit 0 ;;
     *) die "Invalid selection" ;;
@@ -265,6 +265,12 @@ while [ $# -gt 0 ]; do
       MODE=single; SINGLE="${2:-}"; shift ;;
     --list)             list_modules; exit 0 ;;
     --rollback)
+      # --rollback is exclusive — earlier group flags would be silently dropped
+      # (we exit before they execute). Catch the common mistake `--base --rollback`;
+      # `--rollback --base` is already covered because we exit before that token.
+      if [ -n "$MODE" ] || [ ${#SELECTED[@]} -gt 0 ]; then
+        die "--rollback cannot be combined with other group flags. Use '--rollback <module-name>' for a single module."
+      fi
       # Optional positional arg: module name. Don't consume the next token if it
       # starts with `-` (any flag form — `--foo`, `-h`, etc.).
       _rb_target=""

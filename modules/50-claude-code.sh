@@ -2,7 +2,10 @@
 # REQUIRES_ROOT=0
 # DESCRIPTION=Claude Code CLI + user-global settings + CLAUDE.md + statusline
 # ROLLBACK=rm -f "$HOME/.local/bin/claude"
-# ROLLBACK=rm -rf "$HOME/.claude/scripts"
+# ROLLBACK=# The native installer also drops a versioned install dir + cache; safe to remove since we're uninstalling:
+# ROLLBACK=rm -rf "$HOME/.local/share/claude" "$HOME/.cache/claude"
+# ROLLBACK=rm -f "$HOME/.claude/scripts/statusline.sh"
+# ROLLBACK=rmdir --ignore-fail-on-non-empty "$HOME/.claude/scripts" 2>/dev/null || true
 # ROLLBACK=rm -f "$HOME/.claude/settings.json" "$HOME/.claude/CLAUDE.md" "$HOME/.claude/mcp.example.json"
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
