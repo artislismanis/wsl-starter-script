@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # REQUIRES_ROOT=1
-# DESCRIPTION=WSL base: systemd, non-root user, hostname, DNS, automount
+# DESCRIPTION=WSL base: systemd, non-root user, hostname, DNS, interop, automount
 # ROLLBACK=# Strip the wsl-starter:* blocks from /etc/wsl.conf (boot/user/network/interop/automount):
 # ROLLBACK=sudo sed -i '/# >>> wsl-starter:/,/# <<< wsl-starter:/d' /etc/wsl.conf
 # ROLLBACK=# /etc/resolv.conf was rewritten — restore from a fresh image, or 'sudo dpkg-reconfigure resolvconf'.

@@ -6,7 +6,9 @@
 # ROLLBACK=# uv (if installed): we pass UV_NO_MODIFY_PATH=1 to its installer so all rc
 # ROLLBACK=#   wiring stays inside our wsl-starter:mise block — no separate rc-strip needed.
 # ROLLBACK=rm -rf "$HOME/.local/bin/uv" "$HOME/.local/bin/uvx" "$HOME/.local/share/uv" "$HOME/.local/bin/env"
-# ROLLBACK=# rc-block (wsl-starter:mise) is removed by the cross-cutting rc strip below.
+# ROLLBACK=# Marker-specific rc-block strip (so single-module --rollback is complete; the
+# ROLLBACK=#   cross-cutting tail at the end of the all-modules form covers it too).
+# ROLLBACK=sed -i '/# >>> wsl-starter:mise >>>/,/# <<< wsl-starter:mise <<</d' "$HOME/.bashrc" "$HOME/.zshrc" 2>/dev/null || true
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/idempotent.sh"
