@@ -5,7 +5,7 @@ Target runtime: a **fresh Ubuntu WSL image** — this repo is never tested on lo
 
 ## Layout
 
-See [README.md § Layout](README.md#layout) for the canonical module list with `[root]/[user]` tags. Notes specific to working on the repo:
+The user-facing tree (modules with `[root]/[user]` tags, `claude/*.tmpl` rendered targets) lives in [README.md § Layout](README.md#layout); this section is the authoritative roster of internal helpers and conventions for code working on the repo.
 
 - `lib/common.sh` — `log/ok/skip/warn/die`, `ask/confirm/ask_secret`, `run`, `require_root/user`, `is_root` (predicate; for branching, doesn't exit), `truthy`, `is_wsl`, `mark_runtime_installed` (drops `$RUNTIME_STAMP`).
 - `lib/idempotent.sh` — `command_exists`, `pkg_installed`, `apt_install`, `apt_update_once`, `apt_add_signed_repo`, `apt_hold_unattended`, `ensure_block`, `ensure_block_in_rcs`, `ensure_block_per_shell`, `replace_ini_section`, `write_file_once`, `write_if_drift`, `copy_if_drift`.

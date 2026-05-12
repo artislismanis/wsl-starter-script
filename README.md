@@ -103,9 +103,10 @@ install.sh              entry point — flags, TUI, dispatch
 lib/common.sh           colours, prompts, root checks
 lib/idempotent.sh       apt guards, repo/hold helpers, ensure_block family,
                         replace_ini_section, write_file_once, write_if_drift,
-                        copy_if_drift (full list in CLAUDE.md § Layout)
+                        copy_if_drift (full helper roster + signatures in
+                        CLAUDE.md § Layout and § Idempotency discipline)
 modules/
-  00-wsl-base.sh        [root] /etc/wsl.conf, user, hostname, DNS
+  00-wsl-base.sh        [root] systemd, user, hostname, DNS, interop, automount
   10-apt-core.sh        [root] build-essential, git, tmux, locales, ...
   20-cli-modern.sh      [root] zsh, ripgrep, fd, bat, eza, gh
   25-docker-engine.sh   [root] Docker Engine (classic or rootless), optional

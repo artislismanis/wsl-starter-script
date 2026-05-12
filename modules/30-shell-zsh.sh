@@ -15,10 +15,15 @@ command_exists zsh || die "zsh not on PATH — run 20-cli-modern (root) first."
 # These get interpolated into sed patterns below; reject anything that could
 # break the substitution (sed metachars `/`, `&`, `\`, or shell-metachars).
 # Plugin / theme names from oh-my-zsh and the wider zsh ecosystem are always
-# alnum + dash + underscore; spaces separate plugin names in the list.
+# alnum + dash + underscore; spaces separate plugin names in the list. Regex
+# kept in a variable (not inline) so the literal space inside the character
+# class doesn't need a backslash to keep bash from splitting the unquoted
+# regex on whitespace — same shape as the _user_re / _ver_re patterns used
+# in 00-wsl-base.sh and 40-mise.sh.
+_safe_re='^[A-Za-z0-9 _-]*$'
 _check_safe() {
   local name="$1" value="$2"
-  [[ "$value" =~ ^[A-Za-z0-9_\ -]*$ ]] \
+  [[ "$value" =~ $_safe_re ]] \
     || die "$name contains unsafe characters (allowed: alnum, _, -, space). Got: $value"
 }
 [ -n "${ZSH_PLUGINS+set}" ] && _check_safe ZSH_PLUGINS "$ZSH_PLUGINS"

@@ -32,6 +32,13 @@ net.ipv4.tcp_fin_timeout = 15
 net.ipv4.ip_local_port_range = 10000 65535
 CONF
 
+# wsl-port-check runs `python3 - "$PORT" <<'PY' ...` for the bind probe. Stock
+# Ubuntu WSL images include python3, and `10-apt-core` installs it explicitly,
+# but a standalone `--module 27-wsl-network` invocation on an image where 10
+# hasn't run would leave the helper unusable. apt_install is a no-op when the
+# package is already present.
+apt_install python3
+
 # wsl-port-check is our artefact (not an operator-tunable file), so refresh on
 # content drift — an older installed copy gets replaced without making the
 # operator delete it manually. copy_if_drift uses cmp -s for the comparison.

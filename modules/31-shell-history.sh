@@ -4,7 +4,9 @@
 # ROLLBACK=rm -rf "$HOME/.atuin" "$HOME/.local/share/atuin" "$HOME/.bash-preexec.sh" "$HOME/.local/share/zoxide"
 # ROLLBACK=# Upstream installers may also drop binaries directly into ~/.local/bin/; clean them too:
 # ROLLBACK=rm -f "$HOME/.local/bin/atuin" "$HOME/.local/bin/zoxide"
-# ROLLBACK=# rc-block (wsl-starter:atuin-zoxide) is removed by the cross-cutting rc strip below.
+# ROLLBACK=# Marker-specific rc-block strip (so single-module --rollback is complete; the
+# ROLLBACK=#   cross-cutting tail at the end of the all-modules form covers it too).
+# ROLLBACK=sed -i '/# >>> wsl-starter:atuin-zoxide >>>/,/# <<< wsl-starter:atuin-zoxide <<</d' "$HOME/.bashrc" "$HOME/.zshrc" 2>/dev/null || true
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/idempotent.sh"
