@@ -126,8 +126,10 @@ fi
 # any other out-of-home location like /opt/foo or /tmp/clone.
 # || true: under inherit_errexit a getent miss (e.g. NSS quirk) would kill the
 # script before the [ -n "$USER_HOME" ] test below — keep the empty-result path
-# explicit so the test handles it.
-USER_HOME="$(getent passwd "$USER_NAME" | cut -d: -f6 || true)"
+# explicit so the test handles it. Brace-group so the trap covers the whole
+# pipeline; a bare `|| true` would bind to `cut` only and `pipefail` could still
+# surface the getent failure.
+USER_HOME="$({ getent passwd "$USER_NAME" | cut -d: -f6; } || true)"
 HANDOFF_DIR="$REPO_ROOT"
 if [ -n "$USER_HOME" ] && [ -d "$USER_HOME" ]; then
   case "$REPO_ROOT" in

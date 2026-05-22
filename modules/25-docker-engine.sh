@@ -3,21 +3,29 @@
 # DESCRIPTION=Docker Engine (classic rootful or rootless). Needs systemd from module 00.
 # ROLLBACK=# Two install paths — pick the one your install used.
 # ROLLBACK=#
+# ROLLBACK=# Set TARGET=<user> to the account the install targeted (DOCKER_USER at install
+# ROLLBACK=# time, or SUDO_USER if you ran the installer with sudo). The classic group-
+# ROLLBACK=# removal and rootless linger/config lines below operate on $TARGET, NOT your
+# ROLLBACK=# current shell user — paste with the wrong value and the unwind silently misses.
+# ROLLBACK=TARGET="${SUDO_USER:-$USER}"
+# ROLLBACK=TARGET_HOME="$(getent passwd "$TARGET" | cut -d: -f6)"
+# ROLLBACK=#
 # ROLLBACK=# --- Classic mode (DOCKER_MODE=classic) ---
 # ROLLBACK=sudo systemctl disable --now docker.service containerd.service 2>/dev/null || true
-# ROLLBACK=sudo gpasswd -d "$USER" docker 2>/dev/null || true
+# ROLLBACK=sudo gpasswd -d "$TARGET" docker 2>/dev/null || true
 # ROLLBACK=sudo groupdel docker 2>/dev/null || true
 # ROLLBACK=sudo rm -f /etc/docker/daemon.json
 # ROLLBACK=#
 # ROLLBACK=# --- Rootless mode (DOCKER_MODE=rootless, default) ---
-# ROLLBACK=systemctl --user disable --now docker 2>/dev/null || true
-# ROLLBACK=command -v dockerd-rootless-setuptool.sh >/dev/null && dockerd-rootless-setuptool.sh uninstall || true
-# ROLLBACK=sudo loginctl disable-linger "$USER"
-# ROLLBACK=rm -rf "$HOME/.config/docker" "$HOME/.config/systemd/user/docker.service.d"
+# ROLLBACK=sudo -iu "$TARGET" systemctl --user disable --now docker 2>/dev/null || true
+# ROLLBACK=sudo -iu "$TARGET" sh -c 'command -v dockerd-rootless-setuptool.sh >/dev/null && dockerd-rootless-setuptool.sh uninstall' || true
+# ROLLBACK=sudo loginctl disable-linger "$TARGET"
+# ROLLBACK=sudo rm -rf "$TARGET_HOME/.config/docker" "$TARGET_HOME/.config/systemd/user/docker.service.d"
 # ROLLBACK=sudo rm -f /etc/systemd/system/user@.service.d/delegate.conf
+# ROLLBACK=sudo rmdir --ignore-fail-on-non-empty /etc/systemd/system/user@.service.d 2>/dev/null || true
 # ROLLBACK=sudo systemctl daemon-reload
 # ROLLBACK=sudo rm -f /etc/tmpfiles.d/wsl-starter-docker-rootless-symlink.conf /var/run/docker.sock
-# ROLLBACK=sudo sed -i '/# >>> wsl-starter:docker-rootless >>>/,/# <<< wsl-starter:docker-rootless <<</d' "$HOME/.bashrc" "$HOME/.zshrc" 2>/dev/null || true
+# ROLLBACK=sudo sed -i '/# >>> wsl-starter:docker-rootless >>>/,/# <<< wsl-starter:docker-rootless <<</d' "$TARGET_HOME/.bashrc" "$TARGET_HOME/.zshrc" 2>/dev/null || true
 # ROLLBACK=#
 # ROLLBACK=# --- Common to both modes ---
 # ROLLBACK=sudo rm -f /etc/apt/sources.list.d/docker.list /etc/apt/keyrings/docker.gpg
@@ -66,7 +74,9 @@ fi
 id "$TARGET_USER" >/dev/null 2>&1 || die "User '$TARGET_USER' doesn't exist. Run 00-wsl-base.sh first."
 # || true: under inherit_errexit a getent miss would kill the script before the
 # downstream [ -n "$TARGET_HOME" ] test — keep the empty-result path explicit.
-TARGET_HOME="$(getent passwd "$TARGET_USER" | cut -d: -f6 || true)"
+# Brace-group so the trap covers the whole pipeline (bare `|| true` binds to
+# `cut` only and `pipefail` could still surface a getent failure).
+TARGET_HOME="$({ getent passwd "$TARGET_USER" | cut -d: -f6; } || true)"
 [ -n "$TARGET_HOME" ] && [ -d "$TARGET_HOME" ] || die "Cannot determine home directory for $TARGET_USER."
 
 # ---- Docker apt repo (same pattern as eza/gh) -------------------------------

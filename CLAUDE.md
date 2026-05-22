@@ -14,6 +14,8 @@ The user-facing tree (modules with `[root]/[user]` tags, `claude/*.tmpl` rendere
 - `claude/*.tmpl` (and `claude/mcp.example.json`) — source files materialised into `~/.claude/` by `modules/50-claude-code.sh`. **Not** consumed by this repo itself — edit the source, not the rendered copy. (`mcp.example.json` keeps its name unchanged because it's copied verbatim with no substitution.)
 - `.claude/` — tooling for Claude working on *this* repo (hooks, skills).
 - `TESTING.md` — manual E2E scenarios on a fresh WSL image.
+- `TOOLS.md` — per-module rundown of every package installed, what it replaces, and operator-tunable env vars.
+- `WSL-HOST.md` — host-side (Windows) companion: `.wslconfig`, auto-start at login, mirrored-mode port-leak recovery. Not consumed by any module; documentation only.
 
 ## Module contract (every file in `modules/`)
 

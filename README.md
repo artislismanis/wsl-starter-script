@@ -163,7 +163,7 @@ claude/
 | `PODMAN_COMPOSE`          | `1` (default) installs `podman-compose`, `0` skips |
 | `PODMAN_DOCKER_SHIM`      | `1` (default) installs `podman-docker` shim if `docker-ce-cli` isn't present |
 | `ZSH_THEME`               | Override the oh-my-zsh theme |
-| `ZSH_PLUGINS`             | Replace the full `plugins=(...)` line in `~/.zshrc` |
+| `ZSH_PLUGINS`             | Replace the full `plugins=(...)` line in `~/.zshrc`. Empty/unset = keep the default `(git docker kubectl ... )` list. |
 | `CLAUDE_PERMISSION_MODE`  | `default` / `acceptEdits` / `plan` |
 
 Bootstrap-only env vars (`WSL_STARTER_REPO`, `WSL_STARTER_BRANCH`, `WSL_STARTER_DIR`) are documented in [§ Quick start option 1](#1-fastest--one-liner-on-a-fresh-wsl-image) — they affect the clone target, not module behaviour. The dispatcher's env-forward sweep blocklists `WSL_STARTER_*` so they don't propagate into per-module sudo escalations or the user-phase handoff.
