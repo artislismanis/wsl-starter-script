@@ -214,6 +214,17 @@ git config core.hooksPath .githooks       # opt in to pre-commit lint + CRLF gua
 
 The pre-commit hook is plain shell (`.githooks/pre-commit`) — no Python, no `pre-commit` framework. It runs `lint.sh` against staged shell files and refuses commits with CRLF line endings. `.gitattributes` enforces LF on text files so a Windows clone doesn't ship broken shebangs back to a WSL run.
 
+## Testing
+
+Two surfaces, with [tests/README.md](tests/README.md) for the full breakdown:
+
+- **[TESTING.md](TESTING.md)** — manual end-to-end scenarios against a fresh WSL image. Authoritative spec; what to run by hand when something feels off.
+- **[tests/](tests/)** — automated coverage of the same scenarios, split by what each needs:
+  - **Tier 1** (`tests/tier1/*.bats`, bats-core) — host-free checks: lint, dry-run, env-var validation, rollback recipe, `inherit_errexit`. Runs on every PR via `.github/workflows/tier1.yml`.
+  - **Tier 2/3** (`tests/tier2-3/scenarios/*.ps1`, PowerShell + [Goss](https://github.com/goss-org/goss)) — real WSL2 scenarios driven from `windows-latest` runners via [`Vampire/setup-wsl`](https://github.com/Vampire/setup-wsl). Path-filtered to install-surface changes via `.github/workflows/tier2-3.yml`.
+
+Free for public repos on GitHub Actions. Locally, run Tier 1 with `./tests/tier1/run.sh` (needs `bats`) and Tier 2/3 with `pwsh ./tests/tier2-3/scenarios/<name>.ps1` from a Windows host with WSL2 enabled.
+
 ## Rollback
 
 ```sh

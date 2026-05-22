@@ -2,6 +2,8 @@
 
 End-to-end checks to run against a **fresh Ubuntu WSL image**. Each scenario lists commands to execute and the expected result. Work through them top-to-bottom the first time; afterwards cherry-pick whichever ones are relevant to what you changed.
 
+> Most scenarios here are also automated under [`tests/`](tests/) and run in CI — see [tests/README.md](tests/README.md) for the mapping. This file remains the authoritative spec; the automation is the regression net.
+
 ## Setup — fresh WSL image
 
 From Windows PowerShell:
@@ -542,6 +544,124 @@ bash -c 'set -euo pipefail; source lib/common.sh; x="$(false)"; echo "should not
 ```
 
 **Pass criteria:** the script exits 1 inside the failing `$()` rather than silently producing an empty string.
+
+---
+
+## Scenario 16 — `99-cleanup` no-op module
+
+`99-cleanup.sh` declares no writes (just a placeholder `# ROLLBACK=# Nothing to roll back …` header) but is still part of `--all`. Confirm it runs cleanly.
+
+```bash
+./install.sh --module 99-cleanup; echo "exit=$?"     # exit=0
+./install.sh --rollback 99-cleanup | grep -c 'Nothing to roll back'   # >= 1
+```
+
+**Pass criteria:** module exits 0 with no errors; rollback recipe renders the placeholder comment line verbatim.
+
+---
+
+## Scenario 17 — `./lint.sh` is the single source of truth
+
+```bash
+./lint.sh; echo "exit=$?"                            # exit=0 on a clean checkout
+```
+
+Now introduce a deliberate syntax error and confirm both entry points reject it:
+
+```bash
+cp modules/99-cleanup.sh /tmp/99-cleanup.sh.bak
+printf '\nif then\n' >> modules/99-cleanup.sh        # break bash -n
+./lint.sh; echo "exit=$?"                            # exit non-zero
+git add modules/99-cleanup.sh
+.githooks/pre-commit; echo "exit=$?"                 # exit non-zero (same failure)
+mv /tmp/99-cleanup.sh.bak modules/99-cleanup.sh
+git reset HEAD modules/99-cleanup.sh
+```
+
+**Pass criteria:** clean tree lints clean; broken module fails identically via `./lint.sh` and the pre-commit hook (no divergent checks).
+
+---
+
+## Scenario 18 — Rollback recipe includes apt-hold artefacts
+
+Extends Scenario 13. After a `--docker` install:
+
+```bash
+./install.sh --rollback 25-docker-engine | grep -c '51unattended-upgrades-docker'   # >= 1
+./install.sh --rollback 26-podman        | grep -c '51unattended-upgrades-podman'   # >= 1
+```
+
+**Pass criteria:** each runtime's rollback recipe lists an `rm` for its `apt_hold_unattended` drop-in.
+
+---
+
+## Scenario 19 — `replace_ini_section` drift refresh
+
+Scenario 2 verifies marker-block counts but not that drift inside a block is corrected. After Scenario 1:
+
+```bash
+sudo sed -i 's/^default=.*/default=intruder/' /etc/wsl.conf   # mutate a value inside the [user] block
+grep '^default=' /etc/wsl.conf                                # default=intruder
+sudo ./install.sh --module 00-wsl-base --non-interactive
+grep '^default=' /etc/wsl.conf                                # default=<your-username> — restored
+```
+
+**Pass criteria:** the section is rewritten on re-run; the surrounding `# >>> wsl-starter:user >>>` markers stay unique (still exactly 1).
+
+---
+
+## Scenario 20 — `ensure_block_per_shell` divergent payloads
+
+Scenario 4 confirms marker uniqueness; this confirms bash and zsh actually got *different* content where the helper is used (`25-docker-engine` is the canonical caller).
+
+After Scenario 11a:
+
+```bash
+diff <(sed -n '/# >>> wsl-starter:docker-rootless >>>/,/# <<< wsl-starter:docker-rootless <<</p' ~/.bashrc) \
+     <(sed -n '/# >>> wsl-starter:docker-rootless >>>/,/# <<< wsl-starter:docker-rootless <<</p' ~/.zshrc)
+```
+
+**Pass criteria:** the two blocks differ (each shell gets its own init form); both files still contain exactly one block (re-run idempotence preserved).
+
+---
+
+## Scenario 21 — `MISE_LANGUAGES` full matrix
+
+Scenario 8 exercises `node,python`. Exercise the remaining branches in one run:
+
+```bash
+MISE_LANGUAGES=node,python,ruby,go \
+  ./install.sh --module 40-mise --non-interactive
+# In a fresh shell:
+mise ls | awk '{print $1}' | sort -u    # node, python, ruby, go all present
+node --version && python --version && ruby --version && go version
+```
+
+Confirm version pinning still validates per language:
+
+```bash
+MISE_GO_VERSION='1.22; rm -rf /' \
+  ./install.sh --module 40-mise --dry-run --non-interactive 2>&1 | grep -c 'unsafe characters'   # >= 1
+```
+
+**Pass criteria:** every selected runtime installs and surfaces in a fresh shell; injection guard fires for each `MISE_<LANG>_VERSION` (spot-check at least one non-node language).
+
+---
+
+## Scenario 22 — `bootstrap.sh` divergent local clone
+
+Scenario 11d covers the fast-forward happy path. Confirm the bootstrap refuses to clobber a diverged local clone:
+
+```bash
+cd /root/wsl-starter-script
+git commit --allow-empty -m 'local divergence'        # local HEAD ahead of origin in a way ff can't resolve
+# Force divergence by also rewinding to before upstream tip:
+git reset --hard HEAD~1 && git commit --allow-empty -m 'sideways'
+bash <(curl -fsSL https://raw.githubusercontent.com/artislismanis/wsl-starter-script/main/bootstrap.sh) --list
+echo "exit=$?"                                         # non-zero; clear error
+```
+
+**Pass criteria:** `git pull --ff-only` fails loudly with the bootstrap's error message; the local clone is left untouched (no clobber, no merge commit).
 
 ---
 

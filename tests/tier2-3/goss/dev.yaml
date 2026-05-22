@@ -1,0 +1,27 @@
+# Scenarios 3, 4 — assertions after `./install.sh --dev` as the user.
+# Each rc-file marker block must appear exactly once across re-runs.
+
+command:
+  rg:        { exec: 'rg --version',         exit-status: 0 }
+  fd:        { exec: 'fd --version',         exit-status: 0 }
+  bat:       { exec: 'bat --version',        exit-status: 0 }
+  eza:       { exec: 'eza --version',        exit-status: 0 }
+  gh:        { exec: 'gh --version',         exit-status: 0 }
+  zsh:       { exec: 'zsh --version',        exit-status: 0 }
+  atuin:     { exec: 'atuin --version',      exit-status: 0 }
+  zoxide:    { exec: 'zoxide --version',     exit-status: 0 }
+  mise:      { exec: 'mise --version',       exit-status: 0 }
+
+file:
+  "{{.Env.HOME}}/.bashrc":
+    exists: true
+    matches:
+      - { count: { min: 1, max: 1 }, pattern: "# >>> wsl-starter:atuin-zoxide >>>" }
+      - { count: { min: 1, max: 1 }, pattern: "# >>> wsl-starter:mise >>>" }
+
+  # ~/.zshrc may not exist on a minimal image until oh-my-zsh runs; the dev
+  # module installs both. Treat missing as a hard failure here.
+  "{{.Env.HOME}}/.zshrc":
+    exists: true
+    matches:
+      - { count: { min: 1, max: 1 }, pattern: "# >>> wsl-starter:atuin-zoxide >>>" }

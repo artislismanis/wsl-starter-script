@@ -1,0 +1,102 @@
+name: tier2-3
+
+# Tier 2/3 scenarios run on windows-latest with real WSL2 (via the
+# Vampire/setup-wsl action). Each matrix leg gets a fresh VM, so
+# `wsl --shutdown` round-trips are safe per-leg.
+#
+# Path-filtered so we only burn minutes on PRs that actually touch the
+# install surface.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'modules/**'
+      - 'lib/**'
+      - 'install.sh'
+      - 'bootstrap.sh'
+      - 'tests/tier2-3/**'
+      - '.github/workflows/tier2-3.yml'
+  pull_request:
+    paths:
+      - 'modules/**'
+      - 'lib/**'
+      - 'install.sh'
+      - 'bootstrap.sh'
+      - 'tests/tier2-3/**'
+      - '.github/workflows/tier2-3.yml'
+  workflow_dispatch:
+
+jobs:
+  build-base-tarball:
+    runs-on: windows-latest
+    outputs:
+      cache-key: ${{ steps.key.outputs.value }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: key
+        shell: bash
+        run: echo "value=wsl-base-ubuntu-24.04-v1" >> "$GITHUB_OUTPUT"
+
+      - name: Restore cached base.tar
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: tests/fixtures/base.tar
+          key: ${{ steps.key.outputs.value }}
+
+      - name: Set up WSL (for tarball build)
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: Vampire/setup-wsl@v3
+        with:
+          distribution: Ubuntu-24.04
+
+      - name: Build base.tar
+        if: steps.cache.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: ./tests/tier2-3/build-base-tarball.ps1
+
+      - name: Upload base.tar as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: base-tar
+          path: tests/fixtures/base.tar
+          retention-days: 1
+
+  scenario:
+    needs: build-base-tarball
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario:
+          - base               # Tier 3: --base + reopen + idempotence
+          - dev                # Tier 2
+          - claude             # Tier 2
+          - docker-rootless    # Tier 2 (mid-install shutdown)
+          - docker-skip        # Tier 2 (DOCKER_MODE=skip suppresses 27)
+          - podman             # Tier 2 (mid-install shutdown)
+          - wsl-network        # Tier 2 (mid-install shutdown)
+          - privilege-guards   # Tier 2
+          - handoff            # Tier 3 (in-session handoff)
+          - full-e2e           # Tier 3 (full --all flow)
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up WSL
+        uses: Vampire/setup-wsl@v3
+        with:
+          distribution: Ubuntu-24.04
+
+      - name: Download base.tar
+        uses: actions/download-artifact@v4
+        with:
+          name: base-tar
+          path: tests/fixtures/
+
+      - name: Run scenario ${{ matrix.scenario }}
+        shell: pwsh
+        timeout-minutes: 30
+        run: ./tests/tier2-3/scenarios/${{ matrix.scenario }}.ps1

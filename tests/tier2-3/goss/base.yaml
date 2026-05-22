@@ -1,0 +1,47 @@
+# Scenario 1 — assertions after `./install.sh --base` + reopen.
+# Run with: TEST_USER=tester TEST_HOST=testbox goss -g base.yaml validate
+
+user:
+  "{{.Env.TEST_USER}}":
+    exists: true
+    groups:
+      - sudo
+
+file:
+  /etc/wsl.conf:
+    exists: true
+    contains:
+      - "# >>> wsl-starter:boot >>>"
+      - "# >>> wsl-starter:user >>>"
+      - "# >>> wsl-starter:network >>>"
+    # Each marker block must appear exactly once.
+    matches:
+      - count:
+          min: 1
+          max: 1
+        pattern: "# >>> wsl-starter:boot >>>"
+      - count:
+          min: 1
+          max: 1
+        pattern: "# >>> wsl-starter:user >>>"
+      - count:
+          min: 1
+          max: 1
+        pattern: "# >>> wsl-starter:network >>>"
+
+command:
+  hostname:
+    exit-status: 0
+    stdout:
+      - "{{.Env.TEST_HOST}}"
+  systemd-active:
+    exec: 'systemctl is-system-running || true'
+    stdout:
+      - "/running|degraded/"
+
+  # Reopen-as-user check: this command is meaningful only when goss is invoked
+  # as the new user after `wsl --terminate`.
+  whoami-is-target-user:
+    exec: 'whoami'
+    stdout:
+      - "{{.Env.TEST_USER}}"

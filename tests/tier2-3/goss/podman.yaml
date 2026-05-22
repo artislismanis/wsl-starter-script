@@ -1,0 +1,31 @@
+# Scenario 11b — assertions after `sudo ./install.sh --podman`.
+
+command:
+  podman:
+    exec: 'podman --version'
+    exit-status: 0
+
+  podman-rootless-hello:
+    exec: 'podman run --rm hello-world'
+    exit-status: 0
+
+  rshared-enabled:
+    exec: 'systemctl is-enabled wsl-rshared-root.service'
+    exit-status: 0
+    stdout:
+      - "/enabled|static/"
+
+  root-mount-shared:
+    exec: "findmnt -no PROPAGATION /"
+    stdout:
+      - "shared"
+
+file:
+  /etc/apt/apt.conf.d/51unattended-upgrades-podman:
+    exists: true
+
+  # Only meaningful when the podman-docker shim is present. The shim is auto-
+  # skipped if docker-ce-cli is installed; the scenario script branches on
+  # that and only invokes this goss file when no classic docker is present.
+  /etc/containers/nodocker:
+    exists: true
