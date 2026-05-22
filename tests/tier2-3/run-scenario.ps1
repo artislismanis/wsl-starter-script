@@ -99,14 +99,20 @@ try {
   # tar from a Windows host doesn't preserve Unix exec bits (NTFS + Git for
   # Windows defaults), so re-set +x on all shell scripts and hook helpers.
   # Also open /root for traversal so the user-phase steps and goss (run as
-  # tester) can read the seeded repo at $linuxRepo.
+  # tester) can read the seeded repo at $linuxRepo. Install goss now while
+  # networking is known-good (the install-time DNS sometimes hasn't settled
+  # after a `wsl --terminate` round-trip, breaking lazy install at verify).
   & wsl -d $distro -u root -- bash -lc @"
 set -e
 cd $linuxRepo
 find . -type f \( -name '*.sh' -o -path './.githooks/*' \) -exec chmod +x {} +
 chmod 755 /root
 chmod -R a+rX $linuxRepo
+if ! command -v goss >/dev/null 2>&1; then
+  curl -fsSL https://goss.rocks/install | sh
+fi
 "@
+  if ($LASTEXITCODE -ne 0) { Fail "seed/exec-bit/goss-install step failed" }
 
   foreach ($step in $InstallSteps) {
     if ($step.Shutdown) {
@@ -134,14 +140,6 @@ chmod -R a+rX $linuxRepo
   if ($GossFile) {
     $gossPath = "$linuxRepo/$GossFile"
     Write-Step "Validating against $GossFile (as $GossUser)"
-
-    # Ensure goss is installed inside the distro. Cheap and idempotent.
-    & wsl -d $distro -u root -- bash -lc @'
-if ! command -v goss >/dev/null 2>&1; then
-  curl -fsSL https://goss.rocks/install | sh
-fi
-'@
-    if ($LASTEXITCODE -ne 0) { $script:keep = $KeepDistroOnFailure.IsPresent; Fail "goss install failed" }
 
     $envExports = ($GossEnv.GetEnumerator() | ForEach-Object { "export $($_.Key)=$($_.Value);" }) -join ' '
     & wsl -d $distro -u $GossUser -- bash -lc "$envExports goss -g $gossPath validate --format documentation"

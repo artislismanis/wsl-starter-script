@@ -36,6 +36,7 @@ command:
       - "{{.Env.TEST_HOST}}"
   systemd-active:
     exec: 'systemctl is-system-running || true'
+    exit-status: 0
     stdout:
       - "/running|degraded/"
 
@@ -43,5 +44,6 @@ command:
   # as the new user after `wsl --terminate`.
   whoami-is-target-user:
     exec: 'whoami'
+    exit-status: 0
     stdout:
       - "{{.Env.TEST_USER}}"

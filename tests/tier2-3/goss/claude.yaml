@@ -14,6 +14,7 @@ command:
     # rendered file. We don't pin the chosen value here (acceptEdits vs plan
     # vs default is scenario-dependent); just assert the marker is gone.
     exec: 'grep -c __PERMISSION_MODE__ "$HOME/.claude/settings.json" || true'
+    exit-status: 0
     stdout:
       - "0"
 

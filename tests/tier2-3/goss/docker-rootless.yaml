@@ -13,11 +13,13 @@ command:
 
   docker-host-set:
     exec: 'echo "$DOCKER_HOST"'
+    exit-status: 0
     stdout:
       - "/^unix:///run/user/[0-9]+/docker.sock$/"
 
   socket-symlink:
     exec: 'readlink -f /var/run/docker.sock'
+    exit-status: 0
     stdout:
       - "/^/run/user/[0-9]+/docker.sock$/"
 

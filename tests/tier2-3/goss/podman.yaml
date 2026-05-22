@@ -17,6 +17,7 @@ command:
 
   root-mount-shared:
     exec: "findmnt -no PROPAGATION /"
+    exit-status: 0
     stdout:
       - "shared"
 
