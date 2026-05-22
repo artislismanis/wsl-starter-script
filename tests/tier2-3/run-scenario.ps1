@@ -98,10 +98,14 @@ try {
 
   # tar from a Windows host doesn't preserve Unix exec bits (NTFS + Git for
   # Windows defaults), so re-set +x on all shell scripts and hook helpers.
+  # Also open /root for traversal so the user-phase steps and goss (run as
+  # tester) can read the seeded repo at $linuxRepo.
   & wsl -d $distro -u root -- bash -lc @"
 set -e
 cd $linuxRepo
 find . -type f \( -name '*.sh' -o -path './.githooks/*' \) -exec chmod +x {} +
+chmod 755 /root
+chmod -R a+rX $linuxRepo
 "@
 
   foreach ($step in $InstallSteps) {
