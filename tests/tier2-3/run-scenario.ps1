@@ -96,6 +96,14 @@ try {
   & wsl -d $distro -u root -- bash -lc "tar -xf /tmp/repo.tar -C $linuxRepo && rm /tmp/repo.tar"
   Remove-Item $tarTmp -ErrorAction SilentlyContinue
 
+  # tar from a Windows host doesn't preserve Unix exec bits (NTFS + Git for
+  # Windows defaults), so re-set +x on all shell scripts and hook helpers.
+  & wsl -d $distro -u root -- bash -lc @"
+set -e
+cd $linuxRepo
+find . -type f \( -name '*.sh' -o -path './.githooks/*' \) -exec chmod +x {} +
+"@
+
   foreach ($step in $InstallSteps) {
     if ($step.Shutdown) {
       Write-Step "wsl --terminate $distro (mid-install)"
