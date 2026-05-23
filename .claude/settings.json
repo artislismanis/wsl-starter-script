@@ -11,6 +11,10 @@
           {
             "type": "command",
             "command": "for f in $CLAUDE_FILE_PATHS; do case \"$f\" in */claude/settings.json.tmpl) grep -qF '__PERMISSION_MODE__' \"$f\" || { echo \"Refuse: $f no longer contains the __PERMISSION_MODE__ placeholder. The sed substitution in 50-claude-code.sh would silently no-op and ship an unfilled settings.json.\" >&2; exit 2; } ;; esac; done"
+          },
+          {
+            "type": "command",
+            "command": "for f in $CLAUDE_FILE_PATHS; do case \"$f\" in *tests/tier1/*.bats) command -v bats >/dev/null 2>&1 || { echo \"bats not installed; skipping per-file run for $f.\" >&2; continue; }; (cd \"$CLAUDE_PROJECT_DIR\" && bats --print-output-on-failure \"$f\") || exit 2 ;; esac; done"
           }
         ]
       }
@@ -22,6 +26,10 @@
           {
             "type": "command",
             "command": "for f in $CLAUDE_FILE_PATHS; do case \"$f\" in \"$HOME/.claude/\"*) echo \"Refuse: '$f' is a rendered user-global Claude config. Edit the source template under claude/*.tmpl in this repo instead.\" >&2; exit 2 ;; esac; done"
+          },
+          {
+            "type": "command",
+            "command": "for f in $CLAUDE_FILE_PATHS; do case \"$f\" in *tests/fixtures/*) echo \"Refuse: '$f' lives under tests/fixtures/. That dir is for cached binary artefacts (e.g. base.tar restored from actions/cache); it's gitignored and should never contain hand-edited files.\" >&2; exit 2 ;; esac; done"
           }
         ]
       }

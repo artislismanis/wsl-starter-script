@@ -16,6 +16,8 @@ The user-facing tree (modules with `[root]/[user]` tags, `claude/*.tmpl` rendere
 - `TESTING.md` — manual E2E scenarios on a fresh WSL image.
 - `TOOLS.md` — per-module rundown of every package installed, what it replaces, and operator-tunable env vars.
 - `WSL-HOST.md` — host-side (Windows) companion: `.wslconfig`, auto-start at login, mirrored-mode port-leak recovery. Not consumed by any module; documentation only.
+- `tests/` — automated coverage of TESTING.md scenarios (bats for Tier 1, PowerShell + Goss for Tier 2/3). See `tests/README.md` for the tier map.
+- `.github/workflows/` — `tier1.yml` (every PR, ubuntu-latest) and `tier2-3.yml` (path-filtered, windows-latest matrix with cached Ubuntu rootfs).
 
 ## Module contract (every file in `modules/`)
 
@@ -36,7 +38,7 @@ Every installer step must be safe to re-run. Use the helpers — do not hand-rol
 | Append a marked multi-line block | `ensure_block "wsl-starter:<topic>" /file "..."` |
 | Mirror an rc-file block into bash + zsh (same content, with optional chown) | `ensure_block_in_rcs "wsl-starter:<topic>" "$HOME" "..." [owner]` |
 | Mirror an rc-file block into bash + zsh with **per-shell** content | `ensure_block_per_shell "wsl-starter:<topic>" "$HOME" "<bash>" "<zsh>" [owner]` |
-| Strip + replace an INI section in one call | `replace_ini_section "wsl-starter:<topic>" /file section "[section]\nkey=val"` |
+| Strip + replace an INI section in one call (drift-refreshes the managed block on re-run) | `replace_ini_section "wsl-starter:<topic>" /file section "[section]\nkey=val"` |
 | Write a file only if absent (preserves operator edits; reads stdin) | `write_file_once /path [owner] [mode] <<EOF ... EOF` |
 | Refresh a file we own when its content drifts (sysctl drop-in, systemd unit) | `write_if_drift /path "reload-cmd" <<EOF ... EOF` (use *only* for our artefacts, never operator-tunable files) |
 | Drift-refresh a binary/static artefact from `modules/files/` to `/usr/local/bin/` etc. | `copy_if_drift <src> <dst> [mode] [reload-cmd]` (same drift semantics as `write_if_drift` but reads from a file on disk, not stdin) |
@@ -112,7 +114,10 @@ To add a new operator-tunable env var: name it with one of the forwarded prefixe
 
 ## Testing
 
-No unit tests. `TESTING.md` documents manual E2E scenarios against a fresh WSL image — this is the only meaningful test surface.
+`TESTING.md` is the authoritative spec — manual E2E scenarios against a fresh WSL image. `tests/` is the automated regression net split by what each tier needs:
+
+- **Tier 1** (`tests/tier1/*.bats`, bats-core) — host-free: lint parity, dry-run hash-immutability, env-var validators, `--rollback` recipe rendering, `inherit_errexit`. Runs on every PR via `.github/workflows/tier1.yml`.
+- **Tier 2/3** (`tests/tier2-3/scenarios/*.ps1`, PowerShell + Goss) — real WSL2 scenarios driven from `windows-latest` via `Vampire/setup-wsl@v3`. Path-filtered to `modules/**`, `lib/**`, `install.sh`, `bootstrap.sh`. The driver (`run-scenario.ps1`) imports a cached rootfs, tar-pipes the repo in, runs install steps (with optional mid-flow `wsl --terminate`), and goss-validates against `tests/tier2-3/goss/*.yaml`.
 
 `./lint.sh` runs `bash -n`, `shellcheck -S warning -x`, and `.githooks/validate-module-headers` over every tracked shell file (and any extensionless file with a bash/sh shebang). It's the **single source of truth for lint** — both `.githooks/pre-commit` (staged files) and the PostToolUse hook in `.claude/settings.json` (Claude edits) call `./lint.sh` rather than reimplementing the checks. `-S warning` excludes info-level findings (notably `SC1091` "Not following: ./../lib/common.sh" on every module's dynamic `source` line, which would otherwise block every commit); `-x` lets shellcheck follow the dynamic `source` so cross-file warnings still fire.
 
