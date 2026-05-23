@@ -222,13 +222,53 @@ ensure_block() {
 }
 
 # replace_ini_section <marker> <file> <section> <content>
-#   Strip any unmanaged copy of [section] then write it as a managed block.
-#   The two-step pairing was hand-rolled in every wsl.conf edit; this folds
-#   them so the call site can't forget the strip and produce duplicate keys.
+#   Strip any unmanaged copy of [section] then ensure the managed block
+#   matches <content>, rewriting it on drift. The drift check is what makes
+#   this safe to call on every re-run: an operator who edits a value inside
+#   the managed fence (e.g. flips `default=tester` to `default=intruder` in
+#   wsl.conf) gets the canonical content restored on the next install. This
+#   matches the discipline of write_if_drift for whole files.
 replace_ini_section() {
   local marker="$1" file="$2" section="$3" content="$4"
   _strip_unmanaged_ini_section "$file" "$section"
-  ensure_block "$marker" "$file" "$content"
+
+  # If the managed block is absent, ensure_block appends it as usual.
+  if [ ! -f "$file" ] || ! grep -qF "# >>> $marker >>>" "$file" 2>/dev/null; then
+    ensure_block "$marker" "$file" "$content"
+    return
+  fi
+
+  # Managed block present — compare current contents against desired.
+  local current
+  current="$(awk -v m="$marker" '
+    $0 == "# >>> " m " >>>" { in_blk=1; next }
+    $0 == "# <<< " m " <<<" { in_blk=0; next }
+    in_blk { print }
+  ' "$file")"
+  if [ "$current" = "$content" ]; then
+    skip "block '$marker' already in $file"
+    return 0
+  fi
+
+  log "refreshing block '$marker' in $file (content drift)"
+  [ "$DRY_RUN" = "1" ] && { printf "  (would refresh marked block in %s)\n" "$file"; return 0; }
+
+  # Strip the managed block, then append the fresh one. Keep the strip and
+  # rewrite atomic so a crash mid-way doesn't leave the file blockless.
+  # Use $file.tmp (NOT mktemp) so the temp inherits the caller's umask —
+  # mktemp defaults to mode 600, which would land on the dest file after mv
+  # and lock out non-root readers (e.g. /etc/wsl.conf, which must stay 644).
+  awk -v m="$marker" '
+    $0 == "# >>> " m " >>>" { in_blk=1; next }
+    $0 == "# <<< " m " <<<" { in_blk=0; next }
+    !in_blk { print }
+  ' "$file" > "$file.tmp"
+  {
+    printf '\n# >>> %s >>>\n' "$marker"
+    printf '%s\n' "$content"
+    printf '# <<< %s <<<\n' "$marker"
+  } >> "$file.tmp"
+  mv "$file.tmp" "$file"
 }
 
 # ensure_block_in_rcs <marker> <home_dir> <content> [owner]

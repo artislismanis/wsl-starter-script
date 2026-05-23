@@ -2,3 +2,5 @@
 *.swp
 *.bak
 .claude/scheduled_tasks.lock
+tests/fixtures/base.tar
+tests/fixtures/*.tar.gz

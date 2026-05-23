@@ -1,0 +1,55 @@
+# Scenario 11a — DOCKER_MODE=rootless DOCKER_ROOTLESS_PASTA=1.
+
+command:
+  docker-info:
+    exec: 'docker info'
+    exit-status: 0
+
+  docker-user-active:
+    exec: 'systemctl --user is-active docker'
+    exit-status: 0
+    stdout:
+      - "active"
+
+  docker-host-set:
+    exec: 'echo "$DOCKER_HOST"'
+    exit-status: 0
+    stdout:
+      - "/^unix:///run/user/[0-9]+/docker.sock$/"
+
+  socket-symlink:
+    exec: 'readlink -f /var/run/docker.sock'
+    exit-status: 0
+    stdout:
+      - "/^/run/user/[0-9]+/docker.sock$/"
+
+  # Idempotence: marker block stays unique across re-runs.
+  bashrc-docker-once:
+    exec: "grep -c '# >>> wsl-starter:docker-rootless >>>' $HOME/.bashrc"
+    exit-status: 0
+    stdout: ["1"]
+
+  docker-via-well-known-path:
+    exec: 'docker -H unix:///var/run/docker.sock info'
+    exit-status: 0
+
+file:
+  /etc/tmpfiles.d/wsl-starter-docker-rootless-symlink.conf:
+    exists: true
+
+  /etc/apt/apt.conf.d/51unattended-upgrades-docker:
+    exists: true
+
+  /etc/sysctl.d/99-wsl-network.conf:
+    exists: true
+  /usr/local/bin/wsl-port-check:
+    exists: true
+    mode: "0755"
+
+  "{{.Env.HOME}}/.bashrc":
+    exists: true
+    contains:
+      - "# >>> wsl-starter:docker-rootless >>>"
+
+  "{{.Env.HOME}}/.config/systemd/user/docker.service.d/pasta.conf":
+    exists: true

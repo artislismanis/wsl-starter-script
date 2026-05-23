@@ -1,0 +1,24 @@
+# Scenarios 11b-2, 11c — standalone 27-wsl-network.
+
+file:
+  /etc/sysctl.d/99-wsl-network.conf:
+    exists: true
+  /usr/local/bin/wsl-port-check:
+    exists: true
+    mode: "0755"
+
+command:
+  rshared-enabled:
+    exec: 'systemctl is-enabled wsl-rshared-root.service'
+    exit-status: 0
+    stdout:
+      - "/enabled|static/"
+
+  port-check-runs-no-args:
+    exec: 'wsl-port-check'
+    exit-status: 0
+
+  port-check-runs-with-port:
+    # bind() probe — exits 0 if free or if the listener is identified.
+    exec: 'wsl-port-check 22 || true'
+    exit-status: 0

@@ -14,6 +14,19 @@ source "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/idempotent.sh"
 require_user
 
+# Validate MISE_<LANG>_VERSION env values up front — they get interpolated
+# into `mise use -g node@<value>` shell strings, so a value containing
+# whitespace or shell metachars would split or inject. Allow alnum, dot,
+# dash, underscore, plus. Runs before the mise install so bad env vars fail
+# fast without first downloading a runtime manager that's about to be unused.
+_ver_re='^[A-Za-z0-9._+-]+$'
+for v in MISE_NODE_VERSION MISE_PYTHON_VERSION MISE_RUBY_VERSION MISE_JAVA_VERSION \
+         MISE_GO_VERSION MISE_DENO_VERSION MISE_BUN_VERSION; do
+  if [ -n "${!v:-}" ] && ! [[ "${!v}" =~ $_ver_re ]]; then
+    die "$v='${!v}' contains unsafe characters (allowed: alnum, dot, dash, underscore, plus)."
+  fi
+done
+
 if ! command_exists mise; then
   log "Installing mise"
   run "curl -fsSL https://mise.run | sh"
@@ -34,16 +47,6 @@ command -v mise >/dev/null 2>&1 && eval "$("$HOME/.local/bin/mise" activate zsh)
 # ---- Runtimes ---------------------------------------------------------------
 # MISE_LANGUAGES env var overrides the prompts (comma-separated).
 # Per-language version overrides via env: MISE_<LANG>_VERSION (e.g. MISE_NODE_VERSION=22).
-# Validate version values up front — they get interpolated into `mise use -g
-# node@<value>` shell strings, so a value containing whitespace or shell
-# metachars would split or inject. Allow alnum, dot, dash, underscore, plus.
-_ver_re='^[A-Za-z0-9._+-]+$'
-for v in MISE_NODE_VERSION MISE_PYTHON_VERSION MISE_RUBY_VERSION MISE_JAVA_VERSION \
-         MISE_GO_VERSION MISE_DENO_VERSION MISE_BUN_VERSION; do
-  if [ -n "${!v:-}" ] && ! [[ "${!v}" =~ $_ver_re ]]; then
-    die "$v='${!v}' contains unsafe characters (allowed: alnum, dot, dash, underscore, plus)."
-  fi
-done
 declare -A SPECS=(
   [node]="node@${MISE_NODE_VERSION:-lts}"
   [python]="python@${MISE_PYTHON_VERSION:-3.12}"
