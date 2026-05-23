@@ -255,18 +255,20 @@ replace_ini_section() {
 
   # Strip the managed block, then append the fresh one. Keep the strip and
   # rewrite atomic so a crash mid-way doesn't leave the file blockless.
-  local tmp; tmp="$(mktemp)"
+  # Use $file.tmp (NOT mktemp) so the temp inherits the caller's umask —
+  # mktemp defaults to mode 600, which would land on the dest file after mv
+  # and lock out non-root readers (e.g. /etc/wsl.conf, which must stay 644).
   awk -v m="$marker" '
     $0 == "# >>> " m " >>>" { in_blk=1; next }
     $0 == "# <<< " m " <<<" { in_blk=0; next }
     !in_blk { print }
-  ' "$file" > "$tmp"
+  ' "$file" > "$file.tmp"
   {
     printf '\n# >>> %s >>>\n' "$marker"
     printf '%s\n' "$content"
     printf '# <<< %s <<<\n' "$marker"
-  } >> "$tmp"
-  mv "$tmp" "$file"
+  } >> "$file.tmp"
+  mv "$file.tmp" "$file"
 }
 
 # ensure_block_in_rcs <marker> <home_dir> <content> [owner]

@@ -148,7 +148,11 @@ fi
     Write-Step "Validating against $GossFile (as $GossUser)"
 
     $envExports = ($GossEnv.GetEnumerator() | ForEach-Object { "export $($_.Key)=$($_.Value);" }) -join ' '
-    & wsl -d $distro -u $GossUser -- bash -lc "$envExports goss -g $gossPath validate --format documentation"
+    # bash -ilc (interactive + login) so ~/.bashrc actually runs — Ubuntu's
+    # default ~/.bashrc bails out at the top for non-interactive shells,
+    # which would skip every `export FOO=...` set by our wsl-starter:*
+    # marker blocks (e.g. DOCKER_HOST for rootless docker).
+    & wsl -d $distro -u $GossUser -- bash -ilc "$envExports goss -g $gossPath validate --format documentation"
     if ($LASTEXITCODE -ne 0) {
       $script:keep = $KeepDistroOnFailure.IsPresent
       Fail "goss validate failed"

@@ -26,6 +26,18 @@ command:
     exit-status: 0
     stdout: ["1"]
 
+  # Scenario 20 — ensure_block_per_shell emits *different* content into bash
+  # vs zsh for shells that initialize differently (atuin/zoxide register
+  # `atuin init bash` vs `atuin init zsh`). Both blocks must exist and must
+  # not be byte-identical. (The docker-rootless block uses ensure_block_in_rcs
+  # — same content both sides — so isn't the right target for this check.)
+  atuin-block-per-shell-divergent:
+    exec: |
+      sed -n '/# >>> wsl-starter:atuin-zoxide >>>/,/# <<< wsl-starter:atuin-zoxide <<</p' "$HOME/.bashrc" > /tmp/bash.block
+      sed -n '/# >>> wsl-starter:atuin-zoxide >>>/,/# <<< wsl-starter:atuin-zoxide <<</p' "$HOME/.zshrc"  > /tmp/zsh.block
+      [ -s /tmp/bash.block ] && [ -s /tmp/zsh.block ] && ! cmp -s /tmp/bash.block /tmp/zsh.block
+    exit-status: 0
+
 file:
   "{{.Env.HOME}}/.bashrc":
     exists: true
