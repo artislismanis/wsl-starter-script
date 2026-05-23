@@ -1,0 +1,16 @@
+{
+  "_comment": "Project-level MCP servers. Checked into the repo so every contributor gets the same servers; per-user secrets live in .claude/settings.local.json (gitignored). Token format: classic PAT or fine-grained PAT with repo + workflow scopes. To rotate: `gh auth refresh -s repo,workflow` then re-export. First run pulls ghcr.io/github/github-mcp-server (~30 MB).",
+  "mcpServers": {
+    "github": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm",
+        "-e", "GITHUB_PERSONAL_ACCESS_TOKEN",
+        "ghcr.io/github/github-mcp-server"
+      ],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}"
+      }
+    }
+  }
+}
