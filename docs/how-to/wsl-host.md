@@ -1,4 +1,4 @@
-# WSL-HOST.md — Windows-side configuration
+# Windows-side configuration
 
 The installer only touches the guest. A few host-side knobs make container workloads on WSL substantially more reliable. None of them are required, but you'll feel each one if you skip it.
 

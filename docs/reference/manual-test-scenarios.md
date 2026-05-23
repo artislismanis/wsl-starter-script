@@ -2,7 +2,7 @@
 
 End-to-end checks to run against a **fresh Ubuntu WSL image**. Each scenario lists commands to execute and the expected result. Work through them top-to-bottom the first time; afterwards cherry-pick whichever ones are relevant to what you changed.
 
-> Most scenarios here are also automated under [`tests/`](tests/) and run in CI — see [tests/README.md](tests/README.md) for the mapping. This file remains the authoritative spec; the automation is the regression net.
+> Most scenarios here are also automated under [`tests/`](../../tests/) and run in CI — see [tests/README.md](../../tests/README.md) for the mapping. This file remains the authoritative spec; the automation is the regression net.
 
 ## Setup — fresh WSL image
 

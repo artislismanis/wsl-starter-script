@@ -5,7 +5,7 @@ Target runtime: a **fresh Ubuntu WSL image** — this repo is never tested on lo
 
 ## Layout
 
-The user-facing tree (modules with `[root]/[user]` tags, `claude/*.tmpl` rendered targets) lives in [README.md § Layout](README.md#layout); this section is the authoritative roster of internal helpers and conventions for code working on the repo.
+The user-facing tree (modules with `[root]/[user]` tags, `claude/*.tmpl` rendered targets) lives in [docs/reference/modules.md](docs/reference/modules.md); this section is the authoritative roster of internal helpers and conventions for code working on the repo.
 
 - `lib/common.sh` — `log/ok/skip/warn/die`, `ask/confirm/ask_secret`, `run`, `require_root/user`, `is_root` (predicate; for branching, doesn't exit), `truthy`, `is_wsl`, `mark_runtime_installed` (drops `$RUNTIME_STAMP`).
 - `lib/idempotent.sh` — `command_exists`, `pkg_installed`, `apt_install`, `apt_update_once`, `apt_add_signed_repo`, `apt_hold_unattended`, `ensure_block`, `ensure_block_in_rcs`, `ensure_block_per_shell`, `replace_ini_section`, `write_file_once`, `write_if_drift`, `copy_if_drift`.
@@ -13,10 +13,8 @@ The user-facing tree (modules with `[root]/[user]` tags, `claude/*.tmpl` rendere
 - `modules/NN-name.sh` — one installer unit; declares `REQUIRES_ROOT` + `DESCRIPTION` headers the dispatcher reads.
 - `claude/*.tmpl` (and `claude/mcp.example.json`) — source files materialised into `~/.claude/` by `modules/50-claude-code.sh`. **Not** consumed by this repo itself — edit the source, not the rendered copy. (`mcp.example.json` keeps its name unchanged because it's copied verbatim with no substitution.)
 - `.claude/` — tooling for Claude working on *this* repo (hooks, skills).
-- `TESTING.md` — manual E2E scenarios on a fresh WSL image.
-- `TOOLS.md` — per-module rundown of every package installed, what it replaces, and operator-tunable env vars.
-- `WSL-HOST.md` — host-side (Windows) companion: `.wslconfig`, auto-start at login, mirrored-mode port-leak recovery. Not consumed by any module; documentation only.
-- `tests/` — automated coverage of TESTING.md scenarios (bats for Tier 1, PowerShell + Goss for Tier 2/3). See `tests/README.md` for the tier map.
+- `docs/` — user-facing documentation under `tutorials/`, `how-to/`, `reference/`, `explanation/`. Key files: `docs/reference/manual-test-scenarios.md` (authoritative manual E2E spec), `docs/reference/tools.md` (per-package rundown), `docs/how-to/wsl-host.md` (Windows-side companion — not consumed by any module). Start at [docs/README.md](docs/README.md) for the full index.
+- `tests/` — automated coverage of the manual scenarios (bats for Tier 1, PowerShell + Goss for Tier 2/3). See `tests/README.md` for the tier map.
 - `.github/workflows/` — `tier1.yml` (every PR, ubuntu-latest) and `tier2-3.yml` (path-filtered, windows-latest matrix with cached Ubuntu rootfs).
 
 ## Module contract (every file in `modules/`)
@@ -114,7 +112,7 @@ To add a new operator-tunable env var: name it with one of the forwarded prefixe
 
 ## Testing
 
-`TESTING.md` is the authoritative spec — manual E2E scenarios against a fresh WSL image. `tests/` is the automated regression net split by what each tier needs:
+`docs/reference/manual-test-scenarios.md` is the authoritative spec — manual E2E scenarios against a fresh WSL image. `tests/` is the automated regression net split by what each tier needs:
 
 - **Tier 1** (`tests/tier1/*.bats`, bats-core) — host-free: lint parity, dry-run hash-immutability, env-var validators, `--rollback` recipe rendering, `inherit_errexit`. Runs on every PR via `.github/workflows/tier1.yml`.
 - **Tier 2/3** (`tests/tier2-3/scenarios/*.ps1`, PowerShell + Goss) — real WSL2 scenarios driven from `windows-latest` via `Vampire/setup-wsl@v3`. Path-filtered to `modules/**`, `lib/**`, `install.sh`, `bootstrap.sh`. The driver (`run-scenario.ps1`) imports a cached rootfs, tar-pipes the repo in, runs install steps (with optional mid-flow `wsl --terminate`), and goss-validates against `tests/tier2-3/goss/*.yaml`.
