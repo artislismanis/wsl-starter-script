@@ -1,243 +1,54 @@
 # wsl-starter-script
 
-Modular bootstrap for a fresh Ubuntu WSL image. I use the daily rootfs builds from [cloud-images.ubuntu.com/wsl](https://cloud-images.ubuntu.com/wsl/) — they come with only `root` and auto-login as root, which is exactly what `install.sh --base` expects on first run. Replaces my older
-[base](https://gist.github.com/artislismanis/ac78234ef067e782e38ceb6d0e48f4a4) and
-[dev-tools](https://gist.github.com/artislismanis/680562783a3594ddbc6b193367aa5508) gists
-with one re-runnable, idempotent installer.
+Modular, idempotent bootstrap for a fresh Ubuntu WSL image. One command takes a daily Ubuntu rootfs from [cloud-images.ubuntu.com/wsl](https://cloud-images.ubuntu.com/wsl/) — root-only, auto-login as root — and turns it into a development box with a sudo user, modern CLI, language runtimes (mise), and Claude Code.
 
-## Creating the WSL environment
-
-Download a rootfs tarball from [cloud-images.ubuntu.com/wsl](https://cloud-images.ubuntu.com/wsl/), then import it from a PowerShell prompt:
-
-```powershell
-wsl --import <EnvName> <EnvDestinationFolder> <DistroImageFileName>
-```
-
-Example — create `UbuntuNobleExample` under `C:\WSL\environments\` from an image in `C:\WSL\images\` (the current daily builds ship as `noble-wsl-amd64.wsl`):
-
-```powershell
-wsl --import UbuntuNobleExample C:\WSL\environments\UbuntuNobleExample C:\WSL\images\noble-wsl-amd64.wsl
-```
-
-Launch it (defaults to `root` on first boot). Quote the tilde so PowerShell passes it through literally:
-
-```powershell
-# List environments: wsl --list
-wsl --distribution UbuntuNobleExample --cd '~'
-```
-
-If you use Windows Terminal, restart it so the new distro appears in the dropdown.
-
-For host-side configuration that complements this installer (`.wslconfig`, auto-start at login, recovery commands for mirrored-mode port leaks), see [WSL-HOST.md](WSL-HOST.md).
+Replaces my older [base](https://gist.github.com/artislismanis/ac78234ef067e782e38ceb6d0e48f4a4) and [dev-tools](https://gist.github.com/artislismanis/680562783a3594ddbc6b193367aa5508) gists with one re-runnable installer.
 
 ## Quick start
 
-Three options, pick what suits you:
-
-### 1. Fastest — one-liner on a fresh WSL image
+On a fresh WSL distro (still as root):
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/artislismanis/wsl-starter-script/main/bootstrap.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/artislismanis/wsl-starter-script/main/bootstrap.sh) --all
 ```
 
-Installs `git`/`curl` if missing, clones this repo to `$HOME/wsl-starter-script` (or `/root/wsl-starter-script` if you're root), then runs `install.sh` — with the interactive menu by default, or with whatever flags you passed through. So you can do:
+Or interactively — drop `--all` for a menu. The full walk-through (creating the distro from PowerShell, picking modules, reopening as the new user) is in [docs/tutorials/getting-started.md](docs/tutorials/getting-started.md).
 
-```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/artislismanis/wsl-starter-script/main/bootstrap.sh) --base
-```
+## What you get
 
-Re-runs are safe: subsequent invocations `git pull --ff-only` before handing off.
+- systemd, non-root sudo user, hostname, DNS, sensible `/etc/wsl.conf` defaults
+- Modern CLI: `rg`, `fd`, `bat`, `eza`, `gh`, `tmux`, `jq`, plus zsh + oh-my-zsh
+- atuin shell history, zoxide directory jumping
+- `mise` + Node + Python (Ruby/Java/Go/Deno/Bun on request) + uv
+- Claude Code with a starter `~/.claude/` config
+- Optional: Docker Engine (classic or rootless with pasta networking), Podman
 
-Bootstrap respects three optional env vars:
+[`docs/reference/tools.md`](docs/reference/tools.md) has the per-module breakdown — every package, what it replaces, why it earned a slot on your `$PATH`.
 
-| Var | Default | Purpose |
-|-----|---------|---------|
-| `WSL_STARTER_REPO`   | `https://github.com/artislismanis/wsl-starter-script` | Clone source — point at a fork to test changes. |
-| `WSL_STARTER_BRANCH` | `main` | Branch / tag / commit to check out. |
-| `WSL_STARTER_DIR`    | `/root/wsl-starter-script` (root) or `$HOME/wsl-starter-script` (user) | Where to clone. |
+## Why
 
-### 2. Reviewable — clone first, run locally
+A daily rootfs is the cleanest base for a dev box, but a useful one needs ~30 manual steps that are easy to fat-finger. Each module here is **idempotent** (re-runnable), **dry-runnable** (`--dry-run` is total), and **reversible** (`--rollback` emits a shell-pasteable unwind recipe). No framework, no Python, no hidden remote chains — pure bash, every install step lives in a checked-in module file you can read.
 
-```bash
-git clone https://github.com/artislismanis/wsl-starter-script
-cd wsl-starter-script
-sudo ./install.sh --base          # systemd, user, hostname, DNS
-# then from Windows PowerShell: wsl --terminate <your-distro>; reopen as the new user
-./install.sh --dev                # CLI tools, zsh+omz, atuin+zoxide, mise
-./install.sh --claude             # Claude Code + ~/.claude/* starter
-```
+## Documentation
 
-Or just `./install.sh` for the interactive menu.
+Full index in [`docs/`](docs/).
 
-**Skip the reopen for the dev/claude phase**: when the root phase finishes and user-phase modules are still pending, the installer now offers to continue as the newly-created user in the *same* WSL session via `sudo -iu`. Accept it and `--dev`/`--claude` run right away; you still want to `wsl --terminate <distro>` at the end so new shell sessions land as the default user and any systemd-user services (e.g. rootless Docker) come up cleanly.
+| Need | Start here |
+|---|---|
+| First time — walk me through it | [docs/tutorials/getting-started.md](docs/tutorials/getting-started.md) |
+| Just installing | [docs/how-to/install.md](docs/how-to/install.md) |
+| Docker / rollback / host config / running tests | [docs/how-to/](docs/how-to/) |
+| Look up a flag or env var | [docs/reference/flags.md](docs/reference/flags.md), [env-vars.md](docs/reference/env-vars.md) |
+| What's actually installed | [docs/reference/tools.md](docs/reference/tools.md) |
+| Why the project is shaped this way | [docs/explanation/design.md](docs/explanation/design.md) |
 
-**Optional: Docker Engine** — not part of `--dev` by default. Run explicitly:
-
-```bash
-sudo ./install.sh --module 25-docker-engine
-# Or non-interactively. Pass tunables as `VAR=val` args to sudo (modern sudo
-# forwards these without relying on sudoers env_keep, which `sudo -E` does):
-sudo DOCKER_MODE=classic DOCKER_USER=$USER ./install.sh --module 25-docker-engine --non-interactive
-# DOCKER_MODE = classic | rootless | skip
-```
-
-Requires systemd (enabled by `00-wsl-base`, so reopen your WSL distro after `--base`).
-
-**Rootless + WSL mirrored networking:** the default `slirp4netns` rootlesskit driver doesn't route to the WSL host, so `host.docker.internal` / `host-gateway` don't resolve to anything useful. The installer swaps in `pasta` (newer rootlesskit backend, installs the `passt` package and writes a systemd user override setting `NET=pasta`) — default-on at the prompt and under `--non-interactive`. Opt out with `DOCKER_ROOTLESS_PASTA=0`. Then in any compose file:
-
-```yaml
-extra_hosts:
-  - "host.docker.internal:host-gateway"
-```
-
-**What's actually installed?** See [TOOLS.md](TOOLS.md) for a per-module rundown of every package, what it replaces, and why it earns a slot on your `$PATH`.
-
-### 3. Offline / airgapped
-
-Download the tarball (`https://github.com/artislismanis/wsl-starter-script/archive/main.tar.gz`), extract, run `./install.sh` as above. No network calls until individual modules fetch packages.
-
-## Layout
-
-```
-install.sh              entry point — flags, TUI, dispatch
-lib/common.sh           colours, prompts, root checks
-lib/idempotent.sh       apt guards, repo/hold helpers, ensure_block family,
-                        replace_ini_section, write_file_once, write_if_drift,
-                        copy_if_drift (full helper roster + signatures in
-                        CLAUDE.md § Layout and § Idempotency discipline)
-modules/
-  00-wsl-base.sh        [root] systemd, user, hostname, DNS, interop, automount
-  10-apt-core.sh        [root] build-essential, git, tmux, locales, ...
-  20-cli-modern.sh      [root] zsh, ripgrep, fd, bat, eza, gh
-  25-docker-engine.sh   [root] Docker Engine (classic or rootless), optional
-  26-podman.sh          [root] Podman (rootless, daemonless) + docker shim, optional
-  27-wsl-network.sh     [root] sysctl tweaks, wsl-port-check, rshared-root unit
-  30-shell-zsh.sh       [user] oh-my-zsh + plugins (zsh installed by 20)
-  31-shell-history.sh   [user] atuin + zoxide (bash & zsh)
-  40-mise.sh            [user] mise + selected runtimes + uv
-  50-claude-code.sh     [user] claude-code + ~/.claude/ templates
-  99-cleanup.sh         [root] apt autoremove + next-steps banner
-claude/
-  settings.json.tmpl    user-global Claude settings template
-  CLAUDE.md.tmpl        user-global CLAUDE.md starter
-  statusline.sh.tmpl    statusline (model, ctx %, in/out tokens, 5h rate-limit)
-  mcp.example.json      commented MCP servers to copy into projects
-```
-
-## Flags
-
-```
---all                 Run base → dev → docker → claude → cleanup. (Excludes podman.)
-                      Cleanup is root-only — skipped when --all runs as a non-root user.
-                      Under --non-interactive, Docker installs in 'classic' mode by
-                      default; set DOCKER_MODE=skip to opt out or =rootless to switch.
---base                Root-phase only (modules 00, 10).
---dev                 cli-modern + zsh + history + mise. (apt-core is in --base.)
---docker              Docker Engine (classic or rootless). WSL network defenses
-                      (27-wsl-network) auto-fire when a runtime actually installs;
-                      DOCKER_MODE=skip suppresses both.
---podman              Podman (rootless, daemonless). Same auto-fire of 27-wsl-network
-                      after a successful install.
---claude              Claude Code + user-global config.
---module NAME         Run one module (see --list).
---list                List modules with descriptions.
---non-interactive     Read answers from env vars (below).
---dry-run             Print what would happen, make no changes.
-```
-
-## Non-interactive env vars
-
-| Var | Purpose |
-|-----|---------|
-| `WSL_USER`                | Non-root username to create |
-| `WSL_PASSWORD`            | Password for that user |
-| `WSL_HOSTNAME`            | Hostname in `/etc/wsl.conf` |
-| `WSL_DNS`                 | Space-separated nameservers (empty = keep existing) |
-| `WSL_APT_UPGRADE`         | `1`/`yes` runs `apt upgrade` during `--base`; `0`/`no` skips; unset prompts (default-yes, so `--non-interactive` upgrades) |
-| `MISE_LANGUAGES`          | CSV of runtimes to install, e.g. `node,python,go` |
-| `MISE_<LANG>_VERSION`     | Pin a specific version per runtime — see defaults below |
-| `DOCKER_MODE`             | `classic` / `rootless` / `skip` (only for `25-docker-engine`) |
-| `DOCKER_USER`             | Target user — added to `docker` group (classic) or owns the rootless daemon (rootless). Falls back to `SUDO_USER` when running under sudo, otherwise prompts. |
-| `DOCKER_ROOTLESS_PASTA`   | `1` to use pasta as the rootlesskit network driver (rootless only) |
-| `DOCKER_ROOTLESS_HOST_SYMLINK` | `1` (default) symlinks `/var/run/docker.sock` → `/run/user/$UID/docker.sock` so dev-containers and tooling that bind-mount the well-known path keep working under rootless. `0` to skip. |
-| `PODMAN_COMPOSE`          | `1` (default) installs `podman-compose`, `0` skips |
-| `PODMAN_DOCKER_SHIM`      | `1` (default) installs `podman-docker` shim if `docker-ce-cli` isn't present |
-| `ZSH_THEME`               | Override the oh-my-zsh theme |
-| `ZSH_PLUGINS`             | Replace the full `plugins=(...)` line in `~/.zshrc`. Empty/unset = keep the default `(git docker kubectl ... )` list. |
-| `CLAUDE_PERMISSION_MODE`  | `default` / `acceptEdits` / `plan` |
-
-Bootstrap-only env vars (`WSL_STARTER_REPO`, `WSL_STARTER_BRANCH`, `WSL_STARTER_DIR`) are documented in [§ Quick start option 1](#1-fastest--one-liner-on-a-fresh-wsl-image) — they affect the clone target, not module behaviour. The dispatcher's env-forward sweep blocklists `WSL_STARTER_*` so they don't propagate into per-module sudo escalations or the user-phase handoff.
-
-A handful of yes/no prompts have no env override and default to "yes" under `--non-interactive`: disable Windows PATH appending, set automount metadata options, make zsh the default shell, install `uv`. Note: mise's "show other runtimes" prompt defaults to *no*, so under `--non-interactive` only node and python are installed — set `MISE_LANGUAGES` explicitly to install ruby/java/go/deno/bun. If you need to opt *out* of any of the y-default prompts, run interactively for that step.
-
-Per-runtime version pins (override any of these; defaults shown):
-
-| Var | Default |
-|-----|---------|
-| `MISE_NODE_VERSION`   | `lts` |
-| `MISE_PYTHON_VERSION` | `3.12` |
-| `MISE_RUBY_VERSION`   | `3.3` |
-| `MISE_JAVA_VERSION`   | `temurin-21` |
-| `MISE_GO_VERSION`     | `latest` |
-| `MISE_DENO_VERSION`   | `latest` |
-| `MISE_BUN_VERSION`    | `latest` |
-
-Example — full install with pinned Node/Python versions:
-
-```bash
-sudo \
-  WSL_USER=artis WSL_PASSWORD='...' WSL_HOSTNAME=box \
-  MISE_LANGUAGES=node,python,go \
-  MISE_NODE_VERSION=22 MISE_PYTHON_VERSION=3.13 MISE_GO_VERSION=1.23 \
-  CLAUDE_PERMISSION_MODE=acceptEdits \
-  ./install.sh --all --non-interactive
-```
-
-(Pass `VAR=val` as arguments to `sudo` rather than relying on `sudo -E` — modern sudo forwards these reliably; `-E` depends on sudoers `env_keep` and silently drops most tunables.)
-
-## Design notes
-
-- **Idempotent.** Every module guards its changes; re-running is safe and expected.
-- **Root vs user.** Modules declare `REQUIRES_ROOT=1|0` in a header; the dispatcher refuses to run the wrong kind under the wrong privilege.
-- **No hidden remote chains.** Modules do `curl | sh` upstream installers (oh-my-zsh, atuin, zoxide, mise, uv, claude-code) but every chain lives in a checked-in module so you can read what it does before running it. The `bootstrap.sh` entry point itself only fetches this repo, nothing else.
-- **mise over nvm/rvm/sdkman/pyenv.** One tool for Node, Python, Ruby, Java, Go, Deno, Bun.
-- **Claude Code starter.** Writes `~/.claude/settings.json`, `~/.claude/CLAUDE.md`, `~/.claude/scripts/statusline.sh`, and drops a commented `mcp.example.json` — existing files are preserved, never clobbered.
+Working *on* the repo (adding a module, changing a helper)? [`CLAUDE.md`](CLAUDE.md) is the contributor-facing companion — internal helper roster, module contract, write-site discipline.
 
 ## Contributing
-
-Pure bash, no framework. To work on the repo locally:
 
 ```bash
 ./lint.sh                                 # bash -n + shellcheck on every shell file
 git config core.hooksPath .githooks       # opt in to pre-commit lint + CRLF guard
 ```
 
-The pre-commit hook is plain shell (`.githooks/pre-commit`) — no Python, no `pre-commit` framework. It runs `lint.sh` against staged shell files and refuses commits with CRLF line endings. `.gitattributes` enforces LF on text files so a Windows clone doesn't ship broken shebangs back to a WSL run.
-
-## Testing
-
-Two surfaces, with [tests/README.md](tests/README.md) for the full breakdown:
-
-- **[TESTING.md](TESTING.md)** — manual end-to-end scenarios against a fresh WSL image. Authoritative spec; what to run by hand when something feels off.
-- **[tests/](tests/)** — automated coverage of the same scenarios, split by what each needs:
-  - **Tier 1** (`tests/tier1/*.bats`, bats-core) — host-free checks: lint, dry-run, env-var validation, rollback recipe, `inherit_errexit`. Runs on every PR via `.github/workflows/tier1.yml`.
-  - **Tier 2/3** (`tests/tier2-3/scenarios/*.ps1`, PowerShell + [Goss](https://github.com/goss-org/goss)) — real WSL2 scenarios driven from `windows-latest` runners via [`Vampire/setup-wsl`](https://github.com/Vampire/setup-wsl). Path-filtered to install-surface changes via `.github/workflows/tier2-3.yml`.
-
-Free for public repos on GitHub Actions. Locally, run Tier 1 with `./tests/tier1/run.sh` (needs `bats`) and Tier 2/3 with `pwsh ./tests/tier2-3/scenarios/<name>.ps1` from a Windows host with WSL2 enabled.
-
-## Rollback
-
-```sh
-./install.sh --rollback              # all modules in reverse install order
-./install.sh --rollback 25-docker-engine   # one module
-```
-
-Output is a shell-pasteable recipe assembled from each module's `# ROLLBACK=` headers — the single source of truth lives next to the write-sites. Review before running; the dispatcher never executes anything itself. The script also emits cross-cutting cleanup at the end (rc-block strip, `apt-get autoremove`, `wsl --shutdown` reminder).
-
-Carve-outs not rolled back automatically:
-
-- The non-root user account created by `00-wsl-base` is left in place. Use `sudo userdel -r <username>` for a clean slate (drops the home dir and the repo copy under it).
-- Per-session markers under `/run/wsl-starter*` self-clear on `wsl --shutdown`.
-- `30-shell-zsh` edits the `ZSH_THEME=` and `plugins=(...)` lines of `~/.zshrc` in place (outside any `wsl-starter:*` fence — these lines were authored by oh-my-zsh's installer, not us). The cross-cutting rc-block strip can't unwind them; cleanest reset is `rm ~/.zshrc` and re-run `--dev` (oh-my-zsh recreates a fresh `.zshrc`).
-
-When you add a new write-site to a module, add the matching `# ROLLBACK=` line in the same edit. `lint.sh` enforces **presence** (any module with a write-site primitive must have at least one `# ROLLBACK=` header) but cannot verify path-level coverage — reviewers still check that every new path has its own header.
+Both `lint.sh` and the editor hook are plain shell — no Python, no `pre-commit` framework. [`docs/how-to/testing.md`](docs/how-to/testing.md) covers running the bats + PowerShell test tiers locally.

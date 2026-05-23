@@ -1,6 +1,6 @@
 # tests/
 
-Automated coverage for the manual scenarios in [TESTING.md](../TESTING.md). Split by what each test needs to run:
+Automated coverage for the manual scenarios in [docs/reference/manual-test-scenarios.md](../docs/reference/manual-test-scenarios.md). Split by what each test needs to run:
 
 | Tier | Needs | Runs on | Harness |
 |------|-------|---------|---------|
@@ -16,7 +16,7 @@ Tiers 2 and 3 share infrastructure (`run-scenario.ps1`, cached `base.tar`) and a
 tests/
   tier1/                 # *.bats — runs anywhere
   tier2-3/
-    scenarios/           # *.ps1 — one per Tier 2/3 scenario from TESTING.md
+    scenarios/           # *.ps1 — one per Tier 2/3 scenario from docs/reference/manual-test-scenarios.md
     goss/                # *.yaml — post-install assertions
     run-scenario.ps1     # lifecycle: import → exec → goss → unregister
   fixtures/
@@ -43,7 +43,7 @@ pwsh ./tests/tier2-3/scenarios/dev.ps1
 - `.github/workflows/tier1.yml` — every PR
 - `.github/workflows/tier2-3.yml` — `paths`-filtered to `modules/**`, `lib/**`, `install.sh`, `bootstrap.sh`
 
-## Mapping back to TESTING.md
+## Mapping back to manual scenarios
 
 | Manual scenario | Automated as |
 |-----------------|--------------|

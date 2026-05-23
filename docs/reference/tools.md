@@ -1,4 +1,4 @@
-# TOOLS.md — what the installer gives you
+# What the installer gives you
 
 Reference for everything that ends up on disk after running the full installer. Grouped by module, with a one-line *why you'd reach for it* for each tool. Module prefixes match `./install.sh --list`.
 
