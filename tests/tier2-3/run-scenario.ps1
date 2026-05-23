@@ -108,6 +108,12 @@ cd $linuxRepo
 find . -type f \( -name '*.sh' -o -path './.githooks/*' \) -exec chmod +x {} +
 chmod 755 /root
 chmod -R a+rX $linuxRepo
+# CI has no TTY, so sudo password prompts (triggered when install.sh auto-
+# escalates root modules from the user phase) would hang forever. Grant
+# passwordless sudo to the %sudo group up front — fine in CI, never gets
+# shipped to operators (lives only in the test fixture).
+install -m 0440 /dev/null /etc/sudoers.d/99-ci-nopasswd
+echo '%sudo ALL=(ALL:ALL) NOPASSWD: ALL' > /etc/sudoers.d/99-ci-nopasswd
 if ! command -v goss >/dev/null 2>&1; then
   curl -fsSL https://goss.rocks/install | sh
 fi

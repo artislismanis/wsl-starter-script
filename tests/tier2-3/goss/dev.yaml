@@ -12,16 +12,24 @@ command:
   zoxide:    { exec: 'zoxide --version',     exit-status: 0 }
   mise:      { exec: 'mise --version',       exit-status: 0 }
 
+  # Idempotence: each marker block appears exactly once after re-run.
+  bashrc-atuin-once:
+    exec: "grep -c '# >>> wsl-starter:atuin-zoxide >>>' $HOME/.bashrc"
+    exit-status: 0
+    stdout: ["1"]
+  bashrc-mise-once:
+    exec: "grep -c '# >>> wsl-starter:mise >>>' $HOME/.bashrc"
+    exit-status: 0
+    stdout: ["1"]
+  zshrc-atuin-once:
+    exec: "grep -c '# >>> wsl-starter:atuin-zoxide >>>' $HOME/.zshrc"
+    exit-status: 0
+    stdout: ["1"]
+
 file:
   "{{.Env.HOME}}/.bashrc":
     exists: true
-    matches:
-      - { count: { min: 1, max: 1 }, pattern: "# >>> wsl-starter:atuin-zoxide >>>" }
-      - { count: { min: 1, max: 1 }, pattern: "# >>> wsl-starter:mise >>>" }
-
   # ~/.zshrc may not exist on a minimal image until oh-my-zsh runs; the dev
   # module installs both. Treat missing as a hard failure here.
   "{{.Env.HOME}}/.zshrc":
     exists: true
-    matches:
-      - { count: { min: 1, max: 1 }, pattern: "# >>> wsl-starter:atuin-zoxide >>>" }

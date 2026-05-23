@@ -14,26 +14,28 @@ file:
       - "# >>> wsl-starter:boot >>>"
       - "# >>> wsl-starter:user >>>"
       - "# >>> wsl-starter:network >>>"
-    # Each marker block must appear exactly once.
-    matches:
-      - count:
-          min: 1
-          max: 1
-        pattern: "# >>> wsl-starter:boot >>>"
-      - count:
-          min: 1
-          max: 1
-        pattern: "# >>> wsl-starter:user >>>"
-      - count:
-          min: 1
-          max: 1
-        pattern: "# >>> wsl-starter:network >>>"
 
 command:
+  # Each marker block must appear exactly once (idempotence proof).
+  wsl-conf-boot-once:
+    exec: "grep -c '# >>> wsl-starter:boot >>>' /etc/wsl.conf"
+    exit-status: 0
+    stdout: ["1"]
+  wsl-conf-user-once:
+    exec: "grep -c '# >>> wsl-starter:user >>>' /etc/wsl.conf"
+    exit-status: 0
+    stdout: ["1"]
+  wsl-conf-network-once:
+    exec: "grep -c '# >>> wsl-starter:network >>>' /etc/wsl.conf"
+    exit-status: 0
+    stdout: ["1"]
+
   hostname:
+    exec: 'hostname'
     exit-status: 0
     stdout:
       - "{{.Env.TEST_HOST}}"
+
   systemd-active:
     exec: 'systemctl is-system-running || true'
     exit-status: 0
