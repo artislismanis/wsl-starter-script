@@ -58,7 +58,7 @@ copy_if_drift \
 # (00-wsl-base flipped the flag but the operator hasn't terminated yet) we
 # can't reload systemd; the unit will activate on next reopen anyway, and the
 # one-shot mount below covers the current session.
-if pidof systemd >/dev/null 2>&1; then
+if is_systemd; then
   RSHARED_RELOAD="systemctl daemon-reload && systemctl enable --now wsl-rshared-root.service"
 else
   RSHARED_RELOAD=""

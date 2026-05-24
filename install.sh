@@ -225,7 +225,7 @@ _run_each() { for m in "$@"; do run_module "$m"; done; }
 # standalone --docker on an unconfigured distro still hits the module's own
 # die message instead of deferring to a reopen that has no new user to land as.
 _runtime_needs_defer() {
-  pidof systemd >/dev/null 2>&1 && return 1
+  is_systemd && return 1
   [ -n "${RAN_MODULES[00-wsl-base]:-}" ] && return 0
   return 1
 }
