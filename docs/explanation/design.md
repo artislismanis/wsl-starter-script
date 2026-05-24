@@ -39,6 +39,6 @@ One tool for Node, Python, Ruby, Java, Go, Deno, Bun. One activation hook per sh
 
 ## Pure bash, no framework
 
-No package manager-for-modules, no Python, no `pre-commit` framework, no test framework beyond bats for Tier 1. The pre-commit hook is plain shell (`.githooks/pre-commit`) that runs `./lint.sh` against staged files. `.gitattributes` enforces LF on text files so a Windows clone doesn't ship broken shebangs back to a WSL run.
+No package manager-for-modules, no Python, no `pre-commit` framework, no test framework beyond bats for Tier 1. Contributors install `bats` + `shellcheck` + `dos2unix` via `./dev-setup.sh`; the runtime install itself needs none of them. The pre-commit hook is plain shell (`.githooks/pre-commit`) that runs `./lint.sh` against staged files. `.gitattributes` enforces LF on text files so a Windows clone doesn't ship broken shebangs back to a WSL run.
 
 The implementation discipline that keeps it pure (the `set -e` + trailing `&&` footgun, `inherit_errexit` in command substitution, the `run` carve-outs) lives in [`CLAUDE.md`](../../CLAUDE.md) — that file is the contributor-facing companion to this one.

@@ -497,9 +497,9 @@ Flag-edge-case spot checks (no-op outside the parser):
 
 ```bash
 ./install.sh --module foo --module bar; echo "exit=$?"     # exit=1: "specified twice"
-# Single-dash and double-dash tokens are now treated as flags (not consumed as
-# the rollback target). --rollback -h prints the full rollback recipe (the -h
-# is silently dropped after the exit 0); previously it tried to load module -h.
+# Single-dash and double-dash tokens are treated as flags, not consumed as the
+# rollback target. --rollback -h prints the full rollback recipe (the -h is
+# silently dropped after the exit 0).
 ./install.sh --rollback -h | head -3
 ./install.sh --rollback --help | head -3
 ```

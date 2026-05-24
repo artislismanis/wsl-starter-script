@@ -28,8 +28,8 @@ tests/
 **Tier 1** (any Linux host with bash):
 
 ```bash
-apt-get install -y bats   # or use vendored bats-core
-./tests/tier1/run.sh      # wraps `bats tests/tier1/`
+./dev-setup.sh           # apt-installs bats, shellcheck, dos2unix
+./tests/tier1/run.sh     # wraps `bats tests/tier1/`
 ```
 
 **Tier 2/3** (Windows host with WSL2 enabled):

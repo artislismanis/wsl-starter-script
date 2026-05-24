@@ -6,9 +6,10 @@ Two surfaces. [`tests/README.md`](../../tests/README.md) has the full tier map; 
 
 Lint parity, dry-run hash-immutability, env-var validation, rollback recipe rendering, `inherit_errexit`. Runs in CI on every PR via `.github/workflows/tier1.yml`.
 
-Locally — needs `bats-core` on `$PATH`:
+Locally — `./dev-setup.sh` from the repo root installs the prerequisites (`bats`, `shellcheck`, `dos2unix`) and enables the pre-commit hook:
 
 ```bash
+./dev-setup.sh
 ./tests/tier1/run.sh
 ```
 
@@ -36,8 +37,4 @@ The driver (`run-scenario.ps1`) imports a cached rootfs, tar-pipes the repo in, 
 
 Runs `bash -n`, `shellcheck -S warning -x`, and `.githooks/validate-module-headers` over every tracked shell file. Single source of truth for lint — both `.githooks/pre-commit` and the in-editor PostToolUse hook call this rather than reimplementing checks.
 
-To opt in to the pre-commit hook:
-
-```bash
-git config core.hooksPath .githooks
-```
+`./dev-setup.sh` enables the pre-commit hook automatically (`git config core.hooksPath .githooks`).
