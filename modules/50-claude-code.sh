@@ -104,6 +104,10 @@ fi
 # `sudo apt-get install -y jq` when convenient.
 command_exists jq || warn "jq not on PATH — statusline will be blank until you 'sudo apt-get install -y jq' (normally pulled in by --base/10-apt-core)."
 
+# settings.json enables the sandbox with failIfUnavailable=true; without socat
+# claude exits immediately on launch. Same standalone-install caveat as jq.
+command_exists socat || warn "socat not on PATH — settings.json enables the sandbox with failIfUnavailable=true, so claude will exit on launch until you 'sudo apt-get install -y socat' (normally pulled in by --base/10-apt-core)."
+
 ok "Claude Code ready. Run 'claude' in a project directory to start."
 echo "  - Settings:  $SETTINGS"
 echo "  - CLAUDE.md: $CLAUDE_MD"

@@ -21,6 +21,7 @@ apt_install \
   unzip \
   zip \
   jq \
+  socat \
   tree \
   less \
   nano \
