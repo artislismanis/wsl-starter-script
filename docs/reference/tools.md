@@ -228,10 +228,11 @@ uv *can* download its own Python builds if you skip the `mise use python@...` st
 | Item | Purpose |
 |---|---|
 | `claude` (native installer → `~/.local/bin/claude`) | Anthropic's official coding agent for the terminal. Standalone binary from `https://claude.ai/install.sh` — no Node dependency, independent of any mise-managed runtime. |
-| `~/.claude/settings.json` | User-global Claude Code settings with your chosen permission mode (`default` / `acceptEdits` / `plan`). Also enables `prefersReducedMotion` and the `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` env flag — edit the file (or `claude/settings.json.tmpl` before install) to opt out. |
+| `~/.claude/settings.json` | User-global Claude Code settings with your chosen permission mode (`auto` / `acceptEdits` / `default` / `plan`). Also pins `model=opusplan`, `advisorModel=opus`, `effortLevel=high`; denies file ops under `/mnt` (both via `permissions.deny` and the sandbox `denyRead`/`denyWrite` lists, with `failIfUnavailable=true`) so Claude can't reach into the Windows filesystem by accident; enables `prefersReducedMotion` and the `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` env flag. Edit the rendered file (or `claude/settings.json.tmpl` before install) to opt out. |
 | `~/.claude/CLAUDE.md` | User-global instructions Claude reads in every session — starter content you can edit. |
 | `~/.claude/scripts/statusline.sh` | Custom statusline wired into Claude's TUI. Shows `[model]`, context-window %, total in/out tokens, and 5-hour rate-limit % with reset countdown. Reads the JSON payload Claude pipes in on stdin via `jq` — needs `jq` on `$PATH` (`10-apt-core` installs it; `--claude` warns if missing). |
-| `~/.claude/mcp.example.json` | Example MCP (Model Context Protocol) server config you can copy to `mcp.json` and fill in. |
+| `~/.claude/mcp.example.json` | Example MCP (Model Context Protocol) server config you can copy to `mcp.json` and fill in. Includes a `_github` entry that consumes `${GITHUB_PERSONAL_ACCESS_TOKEN}` from the launching shell's env. |
+| `wsl-starter:claude-github-token` rc-block (optional) | When opted in (interactive default-yes, or `CLAUDE_GH_TOKEN_EXPORT=1` under `--non-interactive`), the module writes a block to `~/.bashrc` + `~/.zshrc` that runs `gh auth token` at shell load and exports the result as `GITHUB_PERSONAL_ACCESS_TOKEN`. Satisfies the project `.mcp.json`'s `${GITHUB_PERSONAL_ACCESS_TOKEN}` interpolation (and silences `claude doctor`'s "Missing environment variables" warning) without persisting a PAT on disk. Skipped silently if `gh` isn't installed or `gh auth login` hasn't run. |
 
 Re-runs preserve any existing file, so edits to your settings/CLAUDE.md are safe.
 

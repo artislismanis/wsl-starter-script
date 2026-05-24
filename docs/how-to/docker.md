@@ -14,7 +14,7 @@ sudo DOCKER_MODE=classic DOCKER_USER=$USER ./install.sh --module 25-docker-engin
 
 `DOCKER_MODE` accepts `classic`, `rootless`, or `skip`.
 
-Requires systemd, which `00-wsl-base` enables — so reopen your WSL distro after `--base`.
+Requires systemd, which `00-wsl-base` enables. On a fresh image WSL hasn't restarted yet, so `systemd=true` in `/etc/wsl.conf` isn't live until you `wsl --terminate <distro>` and reopen. Running `--docker` standalone before that reopen aborts with a clear message. When you chain groups (`sudo ./install.sh --all` or `--base --docker`), the dispatcher detects this and **defers the docker step to the post-reopen leg** — finish the root phase, run `wsl --terminate`, reopen, then re-run `./install.sh --docker` (or the full deferred set printed in the handoff banner).
 
 ## Rootless + WSL mirrored networking
 

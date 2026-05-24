@@ -217,8 +217,18 @@ interactive_menu() {
 # Each runs one logical group. User-phase modules are silently deferred when
 # the group is invoked as root; they surface in the handoff banner at the end.
 DEFERRED=()
+REOPEN_REQUIRED=0
 
 _run_each() { for m in "$@"; do run_module "$m"; done; }
+
+# Fall through (run-now) when base wasn't part of this invocation, so a
+# standalone --docker on an unconfigured distro still hits the module's own
+# die message instead of deferring to a reopen that has no new user to land as.
+_runtime_needs_defer() {
+  pidof systemd >/dev/null 2>&1 && return 1
+  [ -n "${RAN_MODULES[00-wsl-base]:-}" ] && return 0
+  return 1
+}
 
 run_group() {
   case "$1" in
@@ -235,8 +245,22 @@ run_group() {
         _run_each "${DEV_USER_MODULES[@]}"
       fi
       ;;
-    docker)  _run_each "${DOCKER_MODULES[@]}" ;;
-    podman)  _run_each "${PODMAN_MODULES[@]}" ;;
+    docker)
+      if _runtime_needs_defer; then
+        log "Deferring docker until after the WSL reopen — base just enabled systemd."
+        DEFERRED+=("--docker"); REOPEN_REQUIRED=1
+      else
+        _run_each "${DOCKER_MODULES[@]}"
+      fi
+      ;;
+    podman)
+      if _runtime_needs_defer; then
+        log "Deferring podman until after the WSL reopen — base just enabled systemd."
+        DEFERRED+=("--podman"); REOPEN_REQUIRED=1
+      else
+        _run_each "${PODMAN_MODULES[@]}"
+      fi
+      ;;
     claude)
       if is_root; then
         DEFERRED+=("--claude")
@@ -362,7 +386,8 @@ if is_root && [ ${#DEFERRED[@]} -gt 0 ]; then
     CAN_CONTINUE=1
   fi
 
-  if [ "$CAN_CONTINUE" = "1" ] && confirm "Continue as '$TARGET_USER' now in this WSL session (skips reopen for ${DEFERRED[*]})?" y; then
+  if [ "$CAN_CONTINUE" = "1" ] && [ "$REOPEN_REQUIRED" = "0" ] \
+     && confirm "Continue as '$TARGET_USER' now in this WSL session (skips reopen for ${DEFERRED[*]})?" y; then
     log "Handing off to $TARGET_USER via sudo -iu"
     # sudo -i + bash -lc → login shell, rc files re-sourced (picks up mid-run
     # mise/atuin wiring). FORWARD_ASSIGNS is %q-quoted so [*] join is shell-safe;
@@ -374,6 +399,10 @@ if is_root && [ ${#DEFERRED[@]} -gt 0 ]; then
     warn "Finish up from Windows PowerShell so the distro default user takes effect:"
     warn "  wsl --terminate ${WSL_DISTRO_NAME:-<your-distro>}"
   else
+    if [ "$REOPEN_REQUIRED" = "1" ]; then
+      warn "In-session handoff isn't an option: docker/podman were queued but"
+      warn "systemd was just enabled and only becomes PID 1 after a WSL restart."
+    fi
     warn "From Windows PowerShell:  wsl --terminate ${WSL_DISTRO_NAME:-<your-distro>}"
     warn "Reopen the distro (it will log you in as the user 00-wsl-base just created), then:"
     warn "  cd ~/$(basename "$REPO_ROOT") && ./install.sh ${DEFERRED[*]}"
