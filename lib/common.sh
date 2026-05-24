@@ -111,6 +111,13 @@ truthy() {
 
 is_wsl() { grep -qi microsoft /proc/version 2>/dev/null; }
 
+# Predicate: systemd is the active init. Mirrors sd_booted(3); the /run/systemd/system
+# directory is the canonical marker. `pidof systemd` looks tempting but matches against
+# PID 1's `comm`, which is "init" when systemd is exec'd via the /sbin/init symlink
+# (observed on Ubuntu 26.04 WSL2) — leading to false negatives even when systemd is
+# genuinely PID 1.
+is_systemd() { [ -d /run/systemd/system ]; }
+
 REPO_ROOT="${REPO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 export REPO_ROOT
 

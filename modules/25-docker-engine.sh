@@ -41,7 +41,7 @@ require_root
 # Bail early if systemd isn't PID 1 — Docker (rootful or rootless) depends on
 # systemd units. 00-wsl-base flips systemd=true in /etc/wsl.conf; the user must
 # `wsl --terminate` and reopen before this module can succeed.
-pidof systemd >/dev/null 2>&1 || \
+is_systemd || \
   die "systemd is not running. Run 00-wsl-base.sh, then 'wsl --terminate ${WSL_DISTRO_NAME:-<your-distro>}' from Windows, reopen, and re-run this module."
 
 # ---- Mode selection ---------------------------------------------------------
