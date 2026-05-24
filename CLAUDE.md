@@ -1,6 +1,6 @@
 # CLAUDE.md — wsl-starter-script
 
-Modular bootstrap for Ubuntu WSL. Pure bash; no package manager, no CI, no framework.
+Modular bootstrap for Ubuntu WSL. Pure-bash runtime; contributor tooling (`bats`, `shellcheck`, `dos2unix`) installed via `./dev-setup.sh`. CI lives in `.github/workflows/` (Tier 1 bats on every PR, Tier 2/3 WSL2 scenarios path-filtered).
 Target runtime: a **fresh Ubuntu WSL image** — this repo is never tested on localhost.
 
 ## Layout
@@ -86,11 +86,11 @@ Both are single empty markers (or `rm -f` for the apt one) and are the only muta
 
 ## `set -e` + trailing `&&` footgun
 
-Don't end a function or for-loop body with `[ test ] && cmd`. When `test` fails, the line returns 1, the function returns 1, and the caller's `set -e` exits silently right after whatever log line preceded it — no error message, no stack trace. We've been bitten by this in `write_file_once`, `ensure_block_per_shell`, and `ensure_block_in_rcs`; all three now use `if` blocks at end-of-scope. The pattern is fine **mid-function** (set -e is exempt for the failing left side of `&&`); it's only the final statement of a function or loop body that bites.
+Don't end a function or for-loop body with `[ test ] && cmd`. When `test` fails, the line returns 1, the function returns 1, and the caller's `set -e` exits silently right after whatever log line preceded it — no error message, no stack trace. `write_file_once`, `ensure_block_per_shell`, and `ensure_block_in_rcs` use `if` blocks at end-of-scope for this reason. The pattern is fine **mid-function** (set -e is exempt for the failing left side of `&&`); it's only the final statement of a function or loop body that bites.
 
 ## `set -e` + command substitution
 
-`lib/common.sh` enables `shopt -s inherit_errexit` so `set -e` propagates failures through `$(...)`. Without this, `x="$(curl ... | sh)"` and similar patterns silently succeed when the inner command fails — we hit this with the omz installer (the original `sh -c "$(curl ...)"` form ran an empty `sh -c ""` on a curl 4xx). If you write a `$(...)` that is *expected* to fail (e.g. probing for a remote), append `|| true` so the failure stays contained. Bash 4.4+ supports `inherit_errexit`; the `shopt` is wrapped in `|| true` so older bashes silently no-op.
+`lib/common.sh` enables `shopt -s inherit_errexit` so `set -e` propagates failures through `$(...)`. Without it, `x="$(curl ... | sh)"` silently succeeds when the inner command fails — the classic shape is `sh -c "$(curl ...)"` returning an empty `sh -c ""` on a curl 4xx and looking successful. If you write a `$(...)` that is *expected* to fail (e.g. probing for a remote), append `|| true` so the failure stays contained. Bash 4.4+ supports `inherit_errexit`; the `shopt` is wrapped in `|| true` so older bashes silently no-op.
 
 ## `.tmpl` files
 

@@ -12,7 +12,7 @@
       "instructions": "Read/write a specific directory. Scope tightly — do not point at $HOME."
     },
     "_github": {
-      "_comment": "GitHub's official MCP server (Go binary, run via Docker image ghcr.io/github/github-mcp-server). Replaces the deprecated @modelcontextprotocol/server-github npm package. Source: https://github.com/github/github-mcp-server. The ${GITHUB_PERSONAL_ACCESS_TOKEN} interpolation reads from the launching shell's env — module 50-claude-code can wire that up from 'gh auth token' via the wsl-starter:claude-github-token rc-block (CLAUDE_GH_TOKEN_EXPORT=1).",
+      "_comment": "GitHub's official MCP server (Go binary, run via Docker image ghcr.io/github/github-mcp-server — https://github.com/github/github-mcp-server). The ${GITHUB_PERSONAL_ACCESS_TOKEN} interpolation reads from the launching shell's env; module 50-claude-code can wire that up from 'gh auth token' via the wsl-starter:claude-github-token rc-block (CLAUDE_GH_TOKEN_EXPORT=1).",
       "command": "docker",
       "args": ["run", "-i", "--rm", "-e", "GITHUB_PERSONAL_ACCESS_TOKEN", "ghcr.io/github/github-mcp-server"],
       "env": { "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}" }

@@ -47,8 +47,9 @@ Working *on* the repo (adding a module, changing a helper)? [`CLAUDE.md`](CLAUDE
 ## Contributing
 
 ```bash
-./lint.sh                                 # bash -n + shellcheck on every shell file
-git config core.hooksPath .githooks       # opt in to pre-commit lint + CRLF guard
+./dev-setup.sh           # apt-installs bats, shellcheck, dos2unix; enables the pre-commit hook
+./lint.sh                # bash -n + shellcheck on every shell file
+./tests/tier1/run.sh     # Tier 1 bats suite
 ```
 
-Both `lint.sh` and the editor hook are plain shell — no Python, no `pre-commit` framework. [`docs/how-to/testing.md`](docs/how-to/testing.md) covers running the bats + PowerShell test tiers locally.
+The runtime install needs nothing beyond stock Ubuntu bash. The contributor extras (`bats` for Tier 1 tests, `shellcheck` for `lint.sh`, `dos2unix` for the pre-commit CRLF guard) sit outside that line — `lint.sh` no-ops shellcheck gracefully when it's missing, but the bats suite and the editor PostToolUse hook do need it. [`docs/how-to/testing.md`](docs/how-to/testing.md) covers the test tiers in detail.

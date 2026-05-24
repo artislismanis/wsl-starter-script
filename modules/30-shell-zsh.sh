@@ -89,10 +89,8 @@ if [ -f "$ZSHRC" ]; then
       run "sed -i 's|^plugins=(.*)|plugins=($ZSH_PLUGINS)|' '$ZSHRC'"
     fi
   else
-    # Only append plugins missing from the existing plugins=(...) line.
-    # Earlier versions checked for the exact substring "zsh-autosuggestions
-    # zsh-syntax-highlighting"; that missed cases where the operator had
-    # interleaved a custom plugin between the two and would re-append both.
+    # Append each missing plugin individually — checking per-plugin handles
+    # the case where the operator interleaved a custom plugin between ours.
     plugins_line="$(grep -m1 '^plugins=(' "$ZSHRC" || true)"
     to_add=()
     for p in zsh-autosuggestions zsh-syntax-highlighting; do
