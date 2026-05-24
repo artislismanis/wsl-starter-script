@@ -35,6 +35,7 @@ Baseline Ubuntu packages every later module assumes are present. Nothing flashy 
 | `curl`, `wget` | HTTP fetchers | Bootstrappers for atuin, mise, rustup, etc. |
 | `ca-certificates`, `gnupg` | TLS trust store + GPG | Verifying signed apt repos (eza, gh, Docker). |
 | `unzip`, `zip`, `jq`, `tree`, `less`, `nano` | Everyday text/archive tools | Common enough that missing them is a papercut. |
+| `socat` | Bidirectional socket relay | Required by Claude Code's sandbox; without it `claude` exits immediately because `settings.json` sets `failIfUnavailable=true`. |
 | `tmux` | Terminal multiplexer | Long-running shells survive WSL reconnects. |
 | `pkg-config` | Library metadata lookup | Build-time dependency for native Python/Rust/Go crates. |
 | `python3`, `python3-pip`, `python3-venv` | System Python + pip + venv | Used by Ansible, pre-commit, yt-dlp and countless scripts. |
@@ -228,7 +229,7 @@ uv *can* download its own Python builds if you skip the `mise use python@...` st
 | Item | Purpose |
 |---|---|
 | `claude` (native installer → `~/.local/bin/claude`) | Anthropic's official coding agent for the terminal. Standalone binary from `https://claude.ai/install.sh` — no Node dependency, independent of any mise-managed runtime. |
-| `~/.claude/settings.json` | User-global Claude Code settings with your chosen permission mode (`auto` / `acceptEdits` / `default` / `plan`). Also pins `model=opusplan`, `advisorModel=opus`, `effortLevel=high`; denies file ops under `/mnt` (both via `permissions.deny` and the sandbox `denyRead`/`denyWrite` lists, with `failIfUnavailable=true`) so Claude can't reach into the Windows filesystem by accident; enables `prefersReducedMotion` and the `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` env flag. Edit the rendered file (or `claude/settings.json.tmpl` before install) to opt out. |
+| `~/.claude/settings.json` | User-global Claude Code settings with your chosen permission mode (`auto` / `acceptEdits` / `default` / `plan`). Also pins `model=opusplan`, `advisorModel=opus`, `effortLevel=high`; denies file ops under `/mnt` (both via `permissions.deny` and the sandbox `denyRead`/`denyWrite` lists, with `failIfUnavailable=true` — needs `socat` on `$PATH`, installed by `10-apt-core`) so Claude can't reach into the Windows filesystem by accident; enables `prefersReducedMotion` and the `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` env flag. Edit the rendered file (or `claude/settings.json.tmpl` before install) to opt out. |
 | `~/.claude/CLAUDE.md` | User-global instructions Claude reads in every session — starter content you can edit. |
 | `~/.claude/scripts/statusline.sh` | Custom statusline wired into Claude's TUI. Shows `[model]`, context-window %, total in/out tokens, and 5-hour rate-limit % with reset countdown. Reads the JSON payload Claude pipes in on stdin via `jq` — needs `jq` on `$PATH` (`10-apt-core` installs it; `--claude` warns if missing). |
 | `~/.claude/mcp.example.json` | Example MCP (Model Context Protocol) server config you can copy to `mcp.json` and fill in. Includes a `_github` entry that consumes `${GITHUB_PERSONAL_ACCESS_TOKEN}` from the launching shell's env. |
