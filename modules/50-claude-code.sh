@@ -29,16 +29,17 @@ fi
 # ---- Permission mode --------------------------------------------------------
 PERM_MODE="${CLAUDE_PERMISSION_MODE:-}"
 if [ -z "$PERM_MODE" ]; then
-  echo "Permission mode: 1) default  2) acceptEdits (recommended)  3) plan"
-  case "$(ask "Choose" "2")" in
-    1) PERM_MODE=default ;;
-    3) PERM_MODE=plan ;;
-    *) PERM_MODE=acceptEdits ;;
+  echo "Permission mode: 1) auto (recommended)  2) acceptEdits  3) default  4) plan"
+  case "$(ask "Choose" "1")" in
+    2) PERM_MODE=acceptEdits ;;
+    3) PERM_MODE=default ;;
+    4) PERM_MODE=plan ;;
+    *) PERM_MODE=auto ;;
   esac
 fi
 case "$PERM_MODE" in
-  default|acceptEdits|plan) ;;
-  *) die "CLAUDE_PERMISSION_MODE must be one of: default, acceptEdits, plan (got: $PERM_MODE)" ;;
+  default|acceptEdits|plan|auto) ;;
+  *) die "CLAUDE_PERMISSION_MODE must be one of: default, acceptEdits, plan, auto (got: $PERM_MODE)" ;;
 esac
 
 # ---- Write ~/.claude/ -------------------------------------------------------

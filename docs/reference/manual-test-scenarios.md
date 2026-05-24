@@ -444,13 +444,17 @@ cd /root/wsl-starter-script
 sudo ./install.sh --all
 ```
 
-Follow the on-screen guidance to `wsl --shutdown` after the root phase, reopen as the new user, `cd ~/wsl-starter-script`, and:
+Pick `1) classic` (or `2) rootless`) at the docker prompt — **not** `skip` — so this scenario also exercises the deferred-runtime path.
+
+Expect the dispatcher to log `Deferring docker until after the WSL reopen — base just enabled systemd.` and then skip the in-session handoff offer (since docker needs PID 1 systemd, which a `sudo -iu` handoff can't provide). The post-root banner names the full deferred set, e.g. `./install.sh --dev --docker --claude`.
+
+Follow the on-screen guidance to `wsl --shutdown`, reopen as the new user, `cd ~/wsl-starter-script`, and run the printed command:
 
 ```bash
-./install.sh --dev --claude
+./install.sh --dev --docker --claude
 ```
 
-**Pass criteria:** at the end, `claude --version`, `mise ls`, `rg --version`, `eza --version`, `gh --version`, `zsh --version`, `atuin --version`, `zoxide --version` all succeed in a fresh shell, and `~/.claude/` contains the three generated files.
+**Pass criteria:** at the end, `claude --version`, `mise ls`, `rg --version`, `eza --version`, `gh --version`, `zsh --version`, `atuin --version`, `zoxide --version`, and `docker info` all succeed in a fresh shell; `~/.claude/` contains the three generated files; `docker` never failed with `systemd is not running` during the run.
 
 ---
 

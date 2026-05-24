@@ -19,7 +19,7 @@ Under `--non-interactive` the installer reads answers from these env vars instea
 | `PODMAN_DOCKER_SHIM`      | `1` (default) installs `podman-docker` shim if `docker-ce-cli` isn't present |
 | `ZSH_THEME`               | Override the oh-my-zsh theme |
 | `ZSH_PLUGINS`             | Replace the full `plugins=(...)` line in `~/.zshrc`. Empty/unset = keep the default `(git docker kubectl ... )` list. |
-| `CLAUDE_PERMISSION_MODE`  | `default` / `acceptEdits` / `plan` |
+| `CLAUDE_PERMISSION_MODE`  | `auto` (default) / `acceptEdits` / `default` / `plan` |
 
 A handful of yes/no prompts have no env override and default to "yes" under `--non-interactive`: disable Windows PATH appending, set automount metadata options, make zsh the default shell, install `uv`.
 
