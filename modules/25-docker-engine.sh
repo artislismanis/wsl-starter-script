@@ -67,8 +67,23 @@ esac
 # tail fires 27-wsl-network. Call it on every success path below, never on skip.
 
 # ---- Target user (for both modes) -------------------------------------------
-TARGET_USER="${DOCKER_USER:-${SUDO_USER:-}}"
-if [ -z "$TARGET_USER" ] || ! id "$TARGET_USER" >/dev/null 2>&1; then
+# Resolution order, first hit wins: DOCKER_USER (explicit override) → SUDO_USER
+# (active sudo session) → /run/wsl-starter-handoff USER= (the account
+# 00-wsl-base created earlier this session, kept on tmpfs) → WSL_USER (env
+# hint). Only prompt when none of those name a real non-root account — typical
+# for `bash modules/25-docker-engine.sh` from a root shell with no SUDO_USER.
+HANDOFF_USER=""
+if [ -r /run/wsl-starter-handoff ]; then
+  HANDOFF_USER="$(awk -F= '$1=="USER"{print $2; exit}' /run/wsl-starter-handoff)"
+fi
+TARGET_USER=""
+for _candidate in "${DOCKER_USER:-}" "${SUDO_USER:-}" "$HANDOFF_USER" "${WSL_USER:-}"; do
+  if [ -n "$_candidate" ] && [ "$_candidate" != "root" ] && id "$_candidate" >/dev/null 2>&1; then
+    TARGET_USER="$_candidate"
+    break
+  fi
+done
+if [ -z "$TARGET_USER" ]; then
   TARGET_USER="$(ask "Non-root user to grant Docker access to")"
 fi
 id "$TARGET_USER" >/dev/null 2>&1 || die "User '$TARGET_USER' doesn't exist. Run 00-wsl-base.sh first."
