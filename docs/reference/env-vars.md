@@ -12,7 +12,7 @@ Under `--non-interactive` the installer reads answers from these env vars instea
 | `MISE_LANGUAGES`          | CSV of runtimes to install, e.g. `node,python,go` |
 | `MISE_<LANG>_VERSION`     | Pin a specific version per runtime — see defaults below |
 | `DOCKER_MODE`             | `classic` / `rootless` / `skip` (only for `25-docker-engine`) |
-| `DOCKER_USER`             | Target user — added to `docker` group (classic) or owns the rootless daemon (rootless). Falls back to `SUDO_USER` when running under sudo, otherwise prompts. |
+| `DOCKER_USER`             | Target user — added to `docker` group (classic) or owns the rootless daemon (rootless). Resolution: `DOCKER_USER` → `SUDO_USER` → `/run/wsl-starter-handoff` (user `00-wsl-base` created earlier in this WSL session) → `WSL_USER`; only prompts if none of those name a real non-root account. |
 | `DOCKER_ROOTLESS_PASTA`   | `1` to use pasta as the rootlesskit network driver (rootless only) |
 | `DOCKER_ROOTLESS_HOST_SYMLINK` | `1` (default) symlinks `/var/run/docker.sock` → `/run/user/$UID/docker.sock` so dev-containers and tooling that bind-mount the well-known path keep working under rootless. `0` to skip. |
 | `PODMAN_COMPOSE`          | `1` (default) installs `podman-compose`, `0` skips |
