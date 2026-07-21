@@ -115,7 +115,14 @@ chmod -R a+rX $linuxRepo
 install -m 0440 /dev/null /etc/sudoers.d/99-ci-nopasswd
 echo '%sudo ALL=(ALL:ALL) NOPASSWD: ALL' > /etc/sudoers.d/99-ci-nopasswd
 if ! command -v goss >/dev/null 2>&1; then
-  curl -fsSL https://goss.rocks/install | sh
+  # goss.rocks/install (and goss's own extras/install.sh) build a
+  # goss_<ver>_linux_<arch>.tar.gz URL that the project stopped publishing
+  # as of v0.4.9 — releases now ship bare per-arch binaries instead (e.g.
+  # goss-linux-amd64), so the installer 404s. Download the binary directly
+  # until upstream fixes it. WSL2 target is always x86_64.
+  curl -fsSL --retry 3 --retry-delay 2 --retry-all-errors -o /usr/local/bin/goss \
+    https://github.com/goss-org/goss/releases/download/v0.4.9/goss-linux-amd64
+  chmod +rx /usr/local/bin/goss
 fi
 "@
   if ($LASTEXITCODE -ne 0) { Fail "seed/exec-bit/goss-install step failed" }
