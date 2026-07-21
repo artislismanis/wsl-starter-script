@@ -40,8 +40,10 @@ file:
   /etc/apt/apt.conf.d/51unattended-upgrades-docker:
     exists: true
 
+  # Removed: this sysctl tuning collapsed throughput under WSL2 mirrored
+  # networking. See modules/27-wsl-network.sh.
   /etc/sysctl.d/99-wsl-network.conf:
-    exists: true
+    exists: false
   /usr/local/bin/wsl-port-check:
     exists: true
     mode: "0755"

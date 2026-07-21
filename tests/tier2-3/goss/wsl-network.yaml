@@ -1,8 +1,12 @@
 # Scenarios 11b-2, 11c — standalone 27-wsl-network.
 
 file:
+  # Removed: this sysctl tuning collapsed throughput under WSL2 mirrored
+  # networking (widened ephemeral range spans the port band WSL tracks
+  # host-side for the guest). See modules/27-wsl-network.sh and
+  # tests/manual/diagnose-27-network.sh.
   /etc/sysctl.d/99-wsl-network.conf:
-    exists: true
+    exists: false
   /usr/local/bin/wsl-port-check:
     exists: true
     mode: "0755"

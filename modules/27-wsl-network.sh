@@ -1,37 +1,43 @@
 #!/usr/bin/env bash
 # REQUIRES_ROOT=1
-# DESCRIPTION=WSL network defenses for container hosts (sysctl + wsl-port-check).
+# DESCRIPTION=WSL network defenses for container hosts (wsl-port-check + rshared mount).
 # ROLLBACK=sudo systemctl disable --now wsl-rshared-root.service 2>/dev/null || true
 # ROLLBACK=sudo rm -f /etc/systemd/system/wsl-rshared-root.service
-# ROLLBACK=sudo rm -f /etc/sysctl.d/99-wsl-network.conf /usr/local/bin/wsl-port-check
+# ROLLBACK=sudo rm -f /usr/local/bin/wsl-port-check
 # ROLLBACK=sudo systemctl daemon-reload
-# ROLLBACK=sudo sysctl --system >/dev/null
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/idempotent.sh"
 require_root
 
-# Two defenses for container-hosting WSL distros:
+# This module used to also write a TIME_WAIT-reduction sysctl block
+# (tcp_tw_reuse, tcp_fin_timeout, a widened ip_local_port_range). Removed:
+# on WSL2 *mirrored* networking the widened range spans the port band WSL
+# tracks host-side for the guest, and reused TIME_WAIT sockets collide with
+# that tracker — confirmed on real installs to collapse throughput to ~kB/s
+# and intermittently break DNS, i.e. it broke the networking mode this repo's
+# own docs recommend. Speculative tuning for a rare heavy-container-churn case
+# isn't worth breaking the common one. See tests/manual/diagnose-27-network.sh
+# for the diagnostic that isolated this.
 #
-# 1. sysctl tweaks that reduce TIME_WAIT exhaustion. This is *not* a fix for
-#    the WSL2 mirrored-networking hypervisor port leak (that lives in Hyper-V
-#    state and only `wsl --shutdown` clears it), but the same EADDRINUSE
-#    symptom shows up much more often from plain TIME_WAIT pressure during
-#    rapid container churn. Fixing the easy case clarifies when you've actually
-#    hit the hard case.
+# Self-heal: remove a stale drop-in from before this fix so re-running the
+# module actually recovers an already-broken machine instead of just stopping
+# the bleeding for new installs. `sysctl --system` reapplies whatever drop-ins
+# remain, but can't undo mirrored mode's *intended* narrow range from inside
+# the guest — a full `wsl --shutdown` + reopen is the clean return to vanilla.
+if [ -f /etc/sysctl.d/99-wsl-network.conf ]; then
+  log "Removing stale /etc/sysctl.d/99-wsl-network.conf (known to break WSL2 mirrored networking)"
+  run "rm -f /etc/sysctl.d/99-wsl-network.conf"
+  run "sysctl --system >/dev/null"
+  warn "Sysctl values were reloaded, but mirrored mode's own port-range tuning can only be restored by a full 'wsl --shutdown' + reopen."
+fi
+
+# wsl-port-check: a tiny diagnostic that prints listening ports + TIME_WAIT
+# counts, and given a port, distinguishes "in use" from "hypervisor leak"
+# (bind fails but ss shows nothing → smoking gun for the WSL2 mirrored-mode
+# hypervisor port leak, which lives in Hyper-V state and only `wsl --shutdown`
+# clears — this module doesn't and can't fix that, only help identify it).
 #
-# 2. wsl-port-check: a tiny diagnostic that prints listening ports + TIME_WAIT
-#    counts, and given a port, distinguishes "in use" from "hypervisor leak"
-#    (bind fails but ss shows nothing → smoking gun for the WSL bug).
-
-write_if_drift /etc/sysctl.d/99-wsl-network.conf "sysctl --system >/dev/null" <<'CONF'
-# wsl-starter: container-host network defenses.
-# Reduces ephemeral-port exhaustion from rapid container churn.
-net.ipv4.tcp_tw_reuse = 1
-net.ipv4.tcp_fin_timeout = 15
-net.ipv4.ip_local_port_range = 10000 65535
-CONF
-
 # wsl-port-check runs `python3 - "$PORT" <<'PY' ...` for the bind probe. Stock
 # Ubuntu WSL images include python3, and `10-apt-core` installs it explicitly,
 # but a standalone `--module 27-wsl-network` invocation on an image where 10
