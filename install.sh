@@ -234,14 +234,15 @@ run_group() {
   case "$1" in
     base)    _run_each "${BASE_MODULES[@]}" ;;
     dev)
-      # Root-phase always runs (run_module auto-escalates if non-root). User-phase
-      # is deferred to post-handoff/reopen when invoked as root. Under --all as
-      # root the dev root-phase runs twice (here + in the deferred re-invocation);
-      # idempotent and cheap, just a duplicate log line.
-      _run_each "${DEV_ROOT_MODULES[@]}"
+      # When invoked as root, defer the entire dev group (root + user phase) to
+      # the post-handoff child so the root-phase modules run exactly once — the
+      # RAN_MODULES dedupe can't span the sudo-handoff process boundary.
+      # Standalone non-root --dev runs both phases inline (run_module
+      # auto-escalates the root modules via sudo).
       if is_root; then
         DEFERRED+=("--dev")
       else
+        _run_each "${DEV_ROOT_MODULES[@]}"
         _run_each "${DEV_USER_MODULES[@]}"
       fi
       ;;

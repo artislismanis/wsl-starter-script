@@ -39,7 +39,7 @@ else
   # substitution by default (would need shopt -s inherit_errexit), so the
   # `$()` form silently runs `sh -c ""` on a curl 4xx/5xx and the module
   # appears to "succeed" with omz uninstalled.
-  run "curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh | RUNZSH=no CHSH=no KEEP_ZSHRC=yes sh"
+  run "curl -4 -fsSL --retry 3 --retry-delay 2 --retry-all-errors https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh | RUNZSH=no CHSH=no KEEP_ZSHRC=yes sh"
 fi
 
 ZSH_CUSTOM="${ZSH_CUSTOM:-$ZSH_DIR/custom}"
@@ -71,7 +71,15 @@ for name in $ZSH_PLUGINS; do
     skip "plugin $name present"
   else
     log "Cloning $name"
-    run "git clone --depth 1 '$url' '$dest'"
+    # git has no built-in retry, so loop; IPv6/AAAA resolution to some hosts
+    # (e.g. github.com) can fail consistently in WSL, hence --ipv4.
+    clone_ok=0
+    for attempt in 1 2 3; do
+      if run "git clone --depth 1 --ipv4 '$url' '$dest'"; then clone_ok=1; break; fi
+      warn "clone of $name failed (attempt $attempt/3)"
+      sleep 2
+    done
+    [ "$clone_ok" = 1 ] || die "Failed to clone $name after 3 attempts"
   fi
 done
 
