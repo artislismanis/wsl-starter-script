@@ -282,7 +282,7 @@ echo "$DOCKER_HOST"                                  # unix:///run/user/<uid>/do
 docker info >/dev/null && echo ok                    # daemon reachable
 systemctl --user is-active docker                    # active
 grep -c '# >>> wsl-starter:docker-rootless >>>' ~/.bashrc   # exactly 1 (re-run twice)
-ls /etc/sysctl.d/99-wsl-network.conf                 # 27-wsl-network ran
+systemctl is-enabled wsl-rshared-root.service        # 27-wsl-network ran
 command -v wsl-port-check                            # /usr/local/bin/wsl-port-check
 
 # /var/run/docker.sock compatibility symlink (DOCKER_ROOTLESS_HOST_SYMLINK, default on):
@@ -297,9 +297,10 @@ ls /etc/apt/apt.conf.d/51unattended-upgrades-docker           # hold in place (d
 **Sub-scenario — `DOCKER_MODE=skip` suppresses 27-wsl-network.** On a fresh image (no prior runtime install), as root:
 
 ```bash
-sudo rm -f /etc/sysctl.d/99-wsl-network.conf /usr/local/bin/wsl-port-check  # clear any prior 27 install
+sudo systemctl disable --now wsl-rshared-root.service 2>/dev/null || true
+sudo rm -f /etc/systemd/system/wsl-rshared-root.service /usr/local/bin/wsl-port-check  # clear any prior 27 install
 sudo DOCKER_MODE=skip ./install.sh --docker --non-interactive
-ls /etc/sysctl.d/99-wsl-network.conf 2>/dev/null && echo "FAIL: 27 ran"
+systemctl is-enabled wsl-rshared-root.service 2>/dev/null && echo "FAIL: 27 ran"
 ls /usr/local/bin/wsl-port-check       2>/dev/null && echo "FAIL: 27 ran"
 ```
 
@@ -353,7 +354,7 @@ sudo ./install.sh --module 27-wsl-network
 **Verify:**
 
 ```bash
-ls /etc/sysctl.d/99-wsl-network.conf
+ls /etc/sysctl.d/99-wsl-network.conf 2>/dev/null && echo "FAIL: sysctl drop-in should no longer be created"
 ls /usr/local/bin/wsl-port-check
 systemctl is-enabled wsl-rshared-root.service       # enabled (or "static" pre-reopen)
 ```
@@ -366,7 +367,16 @@ sudo ./install.sh --module 27-wsl-network            # should reinstall (cmp dif
 grep -c 'locally edited' /usr/local/bin/wsl-port-check   # 0 — repo copy restored
 ```
 
-**Pass criteria:** standalone run succeeds without prior --docker/--podman; re-run with a locally-edited port-check restores the repo version (since `wsl-port-check` is our artefact, not an operator-tunable file).
+Self-heal check — confirm a stale sysctl drop-in from before this fix gets cleaned up on re-run (mirrored-mode networking regression, see `tests/manual/diagnose-27-network.sh`):
+
+```bash
+sudo mkdir -p /etc/sysctl.d
+printf 'net.ipv4.ip_local_port_range = 10000 65535\n' | sudo tee /etc/sysctl.d/99-wsl-network.conf >/dev/null
+sudo ./install.sh --module 27-wsl-network
+ls /etc/sysctl.d/99-wsl-network.conf 2>/dev/null && echo "FAIL: stale drop-in should have been removed"
+```
+
+**Pass criteria:** standalone run succeeds without prior --docker/--podman; no sysctl drop-in is ever created; re-run with a locally-edited port-check restores the repo version (since `wsl-port-check` is our artefact, not an operator-tunable file); a pre-existing stale sysctl drop-in is removed on re-run.
 
 ---
 

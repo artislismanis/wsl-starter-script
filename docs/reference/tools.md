@@ -100,11 +100,12 @@ Two small defenses that pay off heavily on container-hosting WSL distros. Auto-i
 
 | What | File / command | Purpose |
 |---|---|---|
-| sysctl tweaks | `/etc/sysctl.d/99-wsl-network.conf` | `tcp_tw_reuse=1`, `tcp_fin_timeout=15`, wider ephemeral port range (10000–65535) — reduces TIME_WAIT exhaustion under rapid container churn. |
 | `wsl-port-check` | `/usr/local/bin/wsl-port-check` | Prints listening ports + TIME_WAIT count; given a port, runs a `bind()` probe that flags the WSL2 mirrored-mode hypervisor port leak (bind fails but `ss` shows nothing → smoking gun, recover with `wsl --shutdown`). |
 | `wsl-rshared-root.service` | `/etc/systemd/system/wsl-rshared-root.service` | systemd oneshot that runs `mount --make-rshared /` at boot. Suppresses the `WARN[0000] "/" is not a shared mount` notice that rootless docker / rootless podman emit on every invocation under WSL2 (where `/init` mounts the rootfs with private propagation before systemd takes over). |
 
-These are *not* a fix for the hypervisor port leak — that lives in Hyper-V state. They handle the much-more-common TIME_WAIT pressure case so that when the hard case strikes, you can identify it instead of conflating the two.
+This module used to also write a sysctl block (`tcp_tw_reuse=1`, `tcp_fin_timeout=15`, ephemeral range widened to 10000–65535) to reduce TIME_WAIT exhaustion under rapid container churn. Removed: on WSL2 *mirrored* networking, the widened range spans the port band WSL tracks host-side for the guest, and confirmed on real installs to collapse throughput to single-digit kB/s and intermittently break DNS. The module now self-heals a stale drop-in from a prior run, but the live kernel values need a full `wsl --shutdown` + reopen to fully return to vanilla — see `tests/manual/diagnose-27-network.sh` for the diagnostic that isolated this.
+
+Neither remaining item is a fix for the hypervisor port leak — that lives in Hyper-V state. `wsl-port-check` just identifies it (recover with `wsl --shutdown`).
 
 ---
 

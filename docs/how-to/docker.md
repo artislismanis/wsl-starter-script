@@ -29,6 +29,6 @@ extra_hosts:
 
 ## Auto-fired companion: 27-wsl-network
 
-When a runtime install succeeds, the installer also runs `27-wsl-network` to apply container-host sysctl tweaks (`tcp_tw_reuse`, wider ephemeral range), install `wsl-port-check`, and add a systemd oneshot that runs `mount --make-rshared /` at boot. `DOCKER_MODE=skip` suppresses both.
+When a runtime install succeeds, the installer also runs `27-wsl-network` to install `wsl-port-check` (diagnoses the mirrored-mode hypervisor port leak — see [how-to/wsl-host.md](wsl-host.md)) and add a systemd oneshot that runs `mount --make-rshared /` at boot. `DOCKER_MODE=skip` suppresses both. (This module used to also widen ephemeral-port sysctls for TIME_WAIT relief; removed after it was found to collapse throughput under WSL2 mirrored networking — the range collided with the port band WSL tracks host-side for the guest.)
 
 See [reference/tools.md § Module 25-docker-engine](../reference/tools.md) for the full per-package rundown (live-restore, cgroup delegation, the `/var/run/docker.sock` host symlink, etc.).
