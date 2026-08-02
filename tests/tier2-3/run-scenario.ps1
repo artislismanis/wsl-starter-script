@@ -136,6 +136,28 @@ fi
     }
     $u   = $step.User
     $cmd = $step.Command
+
+    # zoxide's upstream installer resolves its release through an
+    # unauthenticated api.github.com call, sharing the runner IP's 60/hr
+    # anonymous quota with every other job on that VM — it trips intermittently.
+    # curl reads ~/.curlrc implicitly, so pointing it at a host-scoped ~/.netrc
+    # authenticates that call without patching the upstream script. Seeded per
+    # step because the target user is created by the first install step, not by
+    # the base image. Token travels via WSLENV so it never lands in a command
+    # line or the step log.
+    if ($env:GH_API_TOKEN) {
+      $prevWslEnv  = $env:WSLENV
+      $env:WSLENV  = 'GH_API_TOKEN'
+      & wsl -d $distro -u $u -- bash -lc @'
+set -e
+printf 'netrc\n' > "$HOME/.curlrc"
+umask 077
+printf 'machine api.github.com login x-access-token password %s\n' "$GH_API_TOKEN" > "$HOME/.netrc"
+'@
+      $env:WSLENV = $prevWslEnv
+      if ($LASTEXITCODE -ne 0) { Fail "netrc seed failed (user=$u)" }
+    }
+
     Write-Step "[$u] $cmd"
     & wsl -d $distro -u $u -- bash -lc "cd $linuxRepo && $cmd"
     if ($LASTEXITCODE -ne 0) {
