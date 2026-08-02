@@ -27,6 +27,9 @@ on:
       - '.github/workflows/tier2-3.yml'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   build-base-tarball:
     runs-on: windows-latest
