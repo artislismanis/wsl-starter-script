@@ -48,6 +48,26 @@ run() {
   fi
 }
 
+# retry_run <attempts> "shell string" — `run` with linear backoff between tries.
+# For upstream fetches that fail transiently (DNS, TLS, 5xx). Deliberately no
+# help against an IP-scoped GitHub API rate limit: that resets on a fixed hourly
+# window, so no practical backoff clears it — see tier2-3.yml's netrc setup.
+retry_run() {
+  [ "$#" -eq 2 ] || die "retry_run: expected <attempts> <shell-string>, got $#"
+  local attempts="$1" cmd="$2" n=1
+  while true; do
+    if run "$cmd"; then
+      return 0
+    fi
+    if [ "$n" -ge "$attempts" ]; then
+      return 1
+    fi
+    warn "Attempt $n/$attempts failed; retrying in $((n * 5))s"
+    sleep "$((n * 5))"
+    n=$((n + 1))
+  done
+}
+
 # ask "Prompt" "default"  -> echoes user answer (or default when non-interactive)
 ask() {
   local prompt="$1" default="${2:-}" reply

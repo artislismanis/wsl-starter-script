@@ -7,7 +7,7 @@ Target runtime: a **fresh Ubuntu WSL image** — this repo is never tested on lo
 
 The user-facing tree (modules with `[root]/[user]` tags, `claude/*.tmpl` rendered targets) lives in [docs/reference/modules.md](docs/reference/modules.md); this section is the authoritative roster of internal helpers and conventions for code working on the repo.
 
-- `lib/common.sh` — `log/ok/skip/warn/die`, `ask/confirm/ask_secret`, `run`, `require_root/user`, `is_root` (predicate; for branching, doesn't exit), `truthy`, `is_wsl`, `mark_runtime_installed` (drops `$RUNTIME_STAMP`).
+- `lib/common.sh` — `log/ok/skip/warn/die`, `ask/confirm/ask_secret`, `run`, `retry_run` (`run` + linear backoff, for upstream fetches that fail transiently), `require_root/user`, `is_root` (predicate; for branching, doesn't exit), `truthy`, `is_wsl`, `mark_runtime_installed` (drops `$RUNTIME_STAMP`).
 - `lib/idempotent.sh` — `command_exists`, `pkg_installed`, `apt_install`, `apt_update_once`, `apt_add_signed_repo`, `apt_hold_unattended`, `ensure_block`, `ensure_block_in_rcs`, `ensure_block_per_shell`, `replace_ini_section`, `write_file_once`, `write_if_drift`, `copy_if_drift`.
 - `bootstrap.sh` — remote one-liner entry point. Inlines its own colour helpers (the libs aren't on disk yet at clone time), installs `git`/`curl`/`ca-certificates` if missing, clones (or `git pull --ff-only`s) the repo, then `exec`s `install.sh`. Edit this file if you change clone-time prerequisites or the default clone path.
 - `modules/NN-name.sh` — one installer unit; declares `REQUIRES_ROOT` + `DESCRIPTION` headers the dispatcher reads.

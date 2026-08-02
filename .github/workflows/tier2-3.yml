@@ -102,4 +102,9 @@ jobs:
       - name: Run scenario ${{ matrix.scenario }}
         shell: pwsh
         timeout-minutes: 30
+        # Raises the in-distro GitHub API quota from the runner IP's shared
+        # 60/hr to 1000/hr, so upstream installers that resolve releases via
+        # api.github.com (zoxide) don't trip the anonymous rate limit.
+        env:
+          GH_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: ./tests/tier2-3/scenarios/${{ matrix.scenario }}.ps1
