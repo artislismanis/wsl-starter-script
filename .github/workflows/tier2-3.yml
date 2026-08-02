@@ -36,7 +36,7 @@ jobs:
     outputs:
       cache-key: ${{ steps.key.outputs.value }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - id: key
         shell: bash
@@ -44,14 +44,14 @@ jobs:
 
       - name: Restore cached base.tar
         id: cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: tests/fixtures/base.tar
           key: ${{ steps.key.outputs.value }}
 
       - name: Set up WSL (for tarball build)
         if: steps.cache.outputs.cache-hit != 'true'
-        uses: Vampire/setup-wsl@v3
+        uses: Vampire/setup-wsl@v7
         with:
           distribution: Ubuntu-24.04
 
@@ -61,7 +61,7 @@ jobs:
         run: ./tests/tier2-3/build-base-tarball.ps1
 
       - name: Upload base.tar as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: base-tar
           path: tests/fixtures/base.tar
@@ -86,15 +86,15 @@ jobs:
           - full-e2e           # Tier 3 (full --all flow)
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up WSL
-        uses: Vampire/setup-wsl@v3
+        uses: Vampire/setup-wsl@v7
         with:
           distribution: Ubuntu-24.04
 
       - name: Download base.tar
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: base-tar
           path: tests/fixtures/
