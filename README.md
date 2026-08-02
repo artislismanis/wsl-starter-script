@@ -53,3 +53,7 @@ Working *on* the repo (adding a module, changing a helper)? [`CLAUDE.md`](CLAUDE
 ```
 
 The runtime install needs nothing beyond stock Ubuntu bash. The contributor extras (`bats` for Tier 1 tests, `shellcheck` for `lint.sh`, `dos2unix` for the pre-commit CRLF guard) sit outside that line — `lint.sh` no-ops shellcheck gracefully when it's missing, but the bats suite and the editor PostToolUse hook do need it. [`docs/how-to/testing.md`](docs/how-to/testing.md) covers the test tiers in detail.
+
+## License
+
+[MIT](LICENSE)
