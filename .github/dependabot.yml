@@ -3,7 +3,13 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
+      # No fortnightly interval exists; 1st and 15th is the closest cron gets.
+      interval: "cron"
+      cronjob: "0 6 1,15 * *"
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - "version-update:semver-patch"
     groups:
       github-actions:
         patterns:
