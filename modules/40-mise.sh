@@ -48,7 +48,9 @@ declare -A TOOL_SPECS=(
   [glow]="glow@latest"
   [terraform]="terraform@${MISE_TERRAFORM_VERSION:-latest}"
   [databricks]="databricks-cli@${MISE_DATABRICKS_VERSION:-latest}"
-  [azure-cli]="azure@${MISE_AZURE_CLI_VERSION:-latest}"
+  # uv venvs ship without pip, which `az extension add` shells out to. Setting
+  # uvx_args replaces the registry's own --prerelease=allow, so repeat it.
+  [azure-cli]="azure[uvx_args=--prerelease=allow --with=pip]@${MISE_AZURE_CLI_VERSION:-latest}"
   # Not in mise's own registry.
   [git-spice]="github:abhinav/git-spice@${MISE_GIT_SPICE_VERSION:-latest}"
 )
@@ -158,7 +160,7 @@ for t in "${tools[@]}"; do
     continue
   fi
   log "mise use -g ${TOOL_SPECS[$t]}"
-  run "\"$MISE_BIN\" use -g ${TOOL_SPECS[$t]}"
+  run "\"$MISE_BIN\" use -g '${TOOL_SPECS[$t]}'"
 
   case "$t" in
     azure-cli)
