@@ -35,6 +35,28 @@ for v in MISE_NODE_VERSION MISE_PYTHON_VERSION MISE_RUBY_VERSION MISE_JAVA_VERSI
   fi
 done
 
+# Tools: MISE_TOOLS (comma-separated) overrides the prompts further down.
+# Parsed here so a typo fails fast, same as the version checks above.
+declare -A TOOL_SPECS=(
+  [lazygit]="lazygit@latest"
+  [delta]="delta@latest"
+  [zellij]="zellij@latest"
+  [terraform]="terraform@${MISE_TERRAFORM_VERSION:-latest}"
+  [databricks]="databricks-cli@${MISE_DATABRICKS_VERSION:-latest}"
+  [azure-cli]="azure@${MISE_AZURE_CLI_VERSION:-latest}"
+  # Not in mise's own registry.
+  [git-spice]="github:abhinav/git-spice@${MISE_GIT_SPICE_VERSION:-latest}"
+)
+tools=()
+if [ -n "${MISE_TOOLS:-}" ]; then
+  IFS=',' read -r -a tools <<<"$MISE_TOOLS"
+  unknown=()
+  for t in "${tools[@]}"; do
+    if [ -n "$t" ] && [ -z "${TOOL_SPECS[$t]:-}" ]; then unknown+=("$t"); fi
+  done
+  [ ${#unknown[@]} -gt 0 ] && die "MISE_TOOLS contains unknown tool(s): ${unknown[*]}. Valid: ${!TOOL_SPECS[*]}"
+fi
+
 if ! command_exists mise; then
   log "Installing mise"
   run "curl -fsSL https://mise.run | sh"
@@ -111,28 +133,9 @@ if confirm "Install uv (fast Python project/env manager)?" y; then
 fi
 
 # ---- Tools ------------------------------------------------------------------
-# MISE_TOOLS env var overrides the prompts (comma-separated). Runs after uv
-# because azure-cli's only Linux backend in mise is pipx, which runs via uvx.
-declare -A TOOL_SPECS=(
-  [lazygit]="lazygit@latest"
-  [delta]="delta@latest"
-  [zellij]="zellij@latest"
-  [terraform]="terraform@${MISE_TERRAFORM_VERSION:-latest}"
-  [databricks]="databricks-cli@${MISE_DATABRICKS_VERSION:-latest}"
-  [azure-cli]="azure@${MISE_AZURE_CLI_VERSION:-latest}"
-  # Not in mise's own registry.
-  [git-spice]="github:abhinav/git-spice@${MISE_GIT_SPICE_VERSION:-latest}"
-)
-
-if [ -n "${MISE_TOOLS:-}" ]; then
-  IFS=',' read -r -a tools <<<"$MISE_TOOLS"
-  unknown=()
-  for t in "${tools[@]}"; do
-    if [ -n "$t" ] && [ -z "${TOOL_SPECS[$t]:-}" ]; then unknown+=("$t"); fi
-  done
-  [ ${#unknown[@]} -gt 0 ] && die "MISE_TOOLS contains unknown tool(s): ${unknown[*]}. Valid: ${!TOOL_SPECS[*]}"
-else
-  tools=()
+# Runs after uv because azure-cli's only Linux backend in mise is pipx, which
+# runs via uvx.
+if [ -z "${MISE_TOOLS:-}" ]; then
   for t in lazygit delta zellij; do
     if confirm "Install ${t} (${TOOL_SPECS[$t]})?" y; then tools+=("$t"); fi
   done

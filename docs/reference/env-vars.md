@@ -55,6 +55,7 @@ sudo \
   WSL_USER=artis WSL_PASSWORD='...' WSL_HOSTNAME=box \
   MISE_LANGUAGES=node,python,go \
   MISE_NODE_VERSION=22 MISE_PYTHON_VERSION=3.13 MISE_GO_VERSION=1.23 \
+  MISE_TOOLS=lazygit,delta,zellij,terraform MISE_TERRAFORM_VERSION=1.9.5 \
   CLAUDE_PERMISSION_MODE=acceptEdits \
   ./install.sh --all --non-interactive
 ```
