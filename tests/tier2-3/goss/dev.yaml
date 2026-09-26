@@ -8,6 +8,8 @@ command:
   eza:       { exec: 'eza --version',        exit-status: 0 }
   gh:        { exec: 'gh --version',         exit-status: 0 }
   zsh:       { exec: 'zsh --version',        exit-status: 0 }
+  # Plain exec: proves git can reach delta without mise activation.
+  delta:     { exec: 'delta --version',      exit-status: 0 }
   atuin:     { exec: 'atuin --version',      exit-status: 0 }
   zoxide:    { exec: 'zoxide --version',     exit-status: 0 }
   mise:      { exec: 'mise --version',       exit-status: 0 }
@@ -15,7 +17,6 @@ command:
   # rc-files that run `mise activate`. azure-cli is deliberately left out of
   # dev.ps1's MISE_TOOLS (slow pipx install on every modules/** PR).
   lazygit:   { exec: 'mise exec -- lazygit --version',   exit-status: 0 }
-  delta:     { exec: 'mise exec -- delta --version',     exit-status: 0 }
   zellij:    { exec: 'mise exec -- zellij --version',    exit-status: 0 }
   fzf:       { exec: 'mise exec -- fzf --version',       exit-status: 0 }
   yq:        { exec: 'mise exec -- yq --version',        exit-status: 0 }

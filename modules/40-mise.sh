@@ -2,7 +2,7 @@
 # REQUIRES_ROOT=0
 # DESCRIPTION=mise (unified version manager) + optional runtimes + uv + CLI/cloud tools
 # ROLLBACK=# Per runtime first (clean removal of toolchains): mise uninstall <node|python|ruby|java|go|deno|bun>
-# ROLLBACK=# Per tool: mise uninstall <lazygit|delta|zellij|fzf|yq|pre-commit|glow|github:abhinav/git-spice|terraform|databricks-cli|azure>
+# ROLLBACK=# Per tool: mise uninstall <lazygit|zellij|fzf|yq|pre-commit|glow|github:abhinav/git-spice|terraform|databricks-cli|azure>
 # ROLLBACK=# azure-devops az extension (leave the rest of ~/.azure: it holds az login state):
 # ROLLBACK=rm -rf "$HOME/.azure/cliextensions/azure-devops"
 # ROLLBACK=# delta git wiring (only unset if still pointing at delta; we never overwrite an existing pager):
@@ -40,7 +40,6 @@ done
 # Parsed here so a typo fails fast, same as the version checks above.
 declare -A TOOL_SPECS=(
   [lazygit]="lazygit@latest"
-  [delta]="delta@latest"
   [zellij]="zellij@latest"
   [fzf]="fzf@latest"
   [yq]="yq@latest"
@@ -143,7 +142,7 @@ fi
 # Runs after uv because azure-cli's only Linux backend in mise is pipx, which
 # runs via uvx.
 if [ -z "${MISE_TOOLS:-}" ]; then
-  for t in lazygit delta zellij fzf yq pre-commit glow git-spice; do
+  for t in lazygit zellij fzf yq pre-commit glow git-spice; do
     if confirm "Install ${t} (${TOOL_SPECS[$t]})?" y; then tools+=("$t"); fi
   done
   if confirm "Show cloud tools (terraform/databricks/azure-cli)?" n; then
@@ -172,17 +171,6 @@ for t in "${tools[@]}"; do
         run "\"$MISE_BIN\" exec -- az extension add --name azure-devops --only-show-errors"
       fi
       ;;
-    delta)
-      # Only fill unset keys so an operator's own pager setup wins.
-      for kv in "core.pager=delta" "interactive.diffFilter=delta --color-only"; do
-        key="${kv%%=*}" val="${kv#*=}"
-        if [ -n "$(git config --global --get "$key" || true)" ]; then
-          skip "git $key already set"
-        else
-          run "git config --global $key '$val'"
-        fi
-      done
-      ;;
     fzf)
       # Empty FZF_CTRL_R_COMMAND stops fzf binding Ctrl-R, which atuin owns.
       ensure_block_per_shell "wsl-starter:fzf" "$HOME" \
@@ -198,5 +186,20 @@ command -v fzf >/dev/null 2>&1 && eval "$(fzf --zsh)"'
       ;;
   esac
 done
+
+# ---- delta git wiring -------------------------------------------------------
+# delta comes from apt (20-cli-modern), not mise: git runs it from processes
+# that never ran `mise activate` (wsl -- git, IDEs). Dry-run assumes 20 ran.
+if [ "$DRY_RUN" = "1" ] || command_exists delta; then
+  # Only fill unset keys so an operator's own pager setup wins.
+  for kv in "core.pager=delta" "interactive.diffFilter=delta --color-only"; do
+    key="${kv%%=*}" val="${kv#*=}"
+    if [ -n "$(git config --global --get "$key" || true)" ]; then
+      skip "git $key already set"
+    else
+      run "git config --global $key '$val'"
+    fi
+  done
+fi
 
 ok "mise configured. Open a new shell so 'mise activate' is in effect."

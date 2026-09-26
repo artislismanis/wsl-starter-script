@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 # REQUIRES_ROOT=1
-# DESCRIPTION=Modern CLI (zsh, ripgrep, fd, bat, eza, gh)
+# DESCRIPTION=Modern CLI (zsh, ripgrep, fd, bat, delta, eza, gh)
 # ROLLBACK=sudo rm -f /usr/local/bin/fd /usr/local/bin/bat
 # ROLLBACK=sudo rm -f /etc/apt/sources.list.d/gierens.list /etc/apt/keyrings/gierens.gpg
 # ROLLBACK=sudo rm -f /etc/apt/sources.list.d/github-cli.list /etc/apt/keyrings/github-cli.gpg
-# ROLLBACK=# Packages (zsh ripgrep fd-find bat eza gh) covered by cross-cutting 'apt-get autoremove' below.
+# ROLLBACK=# Packages (zsh ripgrep fd-find bat git-delta eza gh) covered by cross-cutting 'apt-get autoremove' below.
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/idempotent.sh"
 require_root
 
-apt_install zsh ripgrep fd-find bat
+apt_install zsh ripgrep fd-find bat git-delta
 
 # Ubuntu ships fd as fdfind and bat as batcat — expose the conventional names.
 if ! command_exists fd && command_exists fdfind; then

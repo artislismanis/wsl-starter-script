@@ -53,6 +53,7 @@ Faster, friendlier defaults for the commands you use hourly. All installed from 
 | [`ripgrep`](https://github.com/BurntSushi/ripgrep) (`rg`) | `grep -r` | Respects `.gitignore` by default; an order of magnitude faster; smart case. |
 | [`fd`](https://github.com/sharkdp/fd) | `find` | Sane defaults (`.gitignore`-aware, colored), far less typing, regex by default. |
 | [`bat`](https://github.com/sharkdp/bat) | `cat` / `less` | Syntax highlighting, line numbers, git-aware gutter, paging built in. |
+| [`delta`](https://github.com/dandavison/delta) | `git diff` pager | Syntax-highlighted, side-by-side-capable pager for `git diff` / `log` / `show`. `40-mise` sets `core.pager=delta` and `interactive.diffFilter=delta --color-only` in `~/.gitconfig`, but only where those keys are unset, so your own pager config wins. From apt rather than mise because git launches it from processes that never ran `mise activate` (`wsl -- git`, IDEs). |
 | [`eza`](https://github.com/eza-community/eza) | `ls` | Colors, git status column (`eza -l --git`), tree view (`eza --tree`), icons optional. |
 | [`gh`](https://cli.github.com/) | web UI for GitHub | Create/review PRs, manage issues, clone repos, run Actions — without leaving the shell. |
 
@@ -200,12 +201,11 @@ mise also manages **env vars** and **tasks** per project — see `mise set KEY=v
 
 ### Tools installed through mise
 
-After the runtimes, the module offers a set of standalone tools. mise pulls prebuilt release binaries, so there are no extra apt repos, no root, `mise upgrade` keeps them current, and each can be pinned. Prompts mirror the runtimes: the everyday tools default to yes, the cloud CLIs sit behind a "Show cloud tools?" prompt. Override with `MISE_TOOLS="lazygit,delta,terraform"`; setting it replaces the prompts entirely, so list every tool you want.
+After the runtimes, the module offers a set of standalone tools. mise pulls prebuilt release binaries, so there are no extra apt repos, no root, `mise upgrade` keeps them current, and each can be pinned. Prompts mirror the runtimes: the everyday tools default to yes, the cloud CLIs sit behind a "Show cloud tools?" prompt. Override with `MISE_TOOLS="lazygit,terraform"`; setting it replaces the prompts entirely, so list every tool you want.
 
 | Tool | `MISE_TOOLS` key | Prompted by default | Why |
 |---|---|---|---|
 | [`lazygit`](https://github.com/jesseduffield/lazygit) | `lazygit` | **yes** | Terminal UI for git: staging hunks, interactive rebase, branch juggling. |
-| [`delta`](https://github.com/dandavison/delta) | `delta` | **yes** | Syntax-highlighted, side-by-side-capable pager for `git diff` / `log` / `show`. The module sets `core.pager=delta` and `interactive.diffFilter=delta --color-only` in `~/.gitconfig`, but only where those keys are unset, so your own pager config wins. |
 | [`zellij`](https://github.com/zellij-org/zellij) | `zellij` | **yes** | Terminal multiplexer (tmux alternative) with discoverable keybindings and layouts. |
 | [`fzf`](https://github.com/junegunn/fzf) | `fzf` | **yes** | Fuzzy finder. `Ctrl-T` pastes a picked file, `Alt-C` cds into a picked directory, and zoxide's `zi` uses it. Wired via a `wsl-starter:fzf` rc-block. When atuin is installed, fzf leaves `Ctrl-R` to atuin. |
 | [`yq`](https://github.com/mikefarah/yq) | `yq` | **yes** | jq for YAML, TOML and XML (`yq '.jobs' ci.yml`). |

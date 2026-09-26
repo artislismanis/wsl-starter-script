@@ -11,7 +11,7 @@ Under `--non-interactive` the installer reads answers from these env vars instea
 | `WSL_APT_UPGRADE`         | `1`/`yes` runs `apt upgrade` during `--base`; `0`/`no` skips; unset prompts (default-yes, so `--non-interactive` upgrades) |
 | `MISE_LANGUAGES`          | CSV of runtimes to install, e.g. `node,python,go` |
 | `MISE_<LANG>_VERSION`     | Pin a specific version per runtime — see defaults below |
-| `MISE_TOOLS`              | CSV of mise-managed tools, e.g. `lazygit,delta,zellij,terraform`. Valid: `lazygit`, `delta`, `zellij`, `fzf`, `yq`, `pre-commit`, `glow`, `git-spice`, `terraform`, `databricks`, `azure-cli`. Replaces the prompts entirely. |
+| `MISE_TOOLS`              | CSV of mise-managed tools, e.g. `lazygit,zellij,terraform`. Valid: `lazygit`, `zellij`, `fzf`, `yq`, `pre-commit`, `glow`, `git-spice`, `terraform`, `databricks`, `azure-cli`. Replaces the prompts entirely. |
 | `MISE_<TOOL>_VERSION`     | Pin terraform / Databricks CLI / Azure CLI / git-spice — see defaults below |
 | `DOCKER_MODE`             | `classic` / `rootless` / `skip` (only for `25-docker-engine`) |
 | `DOCKER_USER`             | Target user — added to `docker` group (classic) or owns the rootless daemon (rootless). Resolution: `DOCKER_USER` → `SUDO_USER` → `/run/wsl-starter-handoff` (user `00-wsl-base` created earlier in this WSL session) → `WSL_USER`; only prompts if none of those name a real non-root account. |
@@ -55,7 +55,7 @@ sudo \
   WSL_USER=artis WSL_PASSWORD='...' WSL_HOSTNAME=box \
   MISE_LANGUAGES=node,python,go \
   MISE_NODE_VERSION=22 MISE_PYTHON_VERSION=3.13 MISE_GO_VERSION=1.23 \
-  MISE_TOOLS=lazygit,delta,zellij,terraform MISE_TERRAFORM_VERSION=1.9.5 \
+  MISE_TOOLS=lazygit,zellij,terraform MISE_TERRAFORM_VERSION=1.9.5 \
   CLAUDE_PERMISSION_MODE=acceptEdits \
   ./install.sh --all --non-interactive
 ```
