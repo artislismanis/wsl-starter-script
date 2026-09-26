@@ -86,7 +86,7 @@ cd ~/wsl-starter-script   # or wherever you copied it as your user
 ./install.sh --dev
 ```
 
-**Prompts expected:** zsh default shell?, per-language install prompts, uv?, per-tool install prompts (lazygit, delta, zellij, then "Show other tools?")
+**Prompts expected:** zsh default shell?, per-language install prompts, uv?, per-tool install prompts (lazygit, delta, zellij, fzf, yq, pre-commit, glow, git-spice, then "Show cloud tools?")
 
 **Verify (each should print a version):**
 
@@ -108,7 +108,13 @@ In a new shell (the tools are mise-managed):
 lazygit --version
 delta --version
 zellij --version
+fzf --version
+yq --version
+pre-commit --version
+glow --version
+git-spice --version
 git config --global core.pager                # delta (unless you had one set)
+bindkey '^R'                                  # zsh: still atuin's widget, not fzf-history-widget
 ```
 
 Open a **new shell** (to pick up the rc-file blocks), then:
@@ -670,7 +676,7 @@ MISE_GO_VERSION='1.22; rm -rf /' \
 Then the full tool set, run twice for idempotence:
 
 ```bash
-MISE_TOOLS=lazygit,delta,zellij,terraform,databricks,azure-cli,git-spice \
+MISE_TOOLS=lazygit,delta,zellij,fzf,yq,pre-commit,glow,git-spice,terraform,databricks,azure-cli \
   ./install.sh --module 40-mise --non-interactive
 # In a fresh shell:
 terraform version && databricks --version && git-spice --version && az version

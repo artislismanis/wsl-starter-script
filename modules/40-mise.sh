@@ -2,13 +2,14 @@
 # REQUIRES_ROOT=0
 # DESCRIPTION=mise (unified version manager) + optional runtimes + uv + CLI/cloud tools
 # ROLLBACK=# Per runtime first (clean removal of toolchains): mise uninstall <node|python|ruby|java|go|deno|bun>
-# ROLLBACK=# Per tool: mise uninstall <lazygit|delta|zellij|terraform|databricks-cli|azure|github:abhinav/git-spice>
+# ROLLBACK=# Per tool: mise uninstall <lazygit|delta|zellij|fzf|yq|pre-commit|glow|github:abhinav/git-spice|terraform|databricks-cli|azure>
 # ROLLBACK=# azure-devops az extension (leave the rest of ~/.azure: it holds az login state):
 # ROLLBACK=rm -rf "$HOME/.azure/cliextensions/azure-devops"
 # ROLLBACK=# delta git wiring (only unset if still pointing at delta; we never overwrite an existing pager):
 # ROLLBACK=[ "$(git config --global --get core.pager)" = delta ] && git config --global --unset core.pager
 # ROLLBACK=[ "$(git config --global --get interactive.diffFilter)" = "delta --color-only" ] && git config --global --unset interactive.diffFilter
 # ROLLBACK=sed -i '/# >>> wsl-starter:git-spice >>>/,/# <<< wsl-starter:git-spice <<</d' "$HOME/.bashrc" "$HOME/.zshrc" 2>/dev/null || true
+# ROLLBACK=sed -i '/# >>> wsl-starter:fzf >>>/,/# <<< wsl-starter:fzf <<</d' "$HOME/.bashrc" "$HOME/.zshrc" 2>/dev/null || true
 # ROLLBACK=rm -rf "$HOME/.local/bin/mise" "$HOME/.local/share/mise" "$HOME/.config/mise"
 # ROLLBACK=# uv (if installed): we pass UV_NO_MODIFY_PATH=1 to its installer so all rc
 # ROLLBACK=#   wiring stays inside our wsl-starter:mise block — no separate rc-strip needed.
@@ -41,6 +42,10 @@ declare -A TOOL_SPECS=(
   [lazygit]="lazygit@latest"
   [delta]="delta@latest"
   [zellij]="zellij@latest"
+  [fzf]="fzf@latest"
+  [yq]="yq@latest"
+  [pre-commit]="pre-commit@latest"
+  [glow]="glow@latest"
   [terraform]="terraform@${MISE_TERRAFORM_VERSION:-latest}"
   [databricks]="databricks-cli@${MISE_DATABRICKS_VERSION:-latest}"
   [azure-cli]="azure@${MISE_AZURE_CLI_VERSION:-latest}"
@@ -136,11 +141,11 @@ fi
 # Runs after uv because azure-cli's only Linux backend in mise is pipx, which
 # runs via uvx.
 if [ -z "${MISE_TOOLS:-}" ]; then
-  for t in lazygit delta zellij; do
+  for t in lazygit delta zellij fzf yq pre-commit glow git-spice; do
     if confirm "Install ${t} (${TOOL_SPECS[$t]})?" y; then tools+=("$t"); fi
   done
-  if confirm "Show other tools (terraform/databricks/azure-cli/git-spice)?" n; then
-    for t in terraform databricks azure-cli git-spice; do
+  if confirm "Show cloud tools (terraform/databricks/azure-cli)?" n; then
+    for t in terraform databricks azure-cli; do
       if confirm "Install ${t} (${TOOL_SPECS[$t]})?" n; then tools+=("$t"); fi
     done
   fi
@@ -175,6 +180,14 @@ for t in "${tools[@]}"; do
           run "git config --global $key '$val'"
         fi
       done
+      ;;
+    fzf)
+      # Empty FZF_CTRL_R_COMMAND stops fzf binding Ctrl-R, which atuin owns.
+      ensure_block_per_shell "wsl-starter:fzf" "$HOME" \
+        'command -v atuin >/dev/null 2>&1 && FZF_CTRL_R_COMMAND=
+command -v fzf >/dev/null 2>&1 && eval "$(fzf --bash)"' \
+        'command -v atuin >/dev/null 2>&1 && FZF_CTRL_R_COMMAND=
+command -v fzf >/dev/null 2>&1 && eval "$(fzf --zsh)"'
       ;;
     git-spice)
       # Upstream ships the binary as git-spice and recommends aliasing gs

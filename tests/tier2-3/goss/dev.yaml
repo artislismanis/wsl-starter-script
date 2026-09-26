@@ -17,6 +17,10 @@ command:
   lazygit:   { exec: 'mise exec -- lazygit --version',   exit-status: 0 }
   delta:     { exec: 'mise exec -- delta --version',     exit-status: 0 }
   zellij:    { exec: 'mise exec -- zellij --version',    exit-status: 0 }
+  fzf:       { exec: 'mise exec -- fzf --version',       exit-status: 0 }
+  yq:        { exec: 'mise exec -- yq --version',        exit-status: 0 }
+  pre-commit: { exec: 'mise exec -- pre-commit --version', exit-status: 0 }
+  glow:      { exec: 'mise exec -- glow --version',      exit-status: 0 }
   terraform: { exec: 'mise exec -- terraform version',   exit-status: 0 }
   databricks: { exec: 'mise exec -- databricks --version', exit-status: 0 }
   git-spice: { exec: 'mise exec -- git-spice --version', exit-status: 0 }
@@ -24,6 +28,10 @@ command:
     exec: "git config --global --get core.pager"
     exit-status: 0
     stdout: ["delta"]
+  zshrc-fzf-once:
+    exec: "grep -c '# >>> wsl-starter:fzf >>>' $HOME/.zshrc"
+    exit-status: 0
+    stdout: ["1"]
   bashrc-git-spice-once:
     exec: "grep -c '# >>> wsl-starter:git-spice >>>' $HOME/.bashrc"
     exit-status: 0
