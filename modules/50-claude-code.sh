@@ -7,6 +7,8 @@
 # ROLLBACK=rm -f "$HOME/.claude/scripts/statusline.sh"
 # ROLLBACK=rmdir --ignore-fail-on-non-empty "$HOME/.claude/scripts" 2>/dev/null || true
 # ROLLBACK=rm -f "$HOME/.claude/settings.json" "$HOME/.claude/CLAUDE.md" "$HOME/.claude/mcp.example.json"
+# ROLLBACK=# Legacy rc block from before the MCP server fetched its own token; re-runs strip it too.
+# ROLLBACK=sed -i '/# >>> wsl-starter:claude-github-token >>>/,/# <<< wsl-starter:claude-github-token <<</d' "$HOME/.bashrc" "$HOME/.zshrc" 2>/dev/null || true
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/idempotent.sh"
@@ -67,6 +69,13 @@ write_file_once "$CLAUDE_MD"    < "$REPO_ROOT/claude/CLAUDE.md.tmpl"
 # the target user, so the file is already user-owned.
 write_file_once "$STATUSLINE" "$USER" 0755 < "$REPO_ROOT/claude/statusline.sh.tmpl"
 write_file_once "$MCP_EXAMPLE"  < "$REPO_ROOT/claude/mcp.example.json"
+
+# Older installs exported the token from every shell; the MCP config now fetches it at spawn time.
+for rc in "$HOME/.bashrc" "$HOME/.zshrc"; do
+  if [ -f "$rc" ] && grep -q '# >>> wsl-starter:claude-github-token >>>' "$rc"; then
+    run "sed -i '/# >>> wsl-starter:claude-github-token >>>/,/# <<< wsl-starter:claude-github-token <<</d' '$rc'"
+  fi
+done
 
 # statusline reads stdin via jq; without it the line silently goes blank.
 # 10-apt-core installs jq, but --claude can be invoked standalone, so warn
