@@ -20,7 +20,6 @@ Under `--non-interactive` the installer reads answers from these env vars instea
 | `ZSH_THEME`               | Override the oh-my-zsh theme |
 | `ZSH_PLUGINS`             | Replace the full `plugins=(...)` line in `~/.zshrc`. Empty/unset = keep the default `(git docker kubectl ... )` list. |
 | `CLAUDE_PERMISSION_MODE`  | `auto` (default) / `acceptEdits` / `default` / `plan` |
-| `CLAUDE_GH_TOKEN_EXPORT`  | `1` (default under `--non-interactive`) adds a `wsl-starter:claude-github-token` rc-block that exports `GITHUB_PERSONAL_ACCESS_TOKEN` from `gh auth token` at shell load, so the github MCP server can authenticate. `0` skips. Unset prompts (default-yes). The export is a no-op until you run `gh auth login` separately. |
 
 A handful of yes/no prompts have no env override and default to "yes" under `--non-interactive`: disable Windows PATH appending, set automount metadata options, make zsh the default shell, install `uv`.
 

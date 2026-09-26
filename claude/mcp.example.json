@@ -12,10 +12,9 @@
       "instructions": "Read/write a specific directory. Scope tightly — do not point at $HOME."
     },
     "_github": {
-      "_comment": "GitHub's official MCP server (Go binary, run via Docker image ghcr.io/github/github-mcp-server — https://github.com/github/github-mcp-server). The ${GITHUB_PERSONAL_ACCESS_TOKEN} interpolation reads from the launching shell's env; module 50-claude-code can wire that up from 'gh auth token' via the wsl-starter:claude-github-token rc-block (CLAUDE_GH_TOKEN_EXPORT=1).",
-      "command": "docker",
-      "args": ["run", "-i", "--rm", "-e", "GITHUB_PERSONAL_ACCESS_TOKEN", "ghcr.io/github/github-mcp-server"],
-      "env": { "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}" }
+      "_comment": "GitHub's official MCP server (Go binary, run via Docker image ghcr.io/github/github-mcp-server — https://github.com/github/github-mcp-server). Fetches the token from 'gh auth token' when the server spawns, so it works without rc files (e.g. remote-control sessions). Run 'gh auth login' first.",
+      "command": "bash",
+      "args": ["-c", "GITHUB_PERSONAL_ACCESS_TOKEN=$(gh auth token) exec docker run -i --rm -e GITHUB_PERSONAL_ACCESS_TOKEN ghcr.io/github/github-mcp-server"]
     }
   }
 }
