@@ -16,7 +16,7 @@ modules/
   27-wsl-network.sh     [root] wsl-port-check, rshared-root unit
   30-shell-zsh.sh       [user] oh-my-zsh + plugins (zsh installed by 20)
   31-shell-history.sh   [user] atuin + zoxide (bash & zsh)
-  40-mise.sh            [user] mise + selected runtimes + uv
+  40-mise.sh            [user] mise + selected runtimes + uv + tools (lazygit, delta, ...)
   50-claude-code.sh     [user] claude-code + ~/.claude/ templates
   99-cleanup.sh         [root] apt autoremove + next-steps banner
 claude/

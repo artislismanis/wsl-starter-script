@@ -198,6 +198,22 @@ python = "3.12"
 
 mise also manages **env vars** and **tasks** per project — see `mise set KEY=value` and `mise tasks`. Worth a read of [the mise docs](https://mise.jdx.dev/getting-started.html) once you've used the basics.
 
+### Tools installed through mise
+
+After the runtimes, the module offers a set of standalone tools. mise pulls prebuilt release binaries, so there are no extra apt repos, no root, `mise upgrade` keeps them current, and each can be pinned. Prompts mirror the runtimes: the three everyday tools default to yes, the rest sit behind a "Show other tools?" prompt. Override with `MISE_TOOLS="lazygit,delta,terraform"`; setting it replaces the prompts entirely, so list every tool you want.
+
+| Tool | `MISE_TOOLS` key | Prompted by default | Why |
+|---|---|---|---|
+| [`lazygit`](https://github.com/jesseduffield/lazygit) | `lazygit` | **yes** | Terminal UI for git: staging hunks, interactive rebase, branch juggling. |
+| [`delta`](https://github.com/dandavison/delta) | `delta` | **yes** | Syntax-highlighted, side-by-side-capable pager for `git diff` / `log` / `show`. The module sets `core.pager=delta` and `interactive.diffFilter=delta --color-only` in `~/.gitconfig`, but only where those keys are unset, so your own pager config wins. |
+| [`zellij`](https://github.com/zellij-org/zellij) | `zellij` | **yes** | Terminal multiplexer (tmux alternative) with discoverable keybindings and layouts. |
+| [`terraform`](https://github.com/hashicorp/terraform) | `terraform` | on request | Infrastructure as code. Pin with `MISE_TERRAFORM_VERSION`. |
+| [Databricks CLI](https://github.com/databricks/cli) (`databricks`) | `databricks` | on request | Workspaces, jobs, bundles. Pin with `MISE_DATABRICKS_VERSION`. |
+| [Azure CLI](https://learn.microsoft.com/cli/azure/) (`az`) | `azure-cli` | on request | Pin with `MISE_AZURE_CLI_VERSION`. Also installs the `azure-devops` extension (`az devops`, `az repos`, `az pipelines`, `az boards`). mise's only Linux backend for it is a pipx/uvx Python install, so it needs `uv` (the module skips it with a warning if you declined uv) and is slower than the rest. |
+| [`git-spice`](https://github.com/abhinav/git-spice) | `git-spice` | on request | Stacked branches and PRs. Pin with `MISE_GIT_SPICE_VERSION` (bare, e.g. `0.31.2`). Adds `alias gs=git-spice` in a `wsl-starter:git-spice` rc-block, as upstream recommends; that shadows Ghostscript's `gs` if you install it. |
+
+`bat` (the `cat` replacement) is not here: it comes from apt in `20-cli-modern`.
+
 ### mise + uv — who does what
 
 Also optional (prompted during install): [`uv`](https://github.com/astral-sh/uv) — Astral's ultra-fast Python package/project/env manager (Rust-built). It's *complementary* to mise, not a replacement. Think of it this way:

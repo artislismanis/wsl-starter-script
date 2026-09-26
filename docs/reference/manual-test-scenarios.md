@@ -86,7 +86,7 @@ cd ~/wsl-starter-script   # or wherever you copied it as your user
 ./install.sh --dev
 ```
 
-**Prompts expected:** zsh default shell?, per-language install prompts, uv?
+**Prompts expected:** zsh default shell?, per-language install prompts, uv?, per-tool install prompts (lazygit, delta, zellij, then "Show other tools?")
 
 **Verify (each should print a version):**
 
@@ -100,6 +100,15 @@ zsh --version
 atuin --version
 zoxide --version
 mise --version
+```
+
+In a new shell (the tools are mise-managed):
+
+```bash
+lazygit --version
+delta --version
+zellij --version
+git config --global core.pager                # delta (unless you had one set)
 ```
 
 Open a **new shell** (to pick up the rc-file blocks), then:
@@ -658,7 +667,21 @@ MISE_GO_VERSION='1.22; rm -rf /' \
   ./install.sh --module 40-mise --dry-run --non-interactive 2>&1 | grep -c 'unsafe characters'   # >= 1
 ```
 
-**Pass criteria:** every selected runtime installs and surfaces in a fresh shell; injection guard fires for each `MISE_<LANG>_VERSION` (spot-check at least one non-node language).
+Then the full tool set, run twice for idempotence:
+
+```bash
+MISE_TOOLS=lazygit,delta,zellij,terraform,databricks,azure-cli,git-spice \
+  ./install.sh --module 40-mise --non-interactive
+# In a fresh shell:
+terraform version && databricks --version && git-spice --version && az version
+az devops -h >/dev/null && echo ado-ok                       # azure-devops extension present
+type gs                                                      # alias gs=git-spice
+grep -c '# >>> wsl-starter:git-spice >>>' ~/.bashrc          # exactly 1 after the re-run
+MISE_TERRAFORM_VERSION='1.9; id' \
+  ./install.sh --module 40-mise --dry-run --non-interactive 2>&1 | grep -c 'unsafe characters'   # >= 1
+```
+
+**Pass criteria:** every selected runtime and tool installs and surfaces in a fresh shell; the re-run reports the az extension and rc-block as already present; injection guard fires for each `MISE_<LANG>_VERSION` / `MISE_<TOOL>_VERSION` (spot-check at least one non-node language).
 
 ---
 

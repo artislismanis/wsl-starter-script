@@ -35,6 +35,7 @@ Flags:
   --non-interactive   Read answers from env vars. Common ones:
                       WSL_USER, WSL_PASSWORD, WSL_HOSTNAME, WSL_DNS, WSL_APT_UPGRADE,
                       MISE_LANGUAGES (csv), MISE_<LANG>_VERSION,
+                      MISE_TOOLS (csv), MISE_<TOOL>_VERSION,
                       DOCKER_MODE, DOCKER_USER, DOCKER_ROOTLESS_PASTA,
                       DOCKER_ROOTLESS_HOST_SYMLINK,
                       PODMAN_COMPOSE, PODMAN_DOCKER_SHIM,

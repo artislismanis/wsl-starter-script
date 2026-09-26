@@ -47,6 +47,22 @@ sudo_or_skip() {
   echo "$output" | grep -q 'unsafe characters'
 }
 
+@test "MISE_<TOOL>_VERSION rejects shell-injection payloads" {
+  cd "$REPO_ROOT"
+  MISE_TERRAFORM_VERSION='1.9; rm -rf /' NON_INTERACTIVE=1 \
+    run ./install.sh --module 40-mise --dry-run
+  [ "$status" -ne 0 ]
+  echo "$output" | grep -q "MISE_TERRAFORM_VERSION='1.9; rm -rf /'"
+}
+
+@test "MISE_TOOLS rejects unknown tools" {
+  cd "$REPO_ROOT"
+  MISE_TOOLS='lazygit,terrafrom' NON_INTERACTIVE=1 \
+    run ./install.sh --module 40-mise --dry-run
+  [ "$status" -ne 0 ]
+  echo "$output" | grep -q 'MISE_TOOLS contains unknown tool(s): terrafrom'
+}
+
 @test "CLAUDE_PERMISSION_MODE rejects unknown modes" {
   cd "$REPO_ROOT"
   CLAUDE_PERMISSION_MODE=invalid NON_INTERACTIVE=1 \

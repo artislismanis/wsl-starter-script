@@ -11,6 +11,23 @@ command:
   atuin:     { exec: 'atuin --version',      exit-status: 0 }
   zoxide:    { exec: 'zoxide --version',     exit-status: 0 }
   mise:      { exec: 'mise --version',       exit-status: 0 }
+  # mise-managed tools. `mise exec` because goss's shell doesn't source the
+  # rc-files that run `mise activate`. azure-cli is deliberately left out of
+  # dev.ps1's MISE_TOOLS (slow pipx install on every modules/** PR).
+  lazygit:   { exec: 'mise exec -- lazygit --version',   exit-status: 0 }
+  delta:     { exec: 'mise exec -- delta --version',     exit-status: 0 }
+  zellij:    { exec: 'mise exec -- zellij --version',    exit-status: 0 }
+  terraform: { exec: 'mise exec -- terraform version',   exit-status: 0 }
+  databricks: { exec: 'mise exec -- databricks --version', exit-status: 0 }
+  git-spice: { exec: 'mise exec -- git-spice --version', exit-status: 0 }
+  gitconfig-delta-pager:
+    exec: "git config --global --get core.pager"
+    exit-status: 0
+    stdout: ["delta"]
+  bashrc-git-spice-once:
+    exec: "grep -c '# >>> wsl-starter:git-spice >>>' $HOME/.bashrc"
+    exit-status: 0
+    stdout: ["1"]
 
   # Idempotence: each marker block appears exactly once after re-run.
   bashrc-atuin-once:

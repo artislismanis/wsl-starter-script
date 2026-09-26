@@ -11,6 +11,8 @@ Under `--non-interactive` the installer reads answers from these env vars instea
 | `WSL_APT_UPGRADE`         | `1`/`yes` runs `apt upgrade` during `--base`; `0`/`no` skips; unset prompts (default-yes, so `--non-interactive` upgrades) |
 | `MISE_LANGUAGES`          | CSV of runtimes to install, e.g. `node,python,go` |
 | `MISE_<LANG>_VERSION`     | Pin a specific version per runtime — see defaults below |
+| `MISE_TOOLS`              | CSV of mise-managed tools, e.g. `lazygit,delta,zellij,terraform`. Valid: `lazygit`, `delta`, `zellij`, `terraform`, `databricks`, `azure-cli`, `git-spice`. Replaces the prompts entirely. |
+| `MISE_<TOOL>_VERSION`     | Pin terraform / Databricks CLI / Azure CLI / git-spice — see defaults below |
 | `DOCKER_MODE`             | `classic` / `rootless` / `skip` (only for `25-docker-engine`) |
 | `DOCKER_USER`             | Target user — added to `docker` group (classic) or owns the rootless daemon (rootless). Resolution: `DOCKER_USER` → `SUDO_USER` → `/run/wsl-starter-handoff` (user `00-wsl-base` created earlier in this WSL session) → `WSL_USER`; only prompts if none of those name a real non-root account. |
 | `DOCKER_ROOTLESS_PASTA`   | `1` to use pasta as the rootlesskit network driver (rootless only) |
@@ -24,7 +26,7 @@ Under `--non-interactive` the installer reads answers from these env vars instea
 
 A handful of yes/no prompts have no env override and default to "yes" under `--non-interactive`: disable Windows PATH appending, set automount metadata options, make zsh the default shell, install `uv`.
 
-Note: mise's "show other runtimes" prompt defaults to *no*, so under `--non-interactive` only node and python are installed — set `MISE_LANGUAGES` explicitly to install ruby/java/go/deno/bun. If you need to opt *out* of any of the y-default prompts, run interactively for that step.
+Note: mise's "show other runtimes" prompt defaults to *no*, so under `--non-interactive` only node and python are installed — set `MISE_LANGUAGES` explicitly to install ruby/java/go/deno/bun. The same goes for tools: lazygit, delta and zellij default to yes, terraform/databricks/azure-cli/git-spice need `MISE_TOOLS`. If you need to opt *out* of any of the y-default prompts, run interactively for that step.
 
 ## Per-runtime mise version pins
 
@@ -39,6 +41,10 @@ Defaults shown; override any of these by setting the env var.
 | `MISE_GO_VERSION`     | `latest` |
 | `MISE_DENO_VERSION`   | `latest` |
 | `MISE_BUN_VERSION`    | `latest` |
+| `MISE_TERRAFORM_VERSION`  | `latest` |
+| `MISE_DATABRICKS_VERSION` | `latest` |
+| `MISE_AZURE_CLI_VERSION`  | `latest` |
+| `MISE_GIT_SPICE_VERSION`  | `latest` (bare version, e.g. `0.31.2`) |
 
 ## Example
 
