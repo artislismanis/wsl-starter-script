@@ -158,8 +158,14 @@ printf 'machine api.github.com login x-access-token password %s\n' "$GH_API_TOKE
       if ($LASTEXITCODE -ne 0) { Fail "netrc seed failed (user=$u)" }
     }
 
+    # mise (Rust, ignores ~/.netrc) resolves tool releases and attestations via
+    # api.github.com too; it reads GITHUB_TOKEN. Exported inside bash so the
+    # value never appears on the command line.
     Write-Step "[$u] $cmd"
-    & wsl -d $distro -u $u -- bash -lc "cd $linuxRepo && $cmd"
+    $prevWslEnv = $env:WSLENV
+    if ($env:GH_API_TOKEN) { $env:WSLENV = 'GH_API_TOKEN' }
+    & wsl -d $distro -u $u -- bash -lc "if [ -n `"`${GH_API_TOKEN:-}`" ]; then export GITHUB_TOKEN=`"`$GH_API_TOKEN`"; fi; cd $linuxRepo && $cmd"
+    $env:WSLENV = $prevWslEnv
     if ($LASTEXITCODE -ne 0) {
       $script:keep = $KeepDistroOnFailure.IsPresent
       Fail "install step failed (user=$u): $cmd"

@@ -53,6 +53,7 @@ Faster, friendlier defaults for the commands you use hourly. All installed from 
 | [`ripgrep`](https://github.com/BurntSushi/ripgrep) (`rg`) | `grep -r` | Respects `.gitignore` by default; an order of magnitude faster; smart case. |
 | [`fd`](https://github.com/sharkdp/fd) | `find` | Sane defaults (`.gitignore`-aware, colored), far less typing, regex by default. |
 | [`bat`](https://github.com/sharkdp/bat) | `cat` / `less` | Syntax highlighting, line numbers, git-aware gutter, paging built in. |
+| [`delta`](https://github.com/dandavison/delta) | `git diff` pager | Syntax-highlighted, side-by-side-capable pager for `git diff` / `log` / `show`. `40-mise` sets `core.pager=delta` and `interactive.diffFilter=delta --color-only` in `~/.gitconfig`, but only where those keys are unset, so your own pager config wins. From apt rather than mise because git launches it from processes that never ran `mise activate` (`wsl -- git`, IDEs). |
 | [`eza`](https://github.com/eza-community/eza) | `ls` | Colors, git status column (`eza -l --git`), tree view (`eza --tree`), icons optional. |
 | [`gh`](https://cli.github.com/) | web UI for GitHub | Create/review PRs, manage issues, clone repos, run Actions — without leaving the shell. |
 
@@ -197,6 +198,25 @@ python = "3.12"
 ```
 
 mise also manages **env vars** and **tasks** per project — see `mise set KEY=value` and `mise tasks`. Worth a read of [the mise docs](https://mise.jdx.dev/getting-started.html) once you've used the basics.
+
+### Tools installed through mise
+
+After the runtimes, the module offers a set of standalone tools. mise pulls prebuilt release binaries, so there are no extra apt repos, no root, `mise upgrade` keeps them current, and each can be pinned. Prompts mirror the runtimes: the everyday tools default to yes, the cloud CLIs sit behind a "Show cloud tools?" prompt. Override with `MISE_TOOLS="lazygit,terraform"`; setting it replaces the prompts entirely, so list every tool you want.
+
+| Tool | `MISE_TOOLS` key | Prompted by default | Why |
+|---|---|---|---|
+| [`lazygit`](https://github.com/jesseduffield/lazygit) | `lazygit` | **yes** | Terminal UI for git: staging hunks, interactive rebase, branch juggling. |
+| [`zellij`](https://github.com/zellij-org/zellij) | `zellij` | **yes** | Terminal multiplexer (tmux alternative) with discoverable keybindings and layouts. |
+| [`fzf`](https://github.com/junegunn/fzf) | `fzf` | **yes** | Fuzzy finder. `Ctrl-T` pastes a picked file, `Alt-C` cds into a picked directory, and zoxide's `zi` uses it. Wired via a `wsl-starter:fzf` rc-block. When atuin is installed, fzf leaves `Ctrl-R` to atuin. |
+| [`yq`](https://github.com/mikefarah/yq) | `yq` | **yes** | jq for YAML, TOML and XML (`yq '.jobs' ci.yml`). |
+| [`pre-commit`](https://pre-commit.com/) | `pre-commit` | **yes** | Git hook manager; `pre-commit install` in a repo with a `.pre-commit-config.yaml`. |
+| [`glow`](https://github.com/charmbracelet/glow) | `glow` | **yes** | Renders markdown in the terminal (`glow README.md`). |
+| [`git-spice`](https://github.com/abhinav/git-spice) | `git-spice` | **yes** | Stacked branches and PRs. Pin with `MISE_GIT_SPICE_VERSION` (bare, e.g. `0.31.2`). Adds `alias gs=git-spice` in a `wsl-starter:git-spice` rc-block, as upstream recommends; that shadows Ghostscript's `gs` if you install it. |
+| [`terraform`](https://github.com/hashicorp/terraform) | `terraform` | on request | Infrastructure as code. Pin with `MISE_TERRAFORM_VERSION`. |
+| [Databricks CLI](https://github.com/databricks/cli) (`databricks`) | `databricks` | on request | Workspaces, jobs, bundles. Pin with `MISE_DATABRICKS_VERSION`. |
+| [Azure CLI](https://learn.microsoft.com/cli/azure/) (`az`) | `azure-cli` | on request | Pin with `MISE_AZURE_CLI_VERSION`. Also installs the `azure-devops` extension (`az devops`, `az repos`, `az pipelines`, `az boards`). mise's only Linux backend for it is a pipx/uvx Python install, so it needs `uv` (the module skips it with a warning if you declined uv) and is slower than the rest. |
+
+`bat` (the `cat` replacement) is not here: it comes from apt in `20-cli-modern`.
 
 ### mise + uv — who does what
 
