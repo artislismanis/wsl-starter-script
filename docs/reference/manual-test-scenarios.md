@@ -30,14 +30,14 @@ cd /root/wsl-starter-script
 sudo ./install.sh --base
 ```
 
-**Prompts expected:** username, password (twice), hostname, DNS choice, appendWindowsPath?, automount metadata?
+**Prompts expected:** isolate from Windows?, username, password (twice), hostname, DNS choice. appendWindowsPath? and automount metadata? only if you answer no to isolation.
 
 **Verify:**
 
 ```bash
 id <username>                                 # user exists, in sudo group
-grep -c '# >>> wsl-starter:' /etc/wsl.conf    # >= 3 blocks
-cat /etc/wsl.conf                             # [boot] [user] [network] sections present
+grep -c '# >>> wsl-starter:' /etc/wsl.conf    # 5 blocks
+cat /etc/wsl.conf                             # [boot] [user] [network] [interop] [automount] sections present
 cat /etc/resolv.conf                          # expected DNS
 ```
 
@@ -54,9 +54,11 @@ After reopen:
 whoami                                        # should be your new user, not root
 systemctl is-system-running                   # "running" or "degraded" (not "offline")
 hostname                                      # matches what you set
+mountpoint /mnt/c                             # "is not a mountpoint" (isolated)
+ls /proc/sys/fs/binfmt_misc/ | grep WSLInterop   # no output (isolated: no interop)
 ```
 
-**Pass criteria:** user exists, lands as that user on reopen, systemd is active, hostname matches.
+**Pass criteria:** user exists, lands as that user on reopen, systemd is active, hostname matches, Windows isolation in effect unless you opted out.
 
 ---
 

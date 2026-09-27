@@ -39,6 +39,14 @@ sudo_or_skip() {
   fi
 }
 
+@test "WSL_ISOLATE rejects garbage values" {
+  sudo_or_skip
+  cd "$REPO_ROOT"
+  run sudo -n -E env WSL_ISOLATE=garbage NON_INTERACTIVE=1 bash modules/00-wsl-base.sh
+  [ "$status" -ne 0 ]
+  echo "$output" | grep -q 'WSL_ISOLATE must be one of'
+}
+
 @test "MISE_<LANG>_VERSION rejects shell-injection payloads" {
   cd "$REPO_ROOT"
   MISE_NODE_VERSION='22; rm -rf /' NON_INTERACTIVE=1 \

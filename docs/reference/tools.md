@@ -16,8 +16,9 @@ The first module run on a fresh image. Everything else assumes systemd is up and
 | Non-root user | `useradd -m -G sudo`, `chpasswd` | Operator-supplied via `WSL_USER` / `WSL_PASSWORD` (or interactive prompts). The distro's default user gets set in `/etc/wsl.conf` `[user]`. |
 | Hostname | `/etc/wsl.conf` `[network] hostname=…` | `WSL_HOSTNAME` or prompt. |
 | DNS | `/etc/resolv.conf` (rewritten with `chattr -i` first) + `[network] generateResolvConf=false` | Cloudflare / Google / keep-existing, or set `WSL_DNS` to an explicit space-separated list. |
-| Disable Windows PATH appending | `/etc/wsl.conf` `[interop] appendWindowsPath=false` | Opt-out prompt; default yes. Cleaner `$PATH` and faster shell startup. |
-| `/mnt/*` automount metadata | `/etc/wsl.conf` `[automount] options="metadata,umask=22,fmask=11"` | Opt-out prompt; default yes. Lets `chmod` work on Windows-side files. |
+| Windows isolation | `/etc/wsl.conf` `[interop] enabled=false`, `[automount] enabled=false mountFsTab=false` | `WSL_ISOLATE` or opt-out prompt; default yes. Linux can't launch Windows binaries (`code .`, `explorer.exe`, `clip.exe`, browser auto-open) and `/mnt/c` isn't mounted. Windows-side access (`\\wsl$`, VS Code Remote-WSL started from Windows) still works. Not a hard boundary: anyone with sudo can re-enable it; enforce from Windows via Intune / Group Policy if you need that. |
+| Disable Windows PATH appending | `/etc/wsl.conf` `[interop] appendWindowsPath=false` | Only asked with `WSL_ISOLATE=0`; default yes. Cleaner `$PATH` and faster shell startup. |
+| `/mnt/*` automount metadata | `/etc/wsl.conf` `[automount] options="metadata,umask=22,fmask=11"` | Only asked with `WSL_ISOLATE=0`; default yes. Lets `chmod` work on Windows-side files. |
 | Repo handoff | `cp` to new user's `$HOME` (when started from `/root/`) + `/run/wsl-starter-handoff` hint file | So the user can pick up `--dev` / `--claude` after `wsl --terminate` + reopen. |
 
 All `/etc/wsl.conf` writes go through `replace_ini_section` — pre-existing unmanaged sections are stripped before the marked block is written, so re-runs don't accumulate duplicates.

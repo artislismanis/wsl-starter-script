@@ -16,7 +16,7 @@ Or interactively — drop `--all` for a menu. The full walk-through (creating th
 
 ## What you get
 
-- systemd, non-root sudo user, hostname, DNS, sensible `/etc/wsl.conf` defaults
+- systemd, non-root sudo user, hostname, DNS, sensible `/etc/wsl.conf` defaults, isolated from Windows by default (no interop, no `/mnt/c`)
 - Modern CLI: `rg`, `fd`, `bat`, `eza`, `gh`, `tmux`, `jq`, plus zsh + oh-my-zsh
 - atuin shell history, zoxide directory jumping
 - `mise` + Node + Python (Ruby/Java/Go/Deno/Bun on request) + uv

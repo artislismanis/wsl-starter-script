@@ -14,6 +14,16 @@ source "$(dirname "${BASH_SOURCE[0]}")/../lib/idempotent.sh"
 require_root
 is_wsl || warn "This doesn't look like WSL — continuing anyway."
 
+# WSL_ISOLATE: same tri-state as WSL_APT_UPGRADE. Default yes: no Windows
+# binaries from Linux, no /mnt/c. Checked before apt so a bad value fails fast.
+DO_ISOLATE=0
+case "${WSL_ISOLATE:-unset}" in
+  1|yes|true) DO_ISOLATE=1 ;;
+  0|no|false) DO_ISOLATE=0 ;;
+  unset)      confirm "Isolate from Windows (no Windows interop, no /mnt/c automount)?" y && DO_ISOLATE=1 ;;
+  *)          die "WSL_ISOLATE must be one of: 1/yes/true, 0/no/false, or unset (got: ${WSL_ISOLATE})" ;;
+esac
+
 apt_update_once
 # WSL_APT_UPGRADE: 1/yes/true = upgrade, 0/no/false = skip, unset OR empty = ask
 # (default yes). Use ${VAR:-unset} (with the colon) so a set-but-empty value
@@ -109,15 +119,31 @@ if [ -n "$DNS_CHOICE" ]; then
   fi
 fi
 
-if confirm "Disable Windows PATH appending (cleaner \$PATH)?" y; then
+# Both blocks are written in every branch so a re-run with the other choice
+# drift-refreshes them; skipping the write would leave the old block in force.
+if [ "$DO_ISOLATE" = "1" ]; then
   replace_ini_section "wsl-starter:interop" /etc/wsl.conf interop "[interop]
+enabled=false
 appendWindowsPath=false"
-fi
-
-if confirm "Set metadata automount options on /mnt/* (proper file perms)?" y; then
   replace_ini_section "wsl-starter:automount" /etc/wsl.conf automount "[automount]
-enabled=true
+enabled=false
+mountFsTab=false"
+else
+  INTEROP="[interop]
+enabled=true"
+  if confirm "Disable Windows PATH appending (cleaner \$PATH)?" y; then
+    INTEROP="$INTEROP
+appendWindowsPath=false"
+  fi
+  replace_ini_section "wsl-starter:interop" /etc/wsl.conf interop "$INTEROP"
+
+  AUTOMOUNT="[automount]
+enabled=true"
+  if confirm "Set metadata automount options on /mnt/* (proper file perms)?" y; then
+    AUTOMOUNT="$AUTOMOUNT
 options=\"metadata,umask=22,fmask=11\""
+  fi
+  replace_ini_section "wsl-starter:automount" /etc/wsl.conf automount "$AUTOMOUNT"
 fi
 
 # Place the repo in the new user's home so they can re-invoke ./install.sh

@@ -150,6 +150,7 @@ fi
       $env:WSLENV  = 'GH_API_TOKEN'
       & wsl -d $distro -u $u -- bash -lc @'
 set -e
+: "${GH_API_TOKEN:?WSLENV did not forward GH_API_TOKEN (interop disabled?)}"
 printf 'netrc\n' > "$HOME/.curlrc"
 umask 077
 printf 'machine api.github.com login x-access-token password %s\n' "$GH_API_TOKEN" > "$HOME/.netrc"
