@@ -14,6 +14,8 @@ file:
       - "# >>> wsl-starter:boot >>>"
       - "# >>> wsl-starter:user >>>"
       - "# >>> wsl-starter:network >>>"
+      - "# >>> wsl-starter:interop >>>"
+      - "# >>> wsl-starter:automount >>>"
 
 command:
   # Each marker block must appear exactly once (idempotence proof).
@@ -29,6 +31,23 @@ command:
     exec: "grep -c '# >>> wsl-starter:network >>>' /etc/wsl.conf"
     exit-status: 0
     stdout: ["1"]
+  wsl-conf-interop-once:
+    exec: "grep -c '# >>> wsl-starter:interop >>>' /etc/wsl.conf"
+    exit-status: 0
+    stdout: ["1"]
+  wsl-conf-automount-once:
+    exec: "grep -c '# >>> wsl-starter:automount >>>' /etc/wsl.conf"
+    exit-status: 0
+    stdout: ["1"]
+
+  # WSL_ISOLATE defaults to yes: after reopen, no Windows interop and no /mnt/c.
+  # Newer WSL + systemd registers the binfmt entry as WSLInterop-late.
+  interop-disabled:
+    exec: "test -e /proc/sys/fs/binfmt_misc/status && test ! -e /proc/sys/fs/binfmt_misc/WSLInterop && test ! -e /proc/sys/fs/binfmt_misc/WSLInterop-late"
+    exit-status: 0
+  mnt-c-not-mounted:
+    exec: "! mountpoint -q /mnt/c"
+    exit-status: 0
 
   hostname:
     exec: 'hostname'
