@@ -6,6 +6,8 @@
 set -uo pipefail
 
 primary="${1:-}"
+# wt may be launched from a shell that never sourced the wsl-starter:mise block.
+PATH="$PATH:$HOME/.local/bin"
 
 step() {
   echo "wt-setup: $*"

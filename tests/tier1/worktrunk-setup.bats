@@ -11,7 +11,9 @@ HOOK="$REPO_ROOT/modules/files/herdr-workbench/worktrunk-setup"
 setup() {
   STUBS="$BATS_TEST_TMPDIR/bin"
   STUB_LOG="$BATS_TEST_TMPDIR/calls.log"
-  export STUB_LOG
+  # The hook appends ~/.local/bin to PATH; keep the real mise out of reach.
+  HOME="$BATS_TEST_TMPDIR"
+  export STUB_LOG HOME
   mkdir -p "$STUBS"
   : >"$STUB_LOG"
   stub wt uv poetry npm terraform dbt

@@ -1,6 +1,6 @@
 # Plan A: herdr workbench
 
-Status: scope approved. PR 1 (the Tools layer and supply-chain pinning) is in; the herdr layers follow. Delivered as opt-in `wsl-starter-script` modules, built and tested on a throwaway distro first.
+Status: scope approved. PR 1 delivers the Tools layer and supply-chain pinning; the herdr layers follow. Delivered as opt-in `wsl-starter-script` modules, built and tested on a throwaway distro first.
 
 ## Goal
 
