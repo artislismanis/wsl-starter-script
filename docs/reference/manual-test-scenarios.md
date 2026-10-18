@@ -678,7 +678,7 @@ MISE_GO_VERSION='1.22; rm -rf /' \
 Then the full tool set, run twice for idempotence:
 
 ```bash
-MISE_TOOLS=lazygit,zellij,fzf,yq,pre-commit,glow,git-spice,terraform,databricks,azure-cli \
+MISE_TOOLS=lazygit,zellij,fzf,yq,pre-commit,glow,git-spice,worktrunk,plannotator,terraform,databricks,azure-cli,poetry \
   ./install.sh --module 40-mise --non-interactive
 # In a fresh shell:
 terraform version && databricks --version && git-spice --version && az version
@@ -707,6 +707,39 @@ echo "exit=$?"                                         # non-zero; clear error
 ```
 
 **Pass criteria:** `git pull --ff-only` fails loudly with the bootstrap's error message; the local clone is left untouched (no clobber, no merge commit).
+
+---
+
+## Scenario 23 — worktrunk worktree setup
+
+Needs a WSL session with `MISE_TOOLS` including `worktrunk` and `poetry`, uv installed, and a real uv repo (Tier 1 covers detection with stubs; this proves the real tools).
+
+```bash
+cd ~/some-uv-repo                       # has uv.lock; add .env to .worktreeinclude if it's gitignored
+wt switch -c try-setup                  # blocks while the hook runs, then cds into the worktree
+pwd                                     # ~/worktrees/some-uv-repo.try-setup
+ls -a                                   # .env copied, .venv built by uv sync (not copied)
+echo "$VIRTUAL_ENV"                     # .../some-uv-repo.try-setup/.venv
+wt remove                               # back to the main checkout
+```
+
+Repeat with a Poetry repo (`.venv` in the worktree, `mise.local.toml` present but not in `git status`), and with a repo whose `mise.toml` has a `[tasks.setup]` (only that task runs).
+
+**Pass criteria:** each worktree opens under `~/worktrees/`, set up with no prompts and its venv active on entry; `.venv` and `node_modules` are built, never copied.
+
+---
+
+## Scenario 24 — Tailscale
+
+```bash
+./install.sh --tailscale                # after --base and the reopen
+systemctl is-active tailscaled          # active
+sudo tailscale up                       # log in via the printed URL
+tailscale status                        # this machine listed
+./install.sh --tailscale                # re-run: repo and service reported as already present
+```
+
+**Pass criteria:** login works from inside an isolated distro (`WSL_ISOLATE=1`); `ssh <user>@<tailnet-name>` works from another tailnet machine once sshd is running; `./install.sh --all` never prompts for or installs Tailscale.
 
 ---
 

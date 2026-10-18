@@ -1,0 +1,60 @@
+name: bump-pins
+
+# Fortnightly (same cadence as dependabot.yml): move the pinned tool versions in
+# 40-mise to upstream's latest and open (or refresh) one PR. Reviewing the
+# upstream changes and merging is the approval.
+#
+# PRs opened with GITHUB_TOKEN don't trigger other workflows; close and reopen
+# the PR to run tier1/tier2-3. Needs "Allow GitHub Actions to create and
+# approve pull requests" in the repo's Actions settings.
+
+on:
+  schedule:
+    - cron: "0 6 1,15 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      BRANCH: bump-pins
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install mise
+        run: |
+          curl -fsSL https://mise.run | MISE_VERSION=v2026.10.14 sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Bump pins
+        id: bump
+        run: |
+          changes="$(.github/bump-pins.sh modules/40-mise.sh)"
+          {
+            echo 'changes<<EOF'
+            echo "$changes"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Open or refresh PR
+        if: steps.bump.outputs.changes != ''
+        env:
+          CHANGES: ${{ steps.bump.outputs.changes }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git switch -C "$BRANCH"
+          git commit -am "Bump pinned tool versions" -m "$CHANGES"
+          git push --force origin "$BRANCH"
+          body="$(printf 'Upstream moved:\n\n```\n%s\n```\n\nReview each upstream changelog before merging.\n' "$CHANGES")"
+          if gh pr view "$BRANCH" --json state -q .state 2>/dev/null | grep -q OPEN; then
+            gh pr edit "$BRANCH" --body "$body"
+          else
+            gh pr create --head "$BRANCH" --title "Bump pinned tool versions" --body "$body"
+          fi

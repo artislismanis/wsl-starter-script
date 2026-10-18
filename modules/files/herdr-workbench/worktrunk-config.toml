@@ -1,0 +1,10 @@
+# worktrunk user config, written once by wsl-starter (40-mise). Yours to edit;
+# re-runs never overwrite it. `wt config create --help` documents every key.
+
+worktree-path = "~/worktrees/{{ repo }}.{{ branch | sanitize }}"
+
+# Blocking, so the worktree opens with dependencies already installed.
+pre-start = "~/.config/worktrunk/wsl-starter-setup.sh {{ primary_worktree_path }}"
+
+[step.copy-ignored]
+exclude = [".venv/", "node_modules/"]

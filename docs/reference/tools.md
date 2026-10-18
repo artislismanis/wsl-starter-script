@@ -111,6 +111,19 @@ Neither remaining item is a fix for the hypervisor port leak — that lives in H
 
 ---
 
+## Module `28-tailscale` — private network *(root, optional)*
+
+[Tailscale](https://tailscale.com/) puts the distro on your tailnet, for SSH from other machines and (later) phone access to agents. Opt-in only: `--tailscale`, its own guided-setup question (default no), or menu entry 8. `--all` never installs it.
+
+| What | Where | Purpose |
+|---|---|---|
+| `tailscale` | Tailscale's signed apt repo (`/etc/apt/sources.list.d/tailscale.list`) | Client and `tailscaled` daemon. Updates through apt like Docker and `gh`. |
+| `tailscaled.service` | systemd, enabled | Needs systemd, so it waits for the reopen after `--base` like Docker does. |
+
+Logging in stays manual: `sudo tailscale up`. The free Personal plan is for personal use only, and nothing here enables `tailscale funnel`.
+
+---
+
 ## Module `30-shell-zsh` — oh-my-zsh + plugins *(user)*
 
 The `zsh` package itself is installed by `20-cli-modern` (root); this user-phase module wires it up.
@@ -156,13 +169,15 @@ By default the installer prompts for **node** and **python** only; everything el
 
 | Language | Default version | Prompted by default |
 |---|---|---|
-| Node.js | `node@lts`           | **yes** |
-| Python  | `python@3.12`        | **yes** |
-| Ruby    | `ruby@3.3`           | on request |
-| Java    | `java@temurin-21`    | on request |
-| Go      | `go@latest`          | on request |
-| Deno    | `deno@latest`        | on request |
-| Bun     | `bun@latest`         | on request |
+| Node.js | current LTS          | **yes** |
+| Python  | latest 3.12.x        | **yes** |
+| Ruby    | latest 3.3.x         | on request |
+| Java    | latest Temurin 21    | on request |
+| Go      | latest               | on request |
+| Deno    | latest               | on request |
+| Bun     | latest               | on request |
+
+Each default is an exact version pinned in `modules/40-mise.sh` (as is every tool below, uv, and mise itself). A fortnightly workflow (`.github/workflows/bump-pins.yml`) opens a PR when upstream moves, staying on the release line shown above; merging it is the review. Override any pin with its `MISE_<NAME>_VERSION` env var. mise records each global tool's checksum in `~/.config/mise/mise.lock` on first install.
 
 > **Note on the Python install**: mise may print a `Cannot parse Rekor public key … unknown/unsupported algorithm OID` warning while fetching the precompiled build from `astral-sh/python-build-standalone`. This is a [known benign Rekor verification quirk](https://github.com/jdx/mise/issues) — the download still succeeds (look for the `✔` after `python@3.12.x Python 3.12.x`). If you'd rather compile Python from source, run `mise settings python.compile=1` before re-installing.
 
@@ -202,7 +217,7 @@ mise also manages **env vars** and **tasks** per project — see `mise set KEY=v
 
 ### Tools installed through mise
 
-After the runtimes, the module offers a set of standalone tools. mise pulls prebuilt release binaries, so there are no extra apt repos, no root, `mise upgrade` keeps them current, and each can be pinned. Prompts mirror the runtimes: the everyday tools default to yes, the cloud CLIs sit behind a "Show cloud tools?" prompt. Override with `MISE_TOOLS="lazygit,terraform"`; setting it replaces the prompts entirely, so list every tool you want.
+After the runtimes, the module offers a set of standalone tools. mise pulls prebuilt release binaries, so there are no extra apt repos and no root; each is pinned (see above). Prompts mirror the runtimes: the everyday tools default to yes, the work tools sit behind a "Show work tools?" prompt. Override with `MISE_TOOLS="lazygit,terraform"`; setting it replaces the prompts entirely, so list every tool you want.
 
 | Tool | `MISE_TOOLS` key | Prompted by default | Why |
 |---|---|---|---|
@@ -212,16 +227,31 @@ After the runtimes, the module offers a set of standalone tools. mise pulls preb
 | [`yq`](https://github.com/mikefarah/yq) | `yq` | **yes** | jq for YAML, TOML and XML (`yq '.jobs' ci.yml`). |
 | [`pre-commit`](https://pre-commit.com/) | `pre-commit` | **yes** | Git hook manager; `pre-commit install` in a repo with a `.pre-commit-config.yaml`. |
 | [`glow`](https://github.com/charmbracelet/glow) | `glow` | **yes** | Renders markdown in the terminal (`glow README.md`). |
-| [`git-spice`](https://github.com/abhinav/git-spice) | `git-spice` | **yes** | Stacked branches and PRs. Pin with `MISE_GIT_SPICE_VERSION` (bare, e.g. `0.31.2`). Adds `alias gs=git-spice` in a `wsl-starter:git-spice` rc-block, as upstream recommends; that shadows Ghostscript's `gs` if you install it. |
-| [`terraform`](https://github.com/hashicorp/terraform) | `terraform` | on request | Infrastructure as code. Pin with `MISE_TERRAFORM_VERSION`. |
-| [Databricks CLI](https://github.com/databricks/cli) (`databricks`) | `databricks` | on request | Workspaces, jobs, bundles. Pin with `MISE_DATABRICKS_VERSION`. |
-| [Azure CLI](https://learn.microsoft.com/cli/azure/) (`az`) | `azure-cli` | on request | Pin with `MISE_AZURE_CLI_VERSION`. Also installs the `azure-devops` extension (`az devops`, `az repos`, `az pipelines`, `az boards`). mise's only Linux backend for it is a pipx/uvx Python install, so it needs `uv` (the module skips it with a warning if you declined uv) and is slower than the rest. |
+| [`git-spice`](https://github.com/abhinav/git-spice) | `git-spice` | **yes** | Stacked branches and PRs. Adds `alias gs=git-spice` in a `wsl-starter:git-spice` rc-block, as upstream recommends; that shadows Ghostscript's `gs` if you install it. |
+| [`worktrunk`](https://worktrunk.dev/) (`wt`) | `worktrunk` | **yes** | Git worktrees for parallel agent work: `wt switch -c <branch>` creates one under `~/worktrees/<repo>.<branch>` and sets it up (see below). Shell integration in a `wsl-starter:worktrunk` rc-block lets `wt switch` change directory. |
+| [`plannotator`](https://github.com/backnotprop/plannotator) | `plannotator` | **yes** | Annotate an agent's plan or a PR diff in the browser and send the feedback back (`plannotator review <PR url>`). |
+| [`terraform`](https://github.com/hashicorp/terraform) | `terraform` | on request | Infrastructure as code. |
+| [Databricks CLI](https://github.com/databricks/cli) (`databricks`) | `databricks` | on request | Workspaces, jobs, bundles. |
+| [Azure CLI](https://learn.microsoft.com/cli/azure/) (`az`) | `azure-cli` | on request | Also installs the `azure-devops` extension (`az devops`, `az repos`, `az pipelines`, `az boards`). mise's only Linux backend for it is a pipx/uvx Python install, so it needs `uv` (the module skips it with a warning if you declined uv) and is slower than the rest. |
+
+| [`poetry`](https://python-poetry.org/) | `poetry` | on request | For work repos that use Poetry; uv is the default. |
 
 `bat` (the `cat` replacement) is not here: it comes from apt in `20-cli-modern`.
 
+### worktrunk setup hook
+
+Choosing worktrunk also writes `~/.config/worktrunk/config.toml` (only if absent, so your edits survive re-runs) and installs `~/.config/worktrunk/wsl-starter-setup.sh` (refreshed on re-run). The config sets the worktree path to `~/worktrees/{{ repo }}.{{ branch | sanitize }}` and runs the script as a blocking `pre-start` hook, so a new worktree opens ready to use. It lives in user config, so work repos need no changes. In the new worktree the script:
+
+1. Copies the files listed in the main checkout's `.worktreeinclude` (`wt step copy-ignored`). Without that file nothing is copied; `.venv/` and `node_modules/` are never copied.
+2. Runs `mise trust` and `mise install`, so the repo's `mise.toml` / `.tool-versions` versions are in place.
+3. If the repo defines a mise `setup` task, runs `mise run setup` and stops there. That's the per-repo override.
+4. Otherwise detects from files: `uv.lock` → `uv sync`; `poetry.lock` → `poetry install` into an in-project `.venv` (warns and skips if poetry isn't installed); both → `[tool.poetry]` in `pyproject.toml` means Poetry, else uv; then `package-lock.json` → `npm ci`, `.terraform.lock.hcl` → `terraform init`, `dbt_project.yml` → `dbt deps`.
+
+A failed step warns and the rest still run, so you get the worktree either way. The venv activates on `cd` through mise: `python.uv_venv_auto` for uv projects, and a `mise.local.toml` (kept out of git via `.git/info/exclude`) for Poetry ones.
+
 ### mise + uv — who does what
 
-Also optional (prompted during install): [`uv`](https://github.com/astral-sh/uv) — Astral's ultra-fast Python package/project/env manager (Rust-built). It's *complementary* to mise, not a replacement. Think of it this way:
+Also optional (prompted during install, installed through mise): [`uv`](https://github.com/astral-sh/uv) — Astral's ultra-fast Python package/project/env manager (Rust-built). It's *complementary* to mise, not a replacement. Think of it this way:
 
 | Concern                           | Tool    |
 |-----------------------------------|---------|

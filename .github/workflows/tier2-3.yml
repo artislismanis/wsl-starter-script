@@ -80,6 +80,7 @@ jobs:
           - docker-rootless    # Tier 2 (mid-install shutdown)
           - docker-skip        # Tier 2 (DOCKER_MODE=skip suppresses 27)
           - podman             # Tier 2 (mid-install shutdown)
+          - tailscale          # Tier 2 (mid-install shutdown)
           - wsl-network        # Tier 2 (mid-install shutdown)
           - privilege-guards   # Tier 2
           - handoff            # Tier 3 (in-session handoff)

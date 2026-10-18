@@ -14,9 +14,11 @@ modules/
   25-docker-engine.sh   [root] Docker Engine (classic or rootless), optional
   26-podman.sh          [root] Podman (rootless, daemonless) + docker shim, optional
   27-wsl-network.sh     [root] wsl-port-check, rshared-root unit
+  28-tailscale.sh       [root] Tailscale client + tailscaled, optional
   30-shell-zsh.sh       [user] oh-my-zsh + plugins (zsh installed by 20)
   31-shell-history.sh   [user] atuin + zoxide (bash & zsh)
-  40-mise.sh            [user] mise + selected runtimes + uv + tools (lazygit, fzf, ...)
+  40-mise.sh            [user] mise + selected runtimes + uv + tools (lazygit, fzf, worktrunk, ...)
+  files/                artefacts modules install (wsl-port-check, herdr-workbench/)
   50-claude-code.sh     [user] claude-code + ~/.claude/ templates
   99-cleanup.sh         [root] apt autoremove + next-steps banner
 claude/

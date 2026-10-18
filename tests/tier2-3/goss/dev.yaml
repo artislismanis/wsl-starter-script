@@ -25,6 +25,40 @@ command:
   terraform: { exec: 'mise exec -- terraform version',   exit-status: 0 }
   databricks: { exec: 'mise exec -- databricks --version', exit-status: 0 }
   git-spice: { exec: 'mise exec -- git-spice --version', exit-status: 0 }
+  worktrunk: { exec: 'mise exec -- wt --version',        exit-status: 0 }
+  plannotator: { exec: 'mise exec -- plannotator --version', exit-status: 0 }
+  uv:        { exec: 'mise exec -- uv --version',        exit-status: 0 }
+  # Supply chain: every global mise tool is installed at exactly the version
+  # 40-mise requested (Tier 1 pins.bats keeps every request an exact pin).
+  mise-installed-as-pinned:
+    exec: "mise ls --global --json | jq -e '[.[][] | select(.installed != true or .requested_version != .version)] | length == 0'"
+    exit-status: 0
+  # And the binaries report those pins, read from the module itself so a
+  # bump PR doesn't have to touch this file.
+  worktrunk-pinned:
+    exec: |
+      pin="$(sed -n 's/.*MISE_WORKTRUNK_VERSION:-\([^}]*\)}.*/\1/p' "$HOME/wsl-starter-script/modules/40-mise.sh")"
+      [ -n "$pin" ] && mise exec -- wt --version | grep -qF "$pin"
+    exit-status: 0
+  plannotator-pinned:
+    exec: |
+      pin="$(sed -n 's/.*MISE_PLANNOTATOR_VERSION:-\([^}]*\)}.*/\1/p' "$HOME/wsl-starter-script/modules/40-mise.sh")"
+      [ -n "$pin" ] && mise exec -- plannotator --version | grep -qF "$pin"
+    exit-status: 0
+  worktrunk-hook-executable:
+    exec: 'test -x "$HOME/.config/worktrunk/wsl-starter-setup.sh"'
+    exit-status: 0
+  worktrunk-config-worktree-path:
+    exec: "grep -F 'worktree-path = \"~/worktrees/' $HOME/.config/worktrunk/config.toml"
+    exit-status: 0
+  zshrc-worktrunk-once:
+    exec: "grep -c '# >>> wsl-starter:worktrunk >>>' $HOME/.zshrc"
+    exit-status: 0
+    stdout: ["1"]
+  uv-venv-auto:
+    exec: "mise settings get python.uv_venv_auto"
+    exit-status: 0
+    stdout: ["source"]
   gitconfig-delta-pager:
     exec: "git config --global --get core.pager"
     exit-status: 0

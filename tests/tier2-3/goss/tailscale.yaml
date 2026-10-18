@@ -1,0 +1,24 @@
+# Assertions after `sudo ./install.sh --tailscale`. Not logged in: that's a
+# manual step (sudo tailscale up).
+
+command:
+  tailscale:
+    exec: 'tailscale version'
+    exit-status: 0
+
+  tailscaled-enabled:
+    exec: 'systemctl is-enabled tailscaled'
+    exit-status: 0
+    stdout: ["enabled"]
+
+  tailscaled-active:
+    exec: 'systemctl is-active tailscaled'
+    exit-status: 0
+    stdout: ["active"]
+
+file:
+  /etc/apt/sources.list.d/tailscale.list:
+    exists: true
+    contents: ["signed-by=/etc/apt/keyrings/tailscale.gpg"]
+  /etc/apt/keyrings/tailscale.gpg:
+    exists: true
