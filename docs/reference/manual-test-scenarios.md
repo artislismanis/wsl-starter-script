@@ -159,14 +159,15 @@ grep -c '# >>> wsl-starter:mise >>>' ~/.bashrc           # exactly 1
 ./install.sh --claude
 ```
 
-**Prompts expected:** permission mode (1/2/3).
+**Prompts expected:** permission mode (1/2/3); add the my-agent-skills marketplace and install my-claude (Y/n).
 
 **Verify:**
 
 ```bash
 claude --version
 jq . ~/.claude/settings.json                  # valid JSON, permission mode filled in
-ls -l ~/.claude/CLAUDE.md
+test ! -e ~/.claude/CLAUDE.md && echo 'no legacy CLAUDE.md'
+claude plugin list | grep my-claude@my-agent-skills
 ls -l ~/.claude/scripts/statusline.sh         # executable
 ls -l ~/.claude/mcp.example.json
 ```
@@ -178,13 +179,19 @@ echo '{"model":{"display_name":"opus"},"context_window":{"used_percentage":42,"t
   | bash ~/.claude/scripts/statusline.sh; echo
 ```
 
-**Pass criteria:** `claude` on PATH, `settings.json` has your chosen `defaultMode` (not the literal `__PERMISSION_MODE__`), statusline prints something like `[opus] ctx:42% in:12.3k out:678 5h:17% (1h30m)` (colour codes stripped here for clarity). The `(1h30m)` suffix exercises the `resets_at` branch — drop the field from the payload to confirm the suffix disappears cleanly.
+Then start `claude`, log in, run `/my-claude:set-up`, and check from a new shell:
+
+```bash
+ls ~/.claude/rules/my-claude/                 # rule files present
+```
+
+**Pass criteria:** `claude` on PATH, no `~/.claude/CLAUDE.md` before set-up, `my-claude` installed and its rules present after set-up, `settings.json` has your chosen `defaultMode` (not the literal `__PERMISSION_MODE__`), statusline prints something like `[opus] ctx:42% in:12.3k out:678 5h:17% (1h30m)` (colour codes stripped here for clarity). The `(1h30m)` suffix exercises the `resets_at` branch — drop the field from the payload to confirm the suffix disappears cleanly.
 
 ---
 
 ## Scenario 6 — Claude config preservation
 
-Edit `~/.claude/CLAUDE.md` to add a line like `# MY CUSTOM MARKER`, then:
+Append a line like `# MY CUSTOM MARKER` to `~/.claude/scripts/statusline.sh`, then:
 
 ```bash
 ./install.sh --claude
@@ -193,10 +200,10 @@ Edit `~/.claude/CLAUDE.md` to add a line like `# MY CUSTOM MARKER`, then:
 **Verify:**
 
 ```bash
-grep 'MY CUSTOM MARKER' ~/.claude/CLAUDE.md   # still there
+grep 'MY CUSTOM MARKER' ~/.claude/scripts/statusline.sh   # still there
 ```
 
-**Pass criteria:** existing `settings.json` / `CLAUDE.md` / `statusline.sh` are preserved — the module reports "Preserving existing" and makes no changes.
+**Pass criteria:** existing `settings.json` / `statusline.sh` / `mcp.example.json` are preserved — the module reports "Preserving existing", skips the marketplace and plugin as already present, and makes no changes.
 
 ---
 

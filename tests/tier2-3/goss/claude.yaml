@@ -31,8 +31,18 @@ command:
       - "/opus/"
       - "/ctx:42%/"
 
+  my-claude-installed:
+    # CLAUDE_MY_CLAUDE is unset in the scenario, so --non-interactive takes the
+    # default-yes branch.
+    exec: 'claude plugin list --json'
+    exit-status: 0
+    stdout:
+      - '/"my-claude@my-agent-skills"/'
+
 file:
+  # The legacy template is gone; my-claude's /my-claude:set-up seeds this
+  # file, and nothing in the scenario runs it.
   "{{.Env.HOME}}/.claude/CLAUDE.md":
-    exists: true
+    exists: false
   "{{.Env.HOME}}/.claude/mcp.example.json":
     exists: true

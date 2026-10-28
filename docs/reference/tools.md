@@ -252,11 +252,11 @@ uv *can* download its own Python builds if you skip the `mise use python@...` st
 |---|---|
 | `claude` (native installer → `~/.local/bin/claude`) | Anthropic's official coding agent for the terminal. Standalone binary from `https://claude.ai/install.sh` — no Node dependency, independent of any mise-managed runtime. |
 | `~/.claude/settings.json` | User-global Claude Code settings with your chosen permission mode (`auto` / `acceptEdits` / `default` / `plan`). Also pins `model=opusplan`, `advisorModel=opus`, `effortLevel=high`; denies file ops under `/mnt` (both via `permissions.deny` and the sandbox `denyRead`/`denyWrite` lists, with `failIfUnavailable=true` — needs `socat` on `$PATH`, installed by `10-apt-core`) so Claude can't reach into the Windows filesystem by accident; enables `prefersReducedMotion` and the `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` env flag. Edit the rendered file (or `claude/settings.json.tmpl` before install) to opt out. |
-| `~/.claude/CLAUDE.md` | User-global instructions Claude reads in every session — starter content you can edit. |
+| `my-claude` plugin (optional, default yes) | Adds the [`my-agent-skills`](https://github.com/artislismanis/my-agent-skills) marketplace and installs `my-claude`, which carries the user-global rules. Run `/my-claude:set-up` in a Claude session to install them into `~/.claude/rules/my-claude/` and seed a machine-local `~/.claude/CLAUDE.md`. `CLAUDE_MY_CLAUDE=0` skips it. |
 | `~/.claude/scripts/statusline.sh` | Custom statusline wired into Claude's TUI. Shows `[model]`, context-window %, total in/out tokens, and 5-hour rate-limit % with reset countdown. Reads the JSON payload Claude pipes in on stdin via `jq` — needs `jq` on `$PATH` (`10-apt-core` installs it; `--claude` warns if missing). |
 | `~/.claude/mcp.example.json` | Example MCP (Model Context Protocol) server config you can copy to `mcp.json` and fill in. Includes a `_github` entry that fetches its token from `gh auth token` at spawn time. |
 
-Re-runs preserve any existing file, so edits to your settings/CLAUDE.md are safe.
+Re-runs preserve any existing file, so edits to your settings are safe.
 
 ---
 
