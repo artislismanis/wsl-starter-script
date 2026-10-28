@@ -180,8 +180,11 @@ printf 'machine api.github.com login x-access-token password %s\n' "$GH_API_TOKE
   }
 
   # TEMP diagnostic for the interop-disabled check.
-  & wsl -d $distro -u root -- bash -c 'uname -r; for f in /proc/sys/fs/binfmt_misc/*; do echo "$f: $(head -2 "$f" 2>&1 | tr "\n" " ")"; done; echo "WSL_INTEROP=${WSL_INTEROP:-unset}"; ls -la /run/WSL 2>&1 | head -5; sed -n "/^\[interop\]/,/^\[/p" /etc/wsl.conf; systemctl status systemd-binfmt --no-pager 2>&1 | head -5; ls /usr/lib/binfmt.d /etc/binfmt.d 2>&1'
-  & wsl --version
+  & wsl -d $distro -u root -- ls -l /proc/sys/fs/binfmt_misc/
+  & wsl -d $distro -u root -- grep -H . /proc/sys/fs/binfmt_misc/status /proc/sys/fs/binfmt_misc/WSLInterop /proc/sys/fs/binfmt_misc/WSLInterop-late
+  & wsl -d $distro -u tester -- printenv WSL_INTEROP
+  & wsl -d $distro -u tester -- cmd.exe /c ver
+  Write-Host "cmd.exe exit: $LASTEXITCODE"
 
   if ($GossFile) {
     $gossPath = "$linuxRepo/$GossFile"
