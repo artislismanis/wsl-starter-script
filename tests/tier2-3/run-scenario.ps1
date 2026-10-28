@@ -179,10 +179,6 @@ printf 'machine api.github.com login x-access-token password %s\n' "$GH_API_TOKE
     Start-Sleep -Seconds 2
   }
 
-  # TEMP: what the probe does after isolation.
-  & wsl -d $distro -u tester -- timeout 15 /opt/interop-probe.exe
-  Write-Host "probe exit: $LASTEXITCODE"
-
   if ($GossFile) {
     $gossPath = "$linuxRepo/$GossFile"
     Write-Step "Validating against $GossFile (as $GossUser)"
