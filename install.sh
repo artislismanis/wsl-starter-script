@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # wsl-starter-script — modular WSL bootstrap.
-# Usage: ./install.sh [--all|--base|--dev|--claude|--tailscale|--module NAME] [--non-interactive] [--dry-run]
+# Usage: ./install.sh [--all|--base|--dev|--claude|--tailscale|--workbench|--module NAME] [--non-interactive] [--dry-run]
 set -euo pipefail
 
 # lib/common.sh re-derives + exports REPO_ROOT itself; we set it here so the
@@ -25,6 +25,7 @@ wsl-starter-script
   ./install.sh --podman              Podman (rootless, daemonless).
   ./install.sh --claude              Claude Code CLI + user-global config.
   ./install.sh --tailscale           Tailscale (private network for SSH and phone access).
+  ./install.sh --workbench           worktrunk + hunk (pinned binaries) + herdr-workbench config.
   ./install.sh --module NAME         Run one module (e.g. 20-cli-modern).
   ./install.sh --list                List available modules.
   ./install.sh --rollback [NAME]     Print rollback recipe (one module, or all in
@@ -47,7 +48,8 @@ Flags:
 
 Note: --all runs base → dev → docker → claude → cleanup. Podman is excluded
 (it's an alternative to Docker, not a complement); pass --podman explicitly.
-Tailscale is excluded too (personal-use opt-in); pass --tailscale explicitly.
+Tailscale and the workbench are excluded too (personal-use opt-ins); pass
+--tailscale or --workbench explicitly.
 USAGE
 }
 
@@ -185,13 +187,14 @@ DOCKER_MODULES=(25-docker-engine)
 PODMAN_MODULES=(26-podman)
 CLAUDE_MODULES=(50-claude-code)
 TAILSCALE_MODULES=(28-tailscale)
+WORKBENCH_MODULES=(55-workbench)
 # 27-wsl-network is fired once at the bottom of the script (see the gate after
 # the case block) when a container-runtime module ran AND actually installed.
 # Combining --docker --podman in one invocation runs it once via RAN_MODULES.
 
 interactive_menu() {
   echo "Select what to run:"
-  echo "  1) Guided setup    (ask about each group: base / dev / docker / podman / claude / tailscale)"
+  echo "  1) Guided setup    (ask about each group: base / dev / docker / podman / claude / tailscale / workbench)"
   echo "  2) Full setup      (base → dev → docker → claude → cleanup; excludes podman)"
   echo "  3) Base only       (root: systemd, user, hostname, DNS)"
   echo "  4) Dev only        (CLI tools, zsh, history, mise)"
@@ -199,8 +202,9 @@ interactive_menu() {
   echo "  6) Podman only     (rootless, daemonless)"
   echo "  7) Claude only     (claude-code + config)"
   echo "  8) Tailscale only  (private network for SSH and phone access)"
-  echo "  9) Single module"
-  echo " 10) List modules"
+  echo "  9) Workbench only  (worktrunk + hunk + herdr-workbench config)"
+  echo " 10) Single module"
+  echo " 11) List modules"
   echo "  q) Quit"
   read -r -p "$(fmt_prompt "Choice >")" sel
   case "$sel" in
@@ -212,8 +216,9 @@ interactive_menu() {
     6) MODE=groups; SELECTED=(podman) ;;
     7) MODE=groups; SELECTED=(claude) ;;
     8) MODE=groups; SELECTED=(tailscale) ;;
-    9) list_modules; read -r -p "$(fmt_prompt "Module name:")" SINGLE; MODE=single ;;
-    10) list_modules; exit 0 ;;
+    9) MODE=groups; SELECTED=(workbench) ;;
+    10) list_modules; read -r -p "$(fmt_prompt "Module name:")" SINGLE; MODE=single ;;
+    11) list_modules; exit 0 ;;
     q|Q) exit 0 ;;
     *) die "Invalid selection" ;;
   esac
@@ -283,6 +288,13 @@ run_group() {
         _run_each "${TAILSCALE_MODULES[@]}"
       fi
       ;;
+    workbench)
+      if is_root; then
+        DEFERRED+=("--workbench")
+      else
+        _run_each "${WORKBENCH_MODULES[@]}"
+      fi
+      ;;
     cleanup) run_module 99-cleanup ;;
     *) die "Unknown group: $1" ;;
   esac
@@ -300,6 +312,7 @@ while [ $# -gt 0 ]; do
     --podman)           SELECTED+=(podman) ;;
     --claude)           SELECTED+=(claude) ;;
     --tailscale)        SELECTED+=(tailscale) ;;
+    --workbench)        SELECTED+=(workbench) ;;
     --module)
       [ -z "$SINGLE" ] || die "--module specified twice (got '$SINGLE' then '${2:-}'). Pick one."
       MODE=single; SINGLE="${2:-}"; shift ;;
@@ -328,7 +341,7 @@ done
 
 # --all and --module are exclusive with group flags.
 if [ "$MODE" = "all" ] || [ "$MODE" = "single" ]; then
-  [ ${#SELECTED[@]} -eq 0 ] || die "--all/--module can't be combined with --base/--dev/--docker/--podman/--claude/--tailscale."
+  [ ${#SELECTED[@]} -eq 0 ] || die "--all/--module can't be combined with --base/--dev/--docker/--podman/--claude/--tailscale/--workbench."
 fi
 
 [ "$MODE" = "" ] && [ ${#SELECTED[@]} -gt 0 ] && MODE=groups
@@ -336,7 +349,7 @@ if [ -z "$MODE" ]; then
   # Refuse to drop into the interactive menu under --non-interactive — `read`
   # would block on the closed stdin (CI, sudo handoff). Operator must say
   # explicitly which group(s) to run.
-  [ "$NON_INTERACTIVE" = "1" ] && die "--non-interactive requires --all, --module, or one of --base/--dev/--docker/--podman/--claude/--tailscale."
+  [ "$NON_INTERACTIVE" = "1" ] && die "--non-interactive requires --all, --module, or one of --base/--dev/--docker/--podman/--claude/--tailscale/--workbench."
   interactive_menu
 fi
 
@@ -359,6 +372,7 @@ case "$MODE" in
     confirm "Install Podman (daemonless, rootless — co-installable with docker)?" n && run_group podman
     confirm "Install Claude Code?" y && run_group claude
     confirm "Install Tailscale (private network for SSH and phone access)?" n && run_group tailscale
+    confirm "Install the workbench (worktrunk, hunk, herdr-workbench config)?" n && run_group workbench
     ;;
   single)
     [ -n "$SINGLE" ] || die "--module needs a name. See --list."

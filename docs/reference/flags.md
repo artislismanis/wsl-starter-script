@@ -15,6 +15,8 @@
 --claude              Claude Code + user-global config.
 --tailscale           Tailscale (private network for SSH and phone access). Never part of
                       --all. Waits for the reopen after --base, like --docker.
+--workbench           worktrunk + hunk (pinned binaries) + herdr-workbench config. Never
+                      part of --all.
 --module NAME         Run one module (see --list).
 --list                List modules with descriptions.
 --non-interactive     Read answers from env vars (see env-vars.md).

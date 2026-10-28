@@ -2,10 +2,7 @@
 # REQUIRES_ROOT=0
 # DESCRIPTION=mise (unified version manager) + optional runtimes + uv + CLI/cloud tools
 # ROLLBACK=# Per runtime first (clean removal of toolchains): mise uninstall <node|python|ruby|java|go|deno|bun>
-# ROLLBACK=# Per tool: mise uninstall <uv|lazygit|zellij|fzf|yq|pre-commit|glow|github:abhinav/git-spice|worktrunk|github:backnotprop/plannotator|terraform|databricks-cli|azure|poetry>
-# ROLLBACK=# worktrunk user config (config.toml may hold your edits) and setup hook:
-# ROLLBACK=rm -f "$HOME/.config/worktrunk/config.toml" "$HOME/.config/worktrunk/wsl-starter-setup.sh"
-# ROLLBACK=sed -i '/# >>> wsl-starter:worktrunk >>>/,/# <<< wsl-starter:worktrunk <<</d' "$HOME/.bashrc" "$HOME/.zshrc" 2>/dev/null || true
+# ROLLBACK=# Per tool: mise uninstall <uv|lazygit|zellij|fzf|yq|pre-commit|glow|github:abhinav/git-spice|terraform|databricks-cli|azure|poetry>
 # ROLLBACK=# azure-devops az extension (leave the rest of ~/.azure: it holds az login state):
 # ROLLBACK=rm -rf "$HOME/.azure/cliextensions/azure-devops"
 # ROLLBACK=# delta git wiring (only unset if still pointing at delta; we never overwrite an existing pager):
@@ -50,9 +47,6 @@ declare -A TOOL_SPECS=(
   [yq]="yq@${MISE_YQ_VERSION:-4.54.1}"
   [pre-commit]="pre-commit@${MISE_PRE_COMMIT_VERSION:-4.7.0}"
   [glow]="glow@${MISE_GLOW_VERSION:-3.0.0}"
-  [worktrunk]="worktrunk@${MISE_WORKTRUNK_VERSION:-0.80.0}"
-  # Not in mise's registry. The pattern skips the plannotator-paste-* assets.
-  [plannotator]="github:backnotprop/plannotator[asset_pattern=plannotator-linux-*]@${MISE_PLANNOTATOR_VERSION:-0.28.23}"
   [terraform]="terraform@${MISE_TERRAFORM_VERSION:-1.16.6}"
   [databricks]="databricks-cli@${MISE_DATABRICKS_VERSION:-1.21.0}"
   # uv venvs ship without pip, which `az extension add` shells out to. Setting
@@ -150,7 +144,7 @@ fi
 # Runs after uv because azure-cli's only Linux backend in mise is pipx, which
 # runs via uvx.
 if [ -z "${MISE_TOOLS:-}" ]; then
-  for t in lazygit zellij fzf yq pre-commit glow git-spice worktrunk plannotator; do
+  for t in lazygit zellij fzf yq pre-commit glow git-spice; do
     if confirm "Install ${t} (${TOOL_SPECS[$t]})?" y; then tools+=("$t"); fi
   done
   if confirm "Show work tools (terraform/databricks/azure-cli/poetry)?" n; then
@@ -191,17 +185,6 @@ command -v fzf >/dev/null 2>&1 && eval "$(fzf --zsh)"'
       # Upstream ships the binary as git-spice and recommends aliasing gs
       # rather than renaming it.
       ensure_block_in_rcs "wsl-starter:git-spice" "$HOME" 'alias gs=git-spice'
-      ;;
-    worktrunk)
-      # Shell integration lets `wt switch` cd. Our own block rather than
-      # `wt config shell install`, which writes outside the wsl-starter fences.
-      ensure_block_per_shell "wsl-starter:worktrunk" "$HOME" \
-        'command -v wt >/dev/null 2>&1 && eval "$(wt config shell init bash)"' \
-        'command -v wt >/dev/null 2>&1 && eval "$(wt config shell init zsh)"'
-      write_file_once "$HOME/.config/worktrunk/config.toml" \
-        <"$REPO_ROOT/modules/files/herdr-workbench/worktrunk-config.toml"
-      copy_if_drift "$REPO_ROOT/modules/files/herdr-workbench/worktrunk-setup" \
-        "$HOME/.config/worktrunk/wsl-starter-setup.sh" 0755
       ;;
   esac
 done

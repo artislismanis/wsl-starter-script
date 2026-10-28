@@ -26,7 +26,7 @@ Current numeric map (do not collide):
 | 20-29 | Modern CLI / container runtimes / network (root) | 20 (cli-modern), 25 (docker-engine), 26 (podman), 27 (wsl-network), 28 (tailscale) |
 | 30-39 | Shell setup (user) | 30 (zsh), 31 (history) |
 | 40-49 | Language runtimes (user) | 40 (mise) |
-| 50-59 | Claude Code + agent tooling (user) | 50 (claude-code) |
+| 50-59 | Claude Code + agent tooling (user) | 50 (claude-code), 55 (workbench) |
 | 99    | Cleanup banner (root) | 99 |
 
 ## Steps

@@ -228,8 +228,6 @@ After the runtimes, the module offers a set of standalone tools. mise pulls preb
 | [`pre-commit`](https://pre-commit.com/) | `pre-commit` | **yes** | Git hook manager; `pre-commit install` in a repo with a `.pre-commit-config.yaml`. |
 | [`glow`](https://github.com/charmbracelet/glow) | `glow` | **yes** | Renders markdown in the terminal (`glow README.md`). |
 | [`git-spice`](https://github.com/abhinav/git-spice) | `git-spice` | **yes** | Stacked branches and PRs. Adds `alias gs=git-spice` in a `wsl-starter:git-spice` rc-block, as upstream recommends; that shadows Ghostscript's `gs` if you install it. |
-| [`worktrunk`](https://worktrunk.dev/) (`wt`) | `worktrunk` | **yes** | Git worktrees for parallel agent work: `wt switch -c <branch>` creates one under `~/worktrees/<repo>.<branch>` and sets it up (see below). Shell integration in a `wsl-starter:worktrunk` rc-block lets `wt switch` change directory. |
-| [`plannotator`](https://github.com/backnotprop/plannotator) | `plannotator` | **yes** | Annotate an agent's plan or a PR diff in the browser and send the feedback back (`plannotator review <PR url>`). |
 | [`terraform`](https://github.com/hashicorp/terraform) | `terraform` | on request | Infrastructure as code. |
 | [Databricks CLI](https://github.com/databricks/cli) (`databricks`) | `databricks` | on request | Workspaces, jobs, bundles. |
 | [Azure CLI](https://learn.microsoft.com/cli/azure/) (`az`) | `azure-cli` | on request | Also installs the `azure-devops` extension (`az devops`, `az repos`, `az pipelines`, `az boards`). mise's only Linux backend for it is a pipx/uvx Python install, so it needs `uv` (the module skips it with a warning if you declined uv) and is slower than the rest. |
@@ -237,17 +235,6 @@ After the runtimes, the module offers a set of standalone tools. mise pulls preb
 | [`poetry`](https://python-poetry.org/) | `poetry` | on request | For work repos that use Poetry; uv is the default. |
 
 `bat` (the `cat` replacement) is not here: it comes from apt in `20-cli-modern`.
-
-### worktrunk setup hook
-
-Choosing worktrunk also writes `~/.config/worktrunk/config.toml` (only if absent, so your edits survive re-runs) and installs `~/.config/worktrunk/wsl-starter-setup.sh` (refreshed on re-run). The config sets the worktree path to `~/worktrees/{{ repo }}.{{ branch | sanitize }}` and runs the script as a blocking `pre-start` hook, so a new worktree opens ready to use. It lives in user config, so work repos need no changes. In the new worktree the script:
-
-1. Copies the files listed in the main checkout's `.worktreeinclude` (`wt step copy-ignored`). Without that file nothing is copied; `.venv/` and `node_modules/` are never copied.
-2. Runs `mise trust` and `mise install`, so the repo's `mise.toml` / `.tool-versions` versions are in place.
-3. If the repo defines a mise `setup` task, runs `mise run setup` and stops there. That's the per-repo override.
-4. Otherwise detects from files: `uv.lock` → `uv sync`; `poetry.lock` → `poetry install` into an in-project `.venv` (warns and skips if poetry isn't installed); both → `[tool.poetry]` in `pyproject.toml` means Poetry, else uv; then `package-lock.json` → `npm ci`, `.terraform.lock.hcl` → `terraform init`, `dbt_project.yml` → `dbt deps`.
-
-A failed step warns and the rest still run, so you get the worktree either way. The venv activates on `cd` through mise: `python.uv_venv_auto` for uv projects, and a `mise.local.toml` (kept out of git via `.git/info/exclude`) for Poetry ones.
 
 ### mise + uv — who does what
 
@@ -287,6 +274,20 @@ uv *can* download its own Python builds if you skip the `mise use python@...` st
 | `~/.claude/mcp.example.json` | Example MCP (Model Context Protocol) server config you can copy to `mcp.json` and fill in. Includes a `_github` entry that fetches its token from `gh auth token` at spawn time. |
 
 Re-runs preserve any existing file, so edits to your settings/CLAUDE.md are safe.
+
+---
+
+## Module `55-workbench` — worktrees and review tools *(user, optional)*
+
+Never part of `--all`; pass `--workbench`.
+
+| Item | Purpose |
+|---|---|
+| [`worktrunk`](https://worktrunk.dev/) (`wt`, `git-wt`) | Git worktrees for parallel agent work. Release binary in `~/.local/bin`, pinned with its sha256. Shell integration in a `wsl-starter:worktrunk` rc-block lets `wt switch` change directory. |
+| [`hunk`](https://github.com/modem-dev/hunk) | Terminal diff and code review. Release directory in `~/.local/share/hunkdiff-linux-x64` (its bundled agent skills sit next to the binary), symlinked into `~/.local/bin`, pinned with its sha256. |
+| [`herdr-workbench`](https://github.com/artislismanis/herdr-workbench) | Cloned to `~/.local/share/herdr-workbench`, checked out at a pinned commit, then its `install.sh` runs: a marked block at the top of `~/.config/worktrunk/config.toml` (worktrees at `~/.herdr/worktrees/<repo>/<branch>`, a setup hook, a default-branch sync hook, `wt rm`). Its README has the details. |
+
+Why plain binaries rather than mise tools: herdr, its popups and git hooks don't always start from a shell that ran `mise activate`, so tools they call must resolve from `~/.local/bin` alone. `.github/bump-binaries.sh` (run by the bump workflow) moves each pin and recomputes its checksum.
 
 ---
 

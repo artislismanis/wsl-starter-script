@@ -24,7 +24,6 @@
 
 - [Design notes](explanation/design.md) — idempotency, privilege split, no hidden chains
 - [Testing strategy](explanation/testing-strategy.md) — three tiers, what each catches
-- [herdr workbench plan](explanation/herdr-workbench.md) — worktrees, review and agent dashboard on top of this installer; delivered as opt-in modules
 
 ---
 

@@ -12,7 +12,7 @@ Under `--non-interactive` the installer reads answers from these env vars instea
 | `WSL_ISOLATE`             | `1`/`yes` disables Windows interop and `/mnt/*` automount; `0`/`no` keeps both; unset prompts (default-yes, so `--non-interactive` isolates) |
 | `MISE_LANGUAGES`          | CSV of runtimes to install, e.g. `node,python,go` |
 | `MISE_<LANG>_VERSION`     | Override a runtime's pinned version — see defaults below |
-| `MISE_TOOLS`              | CSV of mise-managed tools, e.g. `lazygit,zellij,terraform`. Valid: `lazygit`, `zellij`, `fzf`, `yq`, `pre-commit`, `glow`, `git-spice`, `worktrunk`, `plannotator`, `terraform`, `databricks`, `azure-cli`, `poetry`. Replaces the prompts entirely. |
+| `MISE_TOOLS`              | CSV of mise-managed tools, e.g. `lazygit,zellij,terraform`. Valid: `lazygit`, `zellij`, `fzf`, `yq`, `pre-commit`, `glow`, `git-spice`, `terraform`, `databricks`, `azure-cli`, `poetry`. Replaces the prompts entirely. |
 | `MISE_<TOOL>_VERSION`     | Override a tool's pinned version — see defaults below |
 | `DOCKER_MODE`             | `classic` / `rootless` / `skip` (only for `25-docker-engine`) |
 | `DOCKER_USER`             | Target user — added to `docker` group (classic) or owns the rootless daemon (rootless). Resolution: `DOCKER_USER` → `SUDO_USER` → `/run/wsl-starter-handoff` (user `00-wsl-base` created earlier in this WSL session) → `WSL_USER`; only prompts if none of those name a real non-root account. |
@@ -36,7 +36,7 @@ Every default is an exact version pinned in `modules/40-mise.sh`; that file is t
 |-----|------|
 | `MISE_NODE_VERSION`, `MISE_PYTHON_VERSION`, `MISE_RUBY_VERSION`, `MISE_JAVA_VERSION`, `MISE_GO_VERSION`, `MISE_DENO_VERSION`, `MISE_BUN_VERSION` | Runtimes. Bumps stay on node LTS, python 3.12, ruby 3.3, Temurin 21. |
 | `MISE_UV_VERSION` | uv |
-| `MISE_LAZYGIT_VERSION`, `MISE_ZELLIJ_VERSION`, `MISE_FZF_VERSION`, `MISE_YQ_VERSION`, `MISE_PRE_COMMIT_VERSION`, `MISE_GLOW_VERSION`, `MISE_GIT_SPICE_VERSION`, `MISE_WORKTRUNK_VERSION`, `MISE_PLANNOTATOR_VERSION` | Everyday tools |
+| `MISE_LAZYGIT_VERSION`, `MISE_ZELLIJ_VERSION`, `MISE_FZF_VERSION`, `MISE_YQ_VERSION`, `MISE_PRE_COMMIT_VERSION`, `MISE_GLOW_VERSION`, `MISE_GIT_SPICE_VERSION` | Everyday tools |
 | `MISE_TERRAFORM_VERSION`, `MISE_DATABRICKS_VERSION`, `MISE_AZURE_CLI_VERSION`, `MISE_POETRY_VERSION` | Work tools |
 | `MISE_SELF_VERSION` | mise itself, on first install only |
 
