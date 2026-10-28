@@ -45,6 +45,12 @@ command:
   interop-disabled:
     exec: "test -e /proc/sys/fs/binfmt_misc/status && test ! -e /proc/sys/fs/binfmt_misc/WSLInterop && test ! -e /proc/sys/fs/binfmt_misc/WSLInterop-late"
     exit-status: 0
+  # TEMP diagnostic: never matches, so goss prints the actual output.
+  binfmt-diag:
+    exec: 'for f in /proc/sys/fs/binfmt_misc/*; do echo "$f: $(head -1 "$f" 2>&1)"; done; echo "WSL_INTEROP=${WSL_INTEROP:-unset}"; ls -la /run/WSL 2>&1 | head; grep -A3 "^\[interop\]" /etc/wsl.conf; cat /proc/sys/fs/binfmt_misc/WSLInterop* 2>&1'
+    exit-status: 0
+    stdout:
+      - "__diagnostic_never_matches__"
   mnt-c-not-mounted:
     exec: "! mountpoint -q /mnt/c"
     exit-status: 0
