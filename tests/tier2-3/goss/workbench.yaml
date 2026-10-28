@@ -29,6 +29,17 @@ command:
     exec: '"$HOME/.local/share/herdr-workbench/install.sh" --check'
     exit-status: 0
 
+  # The block only went through tomllib in herdr-workbench's CI; here the real
+  # wt has to load it and see our alias.
+  wt-config-loads:
+    exec: 'wt config show'
+    exit-status: 0
+
+  wt-rm-alias:
+    exec: 'wt config alias show rm'
+    exit-status: 0
+    stdout: ["/wt remove/"]
+
   worktrunk-config-block-on-top:
     exec: 'head -1 "$HOME/.config/worktrunk/config.toml"'
     exit-status: 0
