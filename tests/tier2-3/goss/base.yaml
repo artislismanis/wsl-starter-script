@@ -46,6 +46,10 @@ command:
   interop-disabled:
     exec: 'test -z "${WSL_INTEROP:-}"'
     exit-status: 0
+  # The binfmt entry still hands .exe files to /init; it must refuse them.
+  windows-binary-refused:
+    exec: '! /opt/interop-probe.exe'
+    exit-status: 0
   mnt-c-not-mounted:
     exec: "! mountpoint -q /mnt/c"
     exit-status: 0
