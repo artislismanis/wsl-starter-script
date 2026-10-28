@@ -179,13 +179,6 @@ printf 'machine api.github.com login x-access-token password %s\n' "$GH_API_TOKE
     Start-Sleep -Seconds 2
   }
 
-  # TEMP diagnostic for the interop-disabled check.
-  & wsl -d $distro -u root -- ls -l /proc/sys/fs/binfmt_misc/
-  & wsl -d $distro -u root -- grep -H . /proc/sys/fs/binfmt_misc/status /proc/sys/fs/binfmt_misc/WSLInterop /proc/sys/fs/binfmt_misc/WSLInterop-late
-  & wsl -d $distro -u tester -- printenv WSL_INTEROP
-  & wsl -d $distro -u tester -- cmd.exe /c ver
-  Write-Host "cmd.exe exit: $LASTEXITCODE"
-
   if ($GossFile) {
     $gossPath = "$linuxRepo/$GossFile"
     Write-Step "Validating against $GossFile (as $GossUser)"

@@ -41,9 +41,10 @@ command:
     stdout: ["1"]
 
   # WSL_ISOLATE defaults to yes: after reopen, no Windows interop and no /mnt/c.
-  # Newer WSL + systemd registers the binfmt entry as WSLInterop-late.
+  # WSL 3 registers the WSLInterop binfmt entry even with interop off, so test
+  # what the setting controls: /init hands processes no WSL_INTEROP socket.
   interop-disabled:
-    exec: "test -e /proc/sys/fs/binfmt_misc/status && test ! -e /proc/sys/fs/binfmt_misc/WSLInterop && test ! -e /proc/sys/fs/binfmt_misc/WSLInterop-late"
+    exec: 'test -z "${WSL_INTEROP:-}"'
     exit-status: 0
   mnt-c-not-mounted:
     exec: "! mountpoint -q /mnt/c"
