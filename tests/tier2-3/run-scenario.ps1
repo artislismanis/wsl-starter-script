@@ -179,6 +179,10 @@ printf 'machine api.github.com login x-access-token password %s\n' "$GH_API_TOKE
     Start-Sleep -Seconds 2
   }
 
+  # TEMP diagnostic for the interop-disabled check.
+  & wsl -d $distro -u root -- bash -c 'uname -r; for f in /proc/sys/fs/binfmt_misc/*; do echo "$f: $(head -2 "$f" 2>&1 | tr "\n" " ")"; done; echo "WSL_INTEROP=${WSL_INTEROP:-unset}"; ls -la /run/WSL 2>&1 | head -5; sed -n "/^\[interop\]/,/^\[/p" /etc/wsl.conf; systemctl status systemd-binfmt --no-pager 2>&1 | head -5; ls /usr/lib/binfmt.d /etc/binfmt.d 2>&1'
+  & wsl --version
+
   if ($GossFile) {
     $gossPath = "$linuxRepo/$GossFile"
     Write-Step "Validating against $GossFile (as $GossUser)"
