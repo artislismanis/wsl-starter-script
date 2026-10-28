@@ -35,8 +35,9 @@ command:
     exec: 'wt config show'
     exit-status: 0
 
+  # alias show resolves project config too, so it needs a repo to run in.
   wt-rm-alias:
-    exec: 'wt config alias show rm'
+    exec: 'cd "$(mktemp -d)" && git init -q && wt config alias show rm'
     exit-status: 0
     stdout: ["/wt remove/"]
 
