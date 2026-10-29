@@ -736,12 +736,12 @@ cd ~/some-uv-repo                       # has uv.lock; add .env to .worktreeincl
 wt switch -c try-setup                  # fast-forwards main, blocks while the setup hook runs, then cds in
 pwd                                     # ~/.herdr/worktrees/some-uv-repo/try-setup
 ls -a                                   # .env copied, .venv built by uv sync (not copied)
-echo "$VIRTUAL_ENV"                     # .../try-setup/.venv
+uv run python -c 'import sys; print(sys.prefix)'   # .../try-setup/.venv
 ```
 
-Push the branch, squash-merge its PR on GitHub, then `wt rm` from the worktree: the branch is recognised as merged and deleted. Repeat the switch with a Poetry repo (`.venv` in the worktree, `mise.local.toml` present but not in `git status`), started from a shell with the main checkout's venv active.
+Push the branch, squash-merge its PR on GitHub, then `wt rm` from the worktree: the branch is recognised as merged and deleted. Repeat the switch with a Poetry repo (`.venv` in the worktree, `poetry run python -c 'import sys; print(sys.prefix)'` prints it), started from a shell with the main checkout's venv active.
 
-**Pass criteria:** both binaries report their pins with no activation; each worktree opens under `~/.herdr/worktrees/`, set up with no prompts and its own venv active on entry; `.venv` and `node_modules` are built, never copied; `wt rm` deletes a squash-merged branch.
+**Pass criteria:** both binaries report their pins with no activation; each worktree opens under `~/.herdr/worktrees/`, set up with no prompts and `uv run` / `poetry run` using its own `.venv`; `.venv` and `node_modules` are built, never copied; `wt rm` deletes a squash-merged branch.
 
 ---
 
