@@ -217,7 +217,7 @@ mise also manages **env vars** and **tasks** per project — see `mise set KEY=v
 
 ### Tools installed through mise
 
-After the runtimes, the module offers a set of standalone tools. mise pulls prebuilt release binaries, so there are no extra apt repos and no root; each is pinned (see above). Prompts mirror the runtimes: the everyday tools default to yes, the work tools sit behind a "Show work tools?" prompt. Override with `MISE_TOOLS="lazygit,terraform"`; setting it replaces the prompts entirely, so list every tool you want.
+After the runtimes, the module offers a set of standalone tools. mise pulls prebuilt release binaries, so there are no extra apt repos and no root; each is pinned (see above). Prompts mirror the runtimes: the everyday tools default to yes, the extra tools (terraform, databricks, azure-cli, poetry) sit behind a "Show extra tools?" prompt. Override with `MISE_TOOLS="lazygit,terraform"`; setting it replaces the prompts entirely, so list every tool you want.
 
 | Tool | `MISE_TOOLS` key | Prompted by default | Why |
 |---|---|---|---|
@@ -232,7 +232,7 @@ After the runtimes, the module offers a set of standalone tools. mise pulls preb
 | [Databricks CLI](https://github.com/databricks/cli) (`databricks`) | `databricks` | on request | Workspaces, jobs, bundles. |
 | [Azure CLI](https://learn.microsoft.com/cli/azure/) (`az`) | `azure-cli` | on request | Also installs the `azure-devops` extension (`az devops`, `az repos`, `az pipelines`, `az boards`). mise's only Linux backend for it is a pipx/uvx Python install, so it needs `uv` (the module skips it with a warning if you declined uv) and is slower than the rest. |
 
-| [`poetry`](https://python-poetry.org/) | `poetry` | on request | For work repos that use Poetry; uv is the default. |
+| [`poetry`](https://python-poetry.org/) | `poetry` | on request | For repos that use Poetry; uv is the default. |
 
 `bat` (the `cat` replacement) is not here: it comes from apt in `20-cli-modern`.
 

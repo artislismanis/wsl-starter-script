@@ -147,7 +147,7 @@ if [ -z "${MISE_TOOLS:-}" ]; then
   for t in lazygit zellij fzf yq pre-commit glow git-spice; do
     if confirm "Install ${t} (${TOOL_SPECS[$t]})?" y; then tools+=("$t"); fi
   done
-  if confirm "Show work tools (terraform/databricks/azure-cli/poetry)?" n; then
+  if confirm "Show extra tools (terraform/databricks/azure-cli/poetry)?" n; then
     for t in terraform databricks azure-cli poetry; do
       if confirm "Install ${t} (${TOOL_SPECS[$t]})?" n; then tools+=("$t"); fi
     done
