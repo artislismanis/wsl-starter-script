@@ -120,7 +120,7 @@ Neither remaining item is a fix for the hypervisor port leak — that lives in H
 | `tailscale` | Tailscale's signed apt repo (`/etc/apt/sources.list.d/tailscale.list`) | Client and `tailscaled` daemon. Updates through apt like Docker and `gh`. |
 | `tailscaled.service` | systemd, enabled | Needs systemd, so it waits for the reopen after `--base` like Docker does. |
 
-Logging in stays manual: `sudo tailscale up`. The free Personal plan is for personal use only, and nothing here enables `tailscale funnel`.
+Log in with `./install.sh --logins`, which runs `sudo tailscale up --ssh` so tailnet devices can SSH in without sshd. The free Personal plan is for personal use only, and nothing here enables `tailscale funnel`.
 
 ---
 
@@ -290,6 +290,25 @@ Never part of `--all`; pass `--workbench`.
 | [`herdr-workbench`](https://github.com/artislismanis/herdr-workbench) | Cloned to `~/.local/share/herdr-workbench`, checked out at a pinned commit, then its `install.sh` runs: a marked block at the top of `~/.config/worktrunk/config.toml` (worktrees at `~/.herdr/worktrees/<repo>/<branch>`, a setup hook, a default-branch sync hook, `wt rm`). Its README has the details. |
 
 Why plain binaries rather than mise tools: herdr, its popups and git hooks don't always start from a shell that ran `mise activate`, so tools they call must resolve from `~/.local/bin` alone. `.github/bump-binaries.sh` (run by the bump workflow) moves each pin and recomputes its checksum.
+
+---
+
+## Module `60-logins` — logins and git identity *(user, re-runnable)*
+
+Never part of `--all`; pass `--logins`, or answer yes to the last guided-setup question. For each installed tool it checks whether you're logged in and offers the login only if you aren't. A re-run lists what's still missing, so it doubles as a "what's left" check.
+
+| Tool | Done when | Login |
+|---|---|---|
+| gh | `gh auth status` passes | `gh auth login` |
+| git identity | global `user.name` and `user.email` set | Asks, defaulting to your GitHub name and `<id>+<login>@users.noreply.github.com` (keeps your real address out of commits) |
+| Claude Code | `claude auth status` says logged in | `claude auth login`; then `/my-claude:set-up` in a session if the plugin is installed |
+| git-spice | `git-spice auth status --forge github` passes | `git-spice auth login --forge github`; `gs repo init` stays per repo |
+| atuin (optional, default no) | `atuin status` passes | `atuin login` (history sync between machines) |
+| az | `az account show` passes | `az login --use-device-code` |
+| databricks | `~/.databrickscfg` exists | `databricks auth login` |
+| Tailscale | `tailscale status` passes | `sudo tailscale up --ssh` |
+
+Under `--non-interactive` it runs no logins and only reports. Git identity is then written only from `WSL_GIT_NAME` and `WSL_GIT_EMAIL`.
 
 ---
 

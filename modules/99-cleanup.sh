@@ -17,7 +17,8 @@ cat <<BANNER
 
     1. From Windows PowerShell:   wsl --terminate ${WSL_DISTRO_NAME:-<your-distro>}
     2. Reopen your WSL distro (you'll land as the new user).
-    3. In a project dir:          claude
+    3. Log in to the installed tools and set git identity:
+                                  ./install.sh --logins   (re-run any time to see what's left)
     4. In a Claude session:       /my-claude:set-up   (user-global rules)
 
 BANNER

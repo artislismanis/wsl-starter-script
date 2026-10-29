@@ -751,12 +751,27 @@ Push the branch, squash-merge its PR on GitHub, then `wt rm` from the worktree: 
 ```bash
 ./install.sh --tailscale                # after --base and the reopen
 systemctl is-active tailscaled          # active
-sudo tailscale up                       # log in via the printed URL
+./install.sh --logins                   # runs sudo tailscale up --ssh; log in via the printed URL
 tailscale status                        # this machine listed
 ./install.sh --tailscale                # re-run: repo and service reported as already present
 ```
 
 **Pass criteria:** login works from inside an isolated distro (`WSL_ISOLATE=1`); `ssh <user>@<tailnet-name>` works from another tailnet machine once sshd is running; `./install.sh --all` never prompts for or installs Tailscale.
+
+---
+
+## Scenario 25 — Logins
+
+Needs gh, Claude Code and at least one of git-spice / atuin / az / databricks / Tailscale installed, with no global git identity (`git config --global --unset user.name; git config --global --unset user.email`).
+
+```bash
+./install.sh --logins --non-interactive     # reports only: each installed tool "logged in" or listed as still to do; no prompts
+./install.sh --logins                       # gh first if needed; git identity prompt defaults to your GitHub name and <id>+<login>@users.noreply.github.com
+git config --global user.email              # the no-reply address (or what you typed)
+./install.sh --logins                       # re-run: every login reported done, only hints left (gs repo init, /my-claude:set-up if not run)
+```
+
+**Pass criteria:** no login runs for a tool that isn't installed or is already logged in; the identity prompt shows the GitHub defaults; the re-run makes no changes; `--non-interactive` never prompts and writes git identity only with `WSL_GIT_NAME` and `WSL_GIT_EMAIL` set.
 
 ---
 

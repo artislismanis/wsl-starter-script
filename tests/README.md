@@ -47,7 +47,7 @@ pwsh ./tests/tier2-3/scenarios/dev.ps1
 
 | Manual scenario | Automated as |
 |-----------------|--------------|
-| 7, 13, 14, 15, 16, 17 | Tier 1 (`tests/tier1/*.bats`) |
+| 7, 13, 14, 15, 16, 17, 25 (stub CLIs; real logins stay manual) | Tier 1 (`tests/tier1/*.bats`) |
 | 1–6, 8, 9, 10, 11a–c, 12, 18–21, 23 (pins, config; hooks are tested in herdr-workbench), 24 | Tier 2 (`tests/tier2-3/scenarios/*.ps1`) |
 | 11d, 11e | Tier 3 (same dir, scenarios that call `wsl --terminate`) |
 

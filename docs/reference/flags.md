@@ -17,6 +17,8 @@
                       --all. Waits for the reopen after --base, like --docker.
 --workbench           worktrunk + hunk (pinned binaries) + herdr-workbench config. Never
                       part of --all.
+--logins              Log in to the installed tools and set git identity. Re-runnable;
+                      never part of --all. Under --non-interactive it only reports.
 --module NAME         Run one module (see --list).
 --list                List modules with descriptions.
 --non-interactive     Read answers from env vars (see env-vars.md).

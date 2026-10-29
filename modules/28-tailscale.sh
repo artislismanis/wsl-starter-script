@@ -29,5 +29,5 @@ else
   run "systemctl enable --now tailscaled"
 fi
 
-ok "Tailscale installed. Join your tailnet with: sudo tailscale up"
+ok "Tailscale installed. Join your tailnet with: ./install.sh --logins (or sudo tailscale up --ssh)"
 warn "Free Personal plan is for personal use only. Never enable 'tailscale funnel' here."

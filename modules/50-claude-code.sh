@@ -130,5 +130,5 @@ ok "Claude Code ready. Run 'claude' in a project directory to start."
 echo "  - Settings:  $SETTINGS"
 echo "  - MCP example: $MCP_EXAMPLE"
 if [ "$DO_MY_CLAUDE" = "1" ]; then
-  echo "  - Next: run /my-claude:set-up in a Claude session to install the user-global rules."
+  echo "  - Next: ./install.sh --logins, then /my-claude:set-up in a Claude session for the user-global rules."
 fi
