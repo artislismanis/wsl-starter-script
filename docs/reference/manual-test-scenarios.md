@@ -55,7 +55,7 @@ whoami                                        # should be your new user, not roo
 systemctl is-system-running                   # "running" or "degraded" (not "offline")
 hostname                                      # matches what you set
 mountpoint /mnt/c                             # "is not a mountpoint" (isolated)
-ls /proc/sys/fs/binfmt_misc/ | grep WSLInterop   # no output (isolated: no interop)
+echo "${WSL_INTEROP:-unset}"                 # unset (isolated: no interop)
 ```
 
 **Pass criteria:** user exists, lands as that user on reopen, systemd is active, hostname matches, Windows isolation in effect unless you opted out.
