@@ -3,6 +3,12 @@
 
 command:
   # Plan check: the binaries resolve with no shell activation at all.
+  herdr-pinned-without-activation:
+    exec: |
+      pin="$(sed -n 's/^HERDR_VERSION=\([^ ]*\).*/\1/p' "$HOME/wsl-starter-script/modules/55-workbench.sh")"
+      [ -n "$pin" ] && env -i HOME="$HOME" PATH="$HOME/.local/bin:/usr/bin:/bin" herdr --version | grep -qF "$pin"
+    exit-status: 0
+
   wt-pinned-without-activation:
     exec: |
       pin="$(sed -n 's/^WT_VERSION=\([^ ]*\).*/\1/p' "$HOME/wsl-starter-script/modules/55-workbench.sh")"

@@ -721,7 +721,8 @@ Needs `--base` and `--dev` done (mise, uv; add `poetry` to `MISE_TOOLS` for the 
 
 ```bash
 ./install.sh --workbench
-env -i HOME=$HOME PATH=$HOME/.local/bin:/usr/bin:/bin wt --version     # the pinned version, no shell activation
+env -i HOME=$HOME PATH=$HOME/.local/bin:/usr/bin:/bin herdr --version  # the pinned version, no shell activation
+env -i HOME=$HOME PATH=$HOME/.local/bin:/usr/bin:/bin wt --version     # same
 env -i HOME=$HOME PATH=$HOME/.local/bin:/usr/bin:/bin hunk --version   # same
 gh stack --version                                                     # the pinned gh-stack (needs gh from --dev)
 grep github-pinned ~/.claude/skills/gh-stack/SKILL.md                  # the same tag
