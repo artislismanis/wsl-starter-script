@@ -132,12 +132,12 @@ for lang in "${choices[@]}"; do
 done
 
 # uv — project-local Python env manager (complements mise-managed python).
-# uv_venv_auto activates a uv project's .venv on cd.
+# No venv activation on cd: commands go through `uv run`, which always picks
+# the project's own .venv (an activated one goes stale across worktrees).
 UV_SPEC="uv@${MISE_UV_VERSION:-0.13.1}"
 if confirm "Install uv (fast Python project/env manager, ${UV_SPEC})?" y; then
   log "mise use -g $UV_SPEC"
   run "\"$MISE_BIN\" use -g $UV_SPEC"
-  run "\"$MISE_BIN\" settings set python.uv_venv_auto source"
 fi
 
 # ---- Tools ------------------------------------------------------------------

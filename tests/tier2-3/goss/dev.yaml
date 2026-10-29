@@ -31,10 +31,6 @@ command:
   mise-installed-as-pinned:
     exec: "mise ls --global --json | jq -e '[.[][] | select(.installed != true or .requested_version != .version)] | length == 0'"
     exit-status: 0
-  uv-venv-auto:
-    exec: "mise settings get python.uv_venv_auto"
-    exit-status: 0
-    stdout: ["source"]
   gitconfig-delta-pager:
     exec: "git config --global --get core.pager"
     exit-status: 0
