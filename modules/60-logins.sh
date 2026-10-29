@@ -73,7 +73,6 @@ fi
 
 GS="$(_bin git-spice "")"
 _login git-spice "$GS" "'$GS' auth status --forge github" "'$GS' auth login --forge github"
-[ -z "$GS" ] || TODO+=("git-spice, per repo: gs repo init")
 
 # Optional: only syncs shell history between machines.
 ATUIN="$(_bin atuin "$HOME/.atuin/bin/atuin")"

@@ -768,7 +768,7 @@ Needs gh, Claude Code and at least one of git-spice / atuin / az / databricks / 
 ./install.sh --logins --non-interactive     # reports only: each installed tool "logged in" or listed as still to do; no prompts
 ./install.sh --logins                       # gh first if needed; git identity prompt defaults to your GitHub name and <id>+<login>@users.noreply.github.com
 git config --global user.email              # the no-reply address (or what you typed)
-./install.sh --logins                       # re-run: every login reported done, only hints left (gs repo init, /my-claude:set-up if not run)
+./install.sh --logins                       # re-run: every login reported done, only hints left (/my-claude:set-up if not run)
 ```
 
 **Pass criteria:** no login runs for a tool that isn't installed or is already logged in; the identity prompt shows the GitHub defaults; the re-run makes no changes; `--non-interactive` never prompts and writes git identity only with `WSL_GIT_NAME` and `WSL_GIT_EMAIL` set.

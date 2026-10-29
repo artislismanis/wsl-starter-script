@@ -302,7 +302,7 @@ Never part of `--all`; pass `--logins`, or answer yes to the last guided-setup q
 | gh | `gh auth status` passes | `gh auth login` |
 | git identity | global `user.name` and `user.email` set | Asks, defaulting to your GitHub name and `<id>+<login>@users.noreply.github.com` (keeps your real address out of commits) |
 | Claude Code | `claude auth status` says logged in | `claude auth login`; then `/my-claude:set-up` in a session if the plugin is installed |
-| git-spice | `git-spice auth status --forge github` passes | `git-spice auth login --forge github`; `gs repo init` stays per repo |
+| git-spice | `git-spice auth status --forge github` passes | `git-spice auth login --forge github`. No per-repo init: git-spice initialises a repo on first use |
 | atuin (optional, default no) | `atuin status` passes | `atuin login` (history sync between machines) |
 | az | `az account show` passes | `az login --use-device-code` |
 | databricks | `~/.databrickscfg` exists | `databricks auth login` |
