@@ -10,6 +10,7 @@
 # ROLLBACK=[ "$(git config --global --get interactive.diffFilter)" = "delta --color-only" ] && git config --global --unset interactive.diffFilter
 # ROLLBACK=sed -i '/# >>> wsl-starter:git-spice >>>/,/# <<< wsl-starter:git-spice <<</d' "$HOME/.bashrc" "$HOME/.zshrc" 2>/dev/null || true
 # ROLLBACK=sed -i '/# >>> wsl-starter:fzf >>>/,/# <<< wsl-starter:fzf <<</d' "$HOME/.bashrc" "$HOME/.zshrc" 2>/dev/null || true
+# ROLLBACK=sed -i '/# >>> wsl-starter:pip >>>/,/# <<< wsl-starter:pip <<</d' "$HOME/.config/pip/pip.conf" 2>/dev/null || true
 # ROLLBACK=rm -rf "$HOME/.local/bin/mise" "$HOME/.local/share/mise" "$HOME/.config/mise"
 # ROLLBACK=# uv from Astral's installer (installs before uv moved to mise): we passed
 # ROLLBACK=#   UV_NO_MODIFY_PATH=1 so all rc wiring stays inside our wsl-starter:mise block.
@@ -188,6 +189,13 @@ command -v fzf >/dev/null 2>&1 && eval "$(fzf --zsh)"'
       ;;
   esac
 done
+
+# ---- pip guard ----------------------------------------------------------------
+# Nothing activates venvs (commands go through uv run / poetry run), so a bare
+# `pip install` would land in mise's global Python. Refuse outside a venv.
+run "mkdir -p '$HOME/.config/pip'"
+replace_ini_section "wsl-starter:pip" "$HOME/.config/pip/pip.conf" global "[global]
+require-virtualenv = true"
 
 # ---- delta git wiring -------------------------------------------------------
 # delta comes from apt (20-cli-modern), not mise: git runs it from processes

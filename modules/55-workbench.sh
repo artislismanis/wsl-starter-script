@@ -20,7 +20,7 @@ WT_VERSION=0.81.0  # bump: github:max-sixty/worktrunk worktrunk-x86_64-unknown-l
 WT_SHA256=0c253f216985ce9cd7b202a11606b5ce6aa934b1019fd1fbb9b7ce2b47b1c74a
 HUNK_VERSION=0.24.1  # bump: github:modem-dev/hunk hunkdiff-linux-x64.tar.gz
 HUNK_SHA256=4b8c98f8d97745499916cc1e1d2f27ffd258c6d6358dd4532f61e41c5eb19692
-WORKBENCH_COMMIT=097de80d58432586670a127b663de9e6bf3000fa  # bump: git:artislismanis/herdr-workbench
+WORKBENCH_COMMIT=652ab914010b2f8f67c8eda7d85815e5e93911be  # bump: git:artislismanis/herdr-workbench
 
 BIN="$HOME/.local/bin"
 SHARE="$HOME/.local/share"

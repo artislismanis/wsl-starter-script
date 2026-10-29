@@ -31,6 +31,10 @@ command:
   mise-installed-as-pinned:
     exec: "mise ls --global --json | jq -e '[.[][] | select(.installed != true or .requested_version != .version)] | length == 0'"
     exit-status: 0
+  pip-refuses-outside-venv:
+    exec: "mise exec -- python -m pip install --dry-run six 2>&1 || true"
+    exit-status: 0
+    stdout: ["/activated virtualenv/"]
   gitconfig-delta-pager:
     exec: "git config --global --get core.pager"
     exit-status: 0
