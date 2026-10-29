@@ -66,6 +66,12 @@ command:
     stdout:
       - "{{.Env.TEST_HOST}}"
 
+  getty-tty1-masked:
+    exec: 'readlink /etc/systemd/system/getty@tty1.service'
+    exit-status: 0
+    stdout:
+      - "/dev/null"
+
   systemd-active:
     exec: 'systemctl is-system-running || true'
     exit-status: 0
