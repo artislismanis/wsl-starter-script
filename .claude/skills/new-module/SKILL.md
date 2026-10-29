@@ -27,6 +27,7 @@ Current numeric map (do not collide):
 | 30-39 | Shell setup (user) | 30 (zsh), 31 (history) |
 | 40-49 | Language runtimes (user) | 40 (mise) |
 | 50-59 | Claude Code + agent tooling (user) | 50 (claude-code), 55 (workbench) |
+| 60-69 | Post-install logins (user) | 60 (logins) |
 | 99    | Cleanup banner (root) | 99 |
 
 ## Steps

@@ -23,6 +23,7 @@ Under `--non-interactive` the installer reads answers from these env vars instea
 | `ZSH_THEME`               | Override the oh-my-zsh theme |
 | `ZSH_PLUGINS`             | Replace the full `plugins=(...)` line in `~/.zshrc`. Empty/unset = keep the default `(git docker kubectl ... )` list. |
 | `CLAUDE_PERMISSION_MODE`  | `auto` (default) / `acceptEdits` / `default` / `plan` |
+| `WSL_GIT_NAME`, `WSL_GIT_EMAIL` | Global git identity for `--logins`. Interactive runs use them as the prompt defaults (otherwise your GitHub profile); `--non-interactive` writes them only when both are set |
 | `CLAUDE_MY_CLAUDE`        | `1`/`yes` adds the `my-agent-skills` marketplace and installs the `my-claude` plugin; `0`/`no` skips; unset prompts (default-yes, so `--non-interactive` installs) |
 
 A handful of yes/no prompts have no env override and default to "yes" under `--non-interactive`: make zsh the default shell, install `uv`, and (only with `WSL_ISOLATE=0`) disable Windows PATH appending and set automount metadata options.
