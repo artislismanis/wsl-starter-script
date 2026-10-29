@@ -19,6 +19,18 @@ command:
     exec: 'hunk skill path hunk-review'
     exit-status: 0
 
+  gh-stack-pinned:
+    exec: |
+      pin="$(sed -n 's/^GH_STACK_VERSION=\([^ ]*\).*/\1/p' "$HOME/wsl-starter-script/modules/55-workbench.sh")"
+      [ -n "$pin" ] && gh stack --version | grep -qF "$pin"
+    exit-status: 0
+
+  gh-stack-skill-pinned:
+    exec: |
+      pin="$(sed -n 's/^GH_STACK_VERSION=\([^ ]*\).*/\1/p' "$HOME/wsl-starter-script/modules/55-workbench.sh")"
+      grep -qx "    github-pinned: v$pin" "$HOME/.claude/skills/gh-stack/SKILL.md"
+    exit-status: 0
+
   workbench-at-pin:
     exec: |
       pin="$(sed -n 's/^WORKBENCH_COMMIT=\([0-9a-f]*\).*/\1/p' "$HOME/wsl-starter-script/modules/55-workbench.sh")"

@@ -2,12 +2,13 @@
 # REQUIRES_ROOT=0
 # DESCRIPTION=mise (unified version manager) + optional runtimes + uv + CLI/cloud tools
 # ROLLBACK=# Per runtime first (clean removal of toolchains): mise uninstall <node|python|ruby|java|go|deno|bun>
-# ROLLBACK=# Per tool: mise uninstall <uv|lazygit|zellij|fzf|yq|pre-commit|glow|github:abhinav/git-spice|terraform|databricks-cli|azure|poetry>
+# ROLLBACK=# Per tool: mise uninstall <uv|lazygit|zellij|fzf|yq|pre-commit|glow|terraform|databricks-cli|azure|poetry> (older installs also github:abhinav/git-spice)
 # ROLLBACK=# azure-devops az extension (leave the rest of ~/.azure: it holds az login state):
 # ROLLBACK=rm -rf "$HOME/.azure/cliextensions/azure-devops"
 # ROLLBACK=# delta git wiring (only unset if still pointing at delta; we never overwrite an existing pager):
 # ROLLBACK=[ "$(git config --global --get core.pager)" = delta ] && git config --global --unset core.pager
 # ROLLBACK=[ "$(git config --global --get interactive.diffFilter)" = "delta --color-only" ] && git config --global --unset interactive.diffFilter
+# ROLLBACK=# Older installs: git-spice's gs alias block.
 # ROLLBACK=sed -i '/# >>> wsl-starter:git-spice >>>/,/# <<< wsl-starter:git-spice <<</d' "$HOME/.bashrc" "$HOME/.zshrc" 2>/dev/null || true
 # ROLLBACK=sed -i '/# >>> wsl-starter:fzf >>>/,/# <<< wsl-starter:fzf <<</d' "$HOME/.bashrc" "$HOME/.zshrc" 2>/dev/null || true
 # ROLLBACK=sed -i '/# >>> wsl-starter:pip >>>/,/# <<< wsl-starter:pip <<</d' "$HOME/.config/pip/pip.conf" 2>/dev/null || true
@@ -54,8 +55,6 @@ declare -A TOOL_SPECS=(
   # uvx_args replaces the registry's own --prerelease=allow, so repeat it.
   [azure-cli]="azure[uvx_args=--prerelease=allow --with=pip]@${MISE_AZURE_CLI_VERSION:-2.91.0}"
   [poetry]="poetry@${MISE_POETRY_VERSION:-2.5.1}"
-  # Not in mise's own registry.
-  [git-spice]="github:abhinav/git-spice@${MISE_GIT_SPICE_VERSION:-0.32.0}"
 )
 tools=()
 if [ -n "${MISE_TOOLS:-}" ]; then
@@ -145,7 +144,7 @@ fi
 # Runs after uv because azure-cli's only Linux backend in mise is pipx, which
 # runs via uvx.
 if [ -z "${MISE_TOOLS:-}" ]; then
-  for t in lazygit zellij fzf yq pre-commit glow git-spice; do
+  for t in lazygit zellij fzf yq pre-commit glow; do
     if confirm "Install ${t} (${TOOL_SPECS[$t]})?" y; then tools+=("$t"); fi
   done
   if confirm "Show extra tools (terraform/databricks/azure-cli/poetry)?" n; then
@@ -181,11 +180,6 @@ for t in "${tools[@]}"; do
 command -v fzf >/dev/null 2>&1 && eval "$(fzf --bash)"' \
         'command -v atuin >/dev/null 2>&1 && FZF_CTRL_R_COMMAND=
 command -v fzf >/dev/null 2>&1 && eval "$(fzf --zsh)"'
-      ;;
-    git-spice)
-      # Upstream ships the binary as git-spice and recommends aliasing gs
-      # rather than renaming it.
-      ensure_block_in_rcs "wsl-starter:git-spice" "$HOME" 'alias gs=git-spice'
       ;;
   esac
 done
