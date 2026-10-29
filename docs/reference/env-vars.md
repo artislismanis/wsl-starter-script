@@ -11,9 +11,9 @@ Under `--non-interactive` the installer reads answers from these env vars instea
 | `WSL_APT_UPGRADE`         | `1`/`yes` runs `apt upgrade` during `--base`; `0`/`no` skips; unset prompts (default-yes, so `--non-interactive` upgrades) |
 | `WSL_ISOLATE`             | `1`/`yes` disables Windows interop and `/mnt/*` automount; `0`/`no` keeps both; unset prompts (default-yes, so `--non-interactive` isolates) |
 | `MISE_LANGUAGES`          | CSV of runtimes to install, e.g. `node,python,go` |
-| `MISE_<LANG>_VERSION`     | Pin a specific version per runtime — see defaults below |
-| `MISE_TOOLS`              | CSV of mise-managed tools, e.g. `lazygit,zellij,terraform`. Valid: `lazygit`, `zellij`, `fzf`, `yq`, `pre-commit`, `glow`, `git-spice`, `terraform`, `databricks`, `azure-cli`. Replaces the prompts entirely. |
-| `MISE_<TOOL>_VERSION`     | Pin terraform / Databricks CLI / Azure CLI / git-spice — see defaults below |
+| `MISE_<LANG>_VERSION`     | Override a runtime's pinned version — see defaults below |
+| `MISE_TOOLS`              | CSV of mise-managed tools, e.g. `lazygit,zellij,terraform`. Valid: `lazygit`, `zellij`, `fzf`, `yq`, `pre-commit`, `glow`, `git-spice`, `terraform`, `databricks`, `azure-cli`, `poetry`. Replaces the prompts entirely. |
+| `MISE_<TOOL>_VERSION`     | Override a tool's pinned version — see defaults below |
 | `DOCKER_MODE`             | `classic` / `rootless` / `skip` (only for `25-docker-engine`) |
 | `DOCKER_USER`             | Target user — added to `docker` group (classic) or owns the rootless daemon (rootless). Resolution: `DOCKER_USER` → `SUDO_USER` → `/run/wsl-starter-handoff` (user `00-wsl-base` created earlier in this WSL session) → `WSL_USER`; only prompts if none of those name a real non-root account. |
 | `DOCKER_ROOTLESS_PASTA`   | `1` to use pasta as the rootlesskit network driver (rootless only) |
@@ -23,28 +23,23 @@ Under `--non-interactive` the installer reads answers from these env vars instea
 | `ZSH_THEME`               | Override the oh-my-zsh theme |
 | `ZSH_PLUGINS`             | Replace the full `plugins=(...)` line in `~/.zshrc`. Empty/unset = keep the default `(git docker kubectl ... )` list. |
 | `CLAUDE_PERMISSION_MODE`  | `auto` (default) / `acceptEdits` / `default` / `plan` |
+| `CLAUDE_MY_CLAUDE`        | `1`/`yes` adds the `my-agent-skills` marketplace and installs the `my-claude` plugin; `0`/`no` skips; unset prompts (default-yes, so `--non-interactive` installs) |
 
 A handful of yes/no prompts have no env override and default to "yes" under `--non-interactive`: make zsh the default shell, install `uv`, and (only with `WSL_ISOLATE=0`) disable Windows PATH appending and set automount metadata options.
 
-Note: mise's "show other runtimes" prompt defaults to *no*, so under `--non-interactive` only node and python are installed — set `MISE_LANGUAGES` explicitly to install ruby/java/go/deno/bun. The same goes for tools: everything except terraform/databricks/azure-cli defaults to yes; those three need `MISE_TOOLS`. If you need to opt *out* of any of the y-default prompts, run interactively for that step.
+Note: mise's "show other runtimes" prompt defaults to *no*, so under `--non-interactive` only node and python are installed — set `MISE_LANGUAGES` explicitly to install ruby/java/go/deno/bun. The same goes for tools: everything except terraform/databricks/azure-cli/poetry defaults to yes; those four need `MISE_TOOLS`. If you need to opt *out* of any of the y-default prompts, run interactively for that step.
 
-## Per-runtime mise version pins
+## mise version pins
 
-Defaults shown; override any of these by setting the env var.
+Every default is an exact version pinned in `modules/40-mise.sh`; that file is the source of truth and the bump workflow keeps it current. Override any of them by setting the env var (any version mise accepts, e.g. `22` or `latest`).
 
-| Var | Default |
-|-----|---------|
-| `MISE_NODE_VERSION`   | `lts` |
-| `MISE_PYTHON_VERSION` | `3.12` |
-| `MISE_RUBY_VERSION`   | `3.3` |
-| `MISE_JAVA_VERSION`   | `temurin-21` |
-| `MISE_GO_VERSION`     | `latest` |
-| `MISE_DENO_VERSION`   | `latest` |
-| `MISE_BUN_VERSION`    | `latest` |
-| `MISE_TERRAFORM_VERSION`  | `latest` |
-| `MISE_DATABRICKS_VERSION` | `latest` |
-| `MISE_AZURE_CLI_VERSION`  | `latest` |
-| `MISE_GIT_SPICE_VERSION`  | `latest` (bare version, e.g. `0.31.2`) |
+| Var | Pins |
+|-----|------|
+| `MISE_NODE_VERSION`, `MISE_PYTHON_VERSION`, `MISE_RUBY_VERSION`, `MISE_JAVA_VERSION`, `MISE_GO_VERSION`, `MISE_DENO_VERSION`, `MISE_BUN_VERSION` | Runtimes. Bumps stay on node LTS, python 3.12, ruby 3.3, Temurin 21. |
+| `MISE_UV_VERSION` | uv |
+| `MISE_LAZYGIT_VERSION`, `MISE_ZELLIJ_VERSION`, `MISE_FZF_VERSION`, `MISE_YQ_VERSION`, `MISE_PRE_COMMIT_VERSION`, `MISE_GLOW_VERSION`, `MISE_GIT_SPICE_VERSION` | Everyday tools |
+| `MISE_TERRAFORM_VERSION`, `MISE_DATABRICKS_VERSION`, `MISE_AZURE_CLI_VERSION`, `MISE_POETRY_VERSION` | Work tools |
+| `MISE_SELF_VERSION` | mise itself, on first install only |
 
 ## Example
 

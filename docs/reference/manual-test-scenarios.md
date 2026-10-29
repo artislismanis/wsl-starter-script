@@ -88,7 +88,7 @@ cd ~/wsl-starter-script   # or wherever you copied it as your user
 ./install.sh --dev
 ```
 
-**Prompts expected:** zsh default shell?, per-language install prompts, uv?, per-tool install prompts (lazygit, zellij, fzf, yq, pre-commit, glow, git-spice, then "Show cloud tools?")
+**Prompts expected:** zsh default shell?, per-language install prompts, uv?, per-tool install prompts (lazygit, zellij, fzf, yq, pre-commit, glow, git-spice, then "Show work tools?")
 
 **Verify (each should print a version):**
 
@@ -159,14 +159,15 @@ grep -c '# >>> wsl-starter:mise >>>' ~/.bashrc           # exactly 1
 ./install.sh --claude
 ```
 
-**Prompts expected:** permission mode (1/2/3).
+**Prompts expected:** permission mode (1/2/3); add the my-agent-skills marketplace and install my-claude (Y/n).
 
 **Verify:**
 
 ```bash
 claude --version
 jq . ~/.claude/settings.json                  # valid JSON, permission mode filled in
-ls -l ~/.claude/CLAUDE.md
+test ! -e ~/.claude/CLAUDE.md && echo 'no legacy CLAUDE.md'
+claude plugin list | grep my-claude@my-agent-skills
 ls -l ~/.claude/scripts/statusline.sh         # executable
 ls -l ~/.claude/mcp.example.json
 ```
@@ -178,13 +179,19 @@ echo '{"model":{"display_name":"opus"},"context_window":{"used_percentage":42,"t
   | bash ~/.claude/scripts/statusline.sh; echo
 ```
 
-**Pass criteria:** `claude` on PATH, `settings.json` has your chosen `defaultMode` (not the literal `__PERMISSION_MODE__`), statusline prints something like `[opus] ctx:42% in:12.3k out:678 5h:17% (1h30m)` (colour codes stripped here for clarity). The `(1h30m)` suffix exercises the `resets_at` branch — drop the field from the payload to confirm the suffix disappears cleanly.
+Then start `claude`, log in, run `/my-claude:set-up`, and check from a new shell:
+
+```bash
+ls ~/.claude/rules/my-claude/                 # rule files present
+```
+
+**Pass criteria:** `claude` on PATH, no `~/.claude/CLAUDE.md` before set-up, `my-claude` installed and its rules present after set-up, `settings.json` has your chosen `defaultMode` (not the literal `__PERMISSION_MODE__`), statusline prints something like `[opus] ctx:42% in:12.3k out:678 5h:17% (1h30m)` (colour codes stripped here for clarity). The `(1h30m)` suffix exercises the `resets_at` branch — drop the field from the payload to confirm the suffix disappears cleanly.
 
 ---
 
 ## Scenario 6 — Claude config preservation
 
-Edit `~/.claude/CLAUDE.md` to add a line like `# MY CUSTOM MARKER`, then:
+Append a line like `# MY CUSTOM MARKER` to `~/.claude/scripts/statusline.sh`, then:
 
 ```bash
 ./install.sh --claude
@@ -193,10 +200,10 @@ Edit `~/.claude/CLAUDE.md` to add a line like `# MY CUSTOM MARKER`, then:
 **Verify:**
 
 ```bash
-grep 'MY CUSTOM MARKER' ~/.claude/CLAUDE.md   # still there
+grep 'MY CUSTOM MARKER' ~/.claude/scripts/statusline.sh   # still there
 ```
 
-**Pass criteria:** existing `settings.json` / `CLAUDE.md` / `statusline.sh` are preserved — the module reports "Preserving existing" and makes no changes.
+**Pass criteria:** existing `settings.json` / `statusline.sh` / `mcp.example.json` are preserved — the module reports "Preserving existing", skips the marketplace and plugin as already present, and makes no changes.
 
 ---
 
@@ -678,7 +685,7 @@ MISE_GO_VERSION='1.22; rm -rf /' \
 Then the full tool set, run twice for idempotence:
 
 ```bash
-MISE_TOOLS=lazygit,zellij,fzf,yq,pre-commit,glow,git-spice,terraform,databricks,azure-cli \
+MISE_TOOLS=lazygit,zellij,fzf,yq,pre-commit,glow,git-spice,terraform,databricks,azure-cli,poetry \
   ./install.sh --module 40-mise --non-interactive
 # In a fresh shell:
 terraform version && databricks --version && git-spice --version && az version
@@ -707,6 +714,48 @@ echo "exit=$?"                                         # non-zero; clear error
 ```
 
 **Pass criteria:** `git pull --ff-only` fails loudly with the bootstrap's error message; the local clone is left untouched (no clobber, no merge commit).
+
+---
+
+## Scenario 23 — Workbench
+
+Needs `--base` and `--dev` done (mise, uv; add `poetry` to `MISE_TOOLS` for the Poetry repo), and a real uv repo (Tier 1 in herdr-workbench covers hook detection with stubs; this proves the real tools).
+
+```bash
+./install.sh --workbench
+env -i HOME=$HOME PATH=$HOME/.local/bin:/usr/bin:/bin wt --version     # the pinned version, no shell activation
+env -i HOME=$HOME PATH=$HOME/.local/bin:/usr/bin:/bin hunk --version   # same
+~/.local/share/herdr-workbench/install.sh --check                      # exit 0
+./install.sh --workbench                                               # re-run: everything reported as already present
+```
+
+Then in a fresh shell:
+
+```bash
+cd ~/some-uv-repo                       # has uv.lock; add .env to .worktreeinclude if it's gitignored
+wt switch -c try-setup                  # fast-forwards main, blocks while the setup hook runs, then cds in
+pwd                                     # ~/.herdr/worktrees/some-uv-repo/try-setup
+ls -a                                   # .env copied, .venv built by uv sync (not copied)
+echo "$VIRTUAL_ENV"                     # .../try-setup/.venv
+```
+
+Push the branch, squash-merge its PR on GitHub, then `wt rm` from the worktree: the branch is recognised as merged and deleted. Repeat the switch with a Poetry repo (`.venv` in the worktree, `mise.local.toml` present but not in `git status`), started from a shell with the main checkout's venv active.
+
+**Pass criteria:** both binaries report their pins with no activation; each worktree opens under `~/.herdr/worktrees/`, set up with no prompts and its own venv active on entry; `.venv` and `node_modules` are built, never copied; `wt rm` deletes a squash-merged branch.
+
+---
+
+## Scenario 24 — Tailscale
+
+```bash
+./install.sh --tailscale                # after --base and the reopen
+systemctl is-active tailscaled          # active
+sudo tailscale up                       # log in via the printed URL
+tailscale status                        # this machine listed
+./install.sh --tailscale                # re-run: repo and service reported as already present
+```
+
+**Pass criteria:** login works from inside an isolated distro (`WSL_ISOLATE=1`); `ssh <user>@<tailnet-name>` works from another tailnet machine once sshd is running; `./install.sh --all` never prompts for or installs Tailscale.
 
 ---
 

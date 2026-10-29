@@ -111,6 +111,19 @@ Neither remaining item is a fix for the hypervisor port leak — that lives in H
 
 ---
 
+## Module `28-tailscale` — private network *(root, optional)*
+
+[Tailscale](https://tailscale.com/) puts the distro on your tailnet, for SSH from other machines and (later) phone access to agents. Opt-in only: `--tailscale`, its own guided-setup question (default no), or menu entry 8. `--all` never installs it.
+
+| What | Where | Purpose |
+|---|---|---|
+| `tailscale` | Tailscale's signed apt repo (`/etc/apt/sources.list.d/tailscale.list`) | Client and `tailscaled` daemon. Updates through apt like Docker and `gh`. |
+| `tailscaled.service` | systemd, enabled | Needs systemd, so it waits for the reopen after `--base` like Docker does. |
+
+Logging in stays manual: `sudo tailscale up`. The free Personal plan is for personal use only, and nothing here enables `tailscale funnel`.
+
+---
+
 ## Module `30-shell-zsh` — oh-my-zsh + plugins *(user)*
 
 The `zsh` package itself is installed by `20-cli-modern` (root); this user-phase module wires it up.
@@ -156,13 +169,15 @@ By default the installer prompts for **node** and **python** only; everything el
 
 | Language | Default version | Prompted by default |
 |---|---|---|
-| Node.js | `node@lts`           | **yes** |
-| Python  | `python@3.12`        | **yes** |
-| Ruby    | `ruby@3.3`           | on request |
-| Java    | `java@temurin-21`    | on request |
-| Go      | `go@latest`          | on request |
-| Deno    | `deno@latest`        | on request |
-| Bun     | `bun@latest`         | on request |
+| Node.js | current LTS          | **yes** |
+| Python  | latest 3.12.x        | **yes** |
+| Ruby    | latest 3.3.x         | on request |
+| Java    | latest Temurin 21    | on request |
+| Go      | latest               | on request |
+| Deno    | latest               | on request |
+| Bun     | latest               | on request |
+
+Each default is an exact version pinned in `modules/40-mise.sh` (as is every tool below, uv, and mise itself). A fortnightly workflow (`.github/workflows/bump-pins.yml`) opens a PR when upstream moves, staying on the release line shown above; merging it is the review. Override any pin with its `MISE_<NAME>_VERSION` env var. mise records each global tool's checksum in `~/.config/mise/mise.lock` on first install.
 
 > **Note on the Python install**: mise may print a `Cannot parse Rekor public key … unknown/unsupported algorithm OID` warning while fetching the precompiled build from `astral-sh/python-build-standalone`. This is a [known benign Rekor verification quirk](https://github.com/jdx/mise/issues) — the download still succeeds (look for the `✔` after `python@3.12.x Python 3.12.x`). If you'd rather compile Python from source, run `mise settings python.compile=1` before re-installing.
 
@@ -202,7 +217,7 @@ mise also manages **env vars** and **tasks** per project — see `mise set KEY=v
 
 ### Tools installed through mise
 
-After the runtimes, the module offers a set of standalone tools. mise pulls prebuilt release binaries, so there are no extra apt repos, no root, `mise upgrade` keeps them current, and each can be pinned. Prompts mirror the runtimes: the everyday tools default to yes, the cloud CLIs sit behind a "Show cloud tools?" prompt. Override with `MISE_TOOLS="lazygit,terraform"`; setting it replaces the prompts entirely, so list every tool you want.
+After the runtimes, the module offers a set of standalone tools. mise pulls prebuilt release binaries, so there are no extra apt repos and no root; each is pinned (see above). Prompts mirror the runtimes: the everyday tools default to yes, the work tools sit behind a "Show work tools?" prompt. Override with `MISE_TOOLS="lazygit,terraform"`; setting it replaces the prompts entirely, so list every tool you want.
 
 | Tool | `MISE_TOOLS` key | Prompted by default | Why |
 |---|---|---|---|
@@ -212,16 +227,18 @@ After the runtimes, the module offers a set of standalone tools. mise pulls preb
 | [`yq`](https://github.com/mikefarah/yq) | `yq` | **yes** | jq for YAML, TOML and XML (`yq '.jobs' ci.yml`). |
 | [`pre-commit`](https://pre-commit.com/) | `pre-commit` | **yes** | Git hook manager; `pre-commit install` in a repo with a `.pre-commit-config.yaml`. |
 | [`glow`](https://github.com/charmbracelet/glow) | `glow` | **yes** | Renders markdown in the terminal (`glow README.md`). |
-| [`git-spice`](https://github.com/abhinav/git-spice) | `git-spice` | **yes** | Stacked branches and PRs. Pin with `MISE_GIT_SPICE_VERSION` (bare, e.g. `0.31.2`). Adds `alias gs=git-spice` in a `wsl-starter:git-spice` rc-block, as upstream recommends; that shadows Ghostscript's `gs` if you install it. |
-| [`terraform`](https://github.com/hashicorp/terraform) | `terraform` | on request | Infrastructure as code. Pin with `MISE_TERRAFORM_VERSION`. |
-| [Databricks CLI](https://github.com/databricks/cli) (`databricks`) | `databricks` | on request | Workspaces, jobs, bundles. Pin with `MISE_DATABRICKS_VERSION`. |
-| [Azure CLI](https://learn.microsoft.com/cli/azure/) (`az`) | `azure-cli` | on request | Pin with `MISE_AZURE_CLI_VERSION`. Also installs the `azure-devops` extension (`az devops`, `az repos`, `az pipelines`, `az boards`). mise's only Linux backend for it is a pipx/uvx Python install, so it needs `uv` (the module skips it with a warning if you declined uv) and is slower than the rest. |
+| [`git-spice`](https://github.com/abhinav/git-spice) | `git-spice` | **yes** | Stacked branches and PRs. Adds `alias gs=git-spice` in a `wsl-starter:git-spice` rc-block, as upstream recommends; that shadows Ghostscript's `gs` if you install it. |
+| [`terraform`](https://github.com/hashicorp/terraform) | `terraform` | on request | Infrastructure as code. |
+| [Databricks CLI](https://github.com/databricks/cli) (`databricks`) | `databricks` | on request | Workspaces, jobs, bundles. |
+| [Azure CLI](https://learn.microsoft.com/cli/azure/) (`az`) | `azure-cli` | on request | Also installs the `azure-devops` extension (`az devops`, `az repos`, `az pipelines`, `az boards`). mise's only Linux backend for it is a pipx/uvx Python install, so it needs `uv` (the module skips it with a warning if you declined uv) and is slower than the rest. |
+
+| [`poetry`](https://python-poetry.org/) | `poetry` | on request | For work repos that use Poetry; uv is the default. |
 
 `bat` (the `cat` replacement) is not here: it comes from apt in `20-cli-modern`.
 
 ### mise + uv — who does what
 
-Also optional (prompted during install): [`uv`](https://github.com/astral-sh/uv) — Astral's ultra-fast Python package/project/env manager (Rust-built). It's *complementary* to mise, not a replacement. Think of it this way:
+Also optional (prompted during install, installed through mise): [`uv`](https://github.com/astral-sh/uv) — Astral's ultra-fast Python package/project/env manager (Rust-built). It's *complementary* to mise, not a replacement. Think of it this way:
 
 | Concern                           | Tool    |
 |-----------------------------------|---------|
@@ -252,11 +269,25 @@ uv *can* download its own Python builds if you skip the `mise use python@...` st
 |---|---|
 | `claude` (native installer → `~/.local/bin/claude`) | Anthropic's official coding agent for the terminal. Standalone binary from `https://claude.ai/install.sh` — no Node dependency, independent of any mise-managed runtime. |
 | `~/.claude/settings.json` | User-global Claude Code settings with your chosen permission mode (`auto` / `acceptEdits` / `default` / `plan`). Also pins `model=opusplan`, `advisorModel=opus`, `effortLevel=high`; denies file ops under `/mnt` (both via `permissions.deny` and the sandbox `denyRead`/`denyWrite` lists, with `failIfUnavailable=true` — needs `socat` on `$PATH`, installed by `10-apt-core`) so Claude can't reach into the Windows filesystem by accident; enables `prefersReducedMotion` and the `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` env flag. Edit the rendered file (or `claude/settings.json.tmpl` before install) to opt out. |
-| `~/.claude/CLAUDE.md` | User-global instructions Claude reads in every session — starter content you can edit. |
+| `my-claude` plugin (optional, default yes) | Adds the [`my-agent-skills`](https://github.com/artislismanis/my-agent-skills) marketplace and installs `my-claude`, which carries the user-global rules. Run `/my-claude:set-up` in a Claude session to install them into `~/.claude/rules/my-claude/` and seed a machine-local `~/.claude/CLAUDE.md`. `CLAUDE_MY_CLAUDE=0` skips it. |
 | `~/.claude/scripts/statusline.sh` | Custom statusline wired into Claude's TUI. Shows `[model]`, context-window %, total in/out tokens, and 5-hour rate-limit % with reset countdown. Reads the JSON payload Claude pipes in on stdin via `jq` — needs `jq` on `$PATH` (`10-apt-core` installs it; `--claude` warns if missing). |
 | `~/.claude/mcp.example.json` | Example MCP (Model Context Protocol) server config you can copy to `mcp.json` and fill in. Includes a `_github` entry that fetches its token from `gh auth token` at spawn time. |
 
-Re-runs preserve any existing file, so edits to your settings/CLAUDE.md are safe.
+Re-runs preserve any existing file, so edits to your settings are safe.
+
+---
+
+## Module `55-workbench` — worktrees and review tools *(user, optional)*
+
+Never part of `--all`; pass `--workbench`.
+
+| Item | Purpose |
+|---|---|
+| [`worktrunk`](https://worktrunk.dev/) (`wt`, `git-wt`) | Git worktrees for parallel agent work. Release binary in `~/.local/bin`, pinned with its sha256. Shell integration in a `wsl-starter:worktrunk` rc-block lets `wt switch` change directory. |
+| [`hunk`](https://github.com/modem-dev/hunk) | Terminal diff and code review. Release directory in `~/.local/share/hunkdiff-linux-x64` (its bundled agent skills sit next to the binary), symlinked into `~/.local/bin`, pinned with its sha256. |
+| [`herdr-workbench`](https://github.com/artislismanis/herdr-workbench) | Cloned to `~/.local/share/herdr-workbench`, checked out at a pinned commit, then its `install.sh` runs: a marked block at the top of `~/.config/worktrunk/config.toml` (worktrees at `~/.herdr/worktrees/<repo>/<branch>`, a setup hook, a default-branch sync hook, `wt rm`). Its README has the details. |
+
+Why plain binaries rather than mise tools: herdr, its popups and git hooks don't always start from a shell that ran `mise activate`, so tools they call must resolve from `~/.local/bin` alone. `.github/bump-binaries.sh` (run by the bump workflow) moves each pin and recomputes its checksum.
 
 ---
 

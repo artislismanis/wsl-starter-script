@@ -2,7 +2,7 @@
 # REQUIRES_ROOT=0
 # DESCRIPTION=mise (unified version manager) + optional runtimes + uv + CLI/cloud tools
 # ROLLBACK=# Per runtime first (clean removal of toolchains): mise uninstall <node|python|ruby|java|go|deno|bun>
-# ROLLBACK=# Per tool: mise uninstall <lazygit|zellij|fzf|yq|pre-commit|glow|github:abhinav/git-spice|terraform|databricks-cli|azure>
+# ROLLBACK=# Per tool: mise uninstall <uv|lazygit|zellij|fzf|yq|pre-commit|glow|github:abhinav/git-spice|terraform|databricks-cli|azure|poetry>
 # ROLLBACK=# azure-devops az extension (leave the rest of ~/.azure: it holds az login state):
 # ROLLBACK=rm -rf "$HOME/.azure/cliextensions/azure-devops"
 # ROLLBACK=# delta git wiring (only unset if still pointing at delta; we never overwrite an existing pager):
@@ -11,8 +11,8 @@
 # ROLLBACK=sed -i '/# >>> wsl-starter:git-spice >>>/,/# <<< wsl-starter:git-spice <<</d' "$HOME/.bashrc" "$HOME/.zshrc" 2>/dev/null || true
 # ROLLBACK=sed -i '/# >>> wsl-starter:fzf >>>/,/# <<< wsl-starter:fzf <<</d' "$HOME/.bashrc" "$HOME/.zshrc" 2>/dev/null || true
 # ROLLBACK=rm -rf "$HOME/.local/bin/mise" "$HOME/.local/share/mise" "$HOME/.config/mise"
-# ROLLBACK=# uv (if installed): we pass UV_NO_MODIFY_PATH=1 to its installer so all rc
-# ROLLBACK=#   wiring stays inside our wsl-starter:mise block — no separate rc-strip needed.
+# ROLLBACK=# uv from Astral's installer (installs before uv moved to mise): we passed
+# ROLLBACK=#   UV_NO_MODIFY_PATH=1 so all rc wiring stays inside our wsl-starter:mise block.
 # ROLLBACK=rm -rf "$HOME/.local/bin/uv" "$HOME/.local/bin/uvx" "$HOME/.local/share/uv" "$HOME/.local/bin/env"
 # ROLLBACK=# Marker-specific rc-block strip (so single-module --rollback is complete; the
 # ROLLBACK=#   cross-cutting tail at the end of the all-modules form covers it too).
@@ -22,36 +22,39 @@ source "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/idempotent.sh"
 require_user
 
-# Validate MISE_<LANG>_VERSION env values up front — they get interpolated
+# Validate MISE_<NAME>_VERSION env values up front — they get interpolated
 # into `mise use -g node@<value>` shell strings, so a value containing
 # whitespace or shell metachars would split or inject. Allow alnum, dot,
 # dash, underscore, plus. Runs before the mise install so bad env vars fail
 # fast without first downloading a runtime manager that's about to be unused.
 _ver_re='^[A-Za-z0-9._+-]+$'
-for v in MISE_NODE_VERSION MISE_PYTHON_VERSION MISE_RUBY_VERSION MISE_JAVA_VERSION \
-         MISE_GO_VERSION MISE_DENO_VERSION MISE_BUN_VERSION \
-         MISE_TERRAFORM_VERSION MISE_DATABRICKS_VERSION MISE_AZURE_CLI_VERSION MISE_GIT_SPICE_VERSION; do
-  if [ -n "${!v:-}" ] && ! [[ "${!v}" =~ $_ver_re ]]; then
+while IFS= read -r v; do
+  if [ -n "${!v}" ] && ! [[ "${!v}" =~ $_ver_re ]]; then
     die "$v='${!v}' contains unsafe characters (allowed: alnum, dot, dash, underscore, plus)."
   fi
-done
+done < <(compgen -v | grep -E '^MISE_[A-Z_]+_VERSION$' || true)
+
+# Every default below is an exact, reviewed version. .github/workflows/bump-pins.yml
+# opens a PR when upstream moves; a trailing `# bump: <spec>` makes it follow
+# `mise latest <spec>` (e.g. stay on python 3.12) instead of the tool's latest.
 
 # Tools: MISE_TOOLS (comma-separated) overrides the prompts further down.
 # Parsed here so a typo fails fast, same as the version checks above.
 declare -A TOOL_SPECS=(
-  [lazygit]="lazygit@latest"
-  [zellij]="zellij@latest"
-  [fzf]="fzf@latest"
-  [yq]="yq@latest"
-  [pre-commit]="pre-commit@latest"
-  [glow]="glow@latest"
-  [terraform]="terraform@${MISE_TERRAFORM_VERSION:-latest}"
-  [databricks]="databricks-cli@${MISE_DATABRICKS_VERSION:-latest}"
+  [lazygit]="lazygit@${MISE_LAZYGIT_VERSION:-0.66.2}"
+  [zellij]="zellij@${MISE_ZELLIJ_VERSION:-0.45.1}"
+  [fzf]="fzf@${MISE_FZF_VERSION:-0.74.5}"
+  [yq]="yq@${MISE_YQ_VERSION:-4.54.1}"
+  [pre-commit]="pre-commit@${MISE_PRE_COMMIT_VERSION:-4.7.0}"
+  [glow]="glow@${MISE_GLOW_VERSION:-3.0.0}"
+  [terraform]="terraform@${MISE_TERRAFORM_VERSION:-1.16.6}"
+  [databricks]="databricks-cli@${MISE_DATABRICKS_VERSION:-1.21.0}"
   # uv venvs ship without pip, which `az extension add` shells out to. Setting
   # uvx_args replaces the registry's own --prerelease=allow, so repeat it.
-  [azure-cli]="azure[uvx_args=--prerelease=allow --with=pip]@${MISE_AZURE_CLI_VERSION:-latest}"
+  [azure-cli]="azure[uvx_args=--prerelease=allow --with=pip]@${MISE_AZURE_CLI_VERSION:-2.91.0}"
+  [poetry]="poetry@${MISE_POETRY_VERSION:-2.5.1}"
   # Not in mise's own registry.
-  [git-spice]="github:abhinav/git-spice@${MISE_GIT_SPICE_VERSION:-latest}"
+  [git-spice]="github:abhinav/git-spice@${MISE_GIT_SPICE_VERSION:-0.32.0}"
 )
 tools=()
 if [ -n "${MISE_TOOLS:-}" ]; then
@@ -65,7 +68,7 @@ fi
 
 if ! command_exists mise; then
   log "Installing mise"
-  run "curl -fsSL https://mise.run | sh"
+  run "curl -fsSL https://mise.run | MISE_VERSION=v${MISE_SELF_VERSION:-2026.10.14} sh"  # bump: aqua:jdx/mise
 else
   skip "mise already installed"
 fi
@@ -77,6 +80,9 @@ MISE_BIN="$HOME/.local/bin/mise"
 # and mise's pipx backend (uvx, for azure-cli) must be findable from here on.
 export PATH="$HOME/.local/bin:$PATH"
 
+# mise only records checksums for global tools when this file exists.
+write_file_once "$HOME/.config/mise/mise.lock" </dev/null
+
 ensure_block_per_shell "wsl-starter:mise" "$HOME" \
   'export PATH="$HOME/.local/bin:$PATH"
 command -v mise >/dev/null 2>&1 && eval "$("$HOME/.local/bin/mise" activate bash)"' \
@@ -87,13 +93,13 @@ command -v mise >/dev/null 2>&1 && eval "$("$HOME/.local/bin/mise" activate zsh)
 # MISE_LANGUAGES env var overrides the prompts (comma-separated).
 # Per-language version overrides via env: MISE_<LANG>_VERSION (e.g. MISE_NODE_VERSION=22).
 declare -A SPECS=(
-  [node]="node@${MISE_NODE_VERSION:-lts}"
-  [python]="python@${MISE_PYTHON_VERSION:-3.12}"
-  [ruby]="ruby@${MISE_RUBY_VERSION:-3.3}"
-  [java]="java@${MISE_JAVA_VERSION:-temurin-21}"
-  [go]="go@${MISE_GO_VERSION:-latest}"
-  [deno]="deno@${MISE_DENO_VERSION:-latest}"
-  [bun]="bun@${MISE_BUN_VERSION:-latest}"
+  [node]="node@${MISE_NODE_VERSION:-24.22.0}"  # bump: node@lts
+  [python]="python@${MISE_PYTHON_VERSION:-3.12.15}"  # bump: python@3.12
+  [ruby]="ruby@${MISE_RUBY_VERSION:-3.3.12}"  # bump: ruby@3.3
+  [java]="java@${MISE_JAVA_VERSION:-temurin-21.0.12+101.0.LTS}"  # bump: java@temurin-21
+  [go]="go@${MISE_GO_VERSION:-1.27.2}"
+  [deno]="deno@${MISE_DENO_VERSION:-2.9.7}"
+  [bun]="bun@${MISE_BUN_VERSION:-1.4.3}"
 )
 
 if [ -n "${MISE_LANGUAGES:-}" ]; then
@@ -126,16 +132,12 @@ for lang in "${choices[@]}"; do
 done
 
 # uv — project-local Python env manager (complements mise-managed python).
-# UV_NO_MODIFY_PATH=1 stops Astral's installer from appending its own
-# `. "$HOME/.local/bin/env"` line to ~/.bashrc / ~/.zshrc — the wsl-starter:mise
-# block above already adds ~/.local/bin to PATH, so the second wiring would be
-# redundant noise that lives outside our fence and survives a --rollback.
-if confirm "Install uv (fast Python project/env manager)?" y; then
-  if ! command_exists uv; then
-    run "curl -LsSf https://astral.sh/uv/install.sh | env UV_NO_MODIFY_PATH=1 sh"
-  else
-    skip "uv already installed"
-  fi
+# uv_venv_auto activates a uv project's .venv on cd.
+UV_SPEC="uv@${MISE_UV_VERSION:-0.13.1}"
+if confirm "Install uv (fast Python project/env manager, ${UV_SPEC})?" y; then
+  log "mise use -g $UV_SPEC"
+  run "\"$MISE_BIN\" use -g $UV_SPEC"
+  run "\"$MISE_BIN\" settings set python.uv_venv_auto source"
 fi
 
 # ---- Tools ------------------------------------------------------------------
@@ -145,8 +147,8 @@ if [ -z "${MISE_TOOLS:-}" ]; then
   for t in lazygit zellij fzf yq pre-commit glow git-spice; do
     if confirm "Install ${t} (${TOOL_SPECS[$t]})?" y; then tools+=("$t"); fi
   done
-  if confirm "Show cloud tools (terraform/databricks/azure-cli)?" n; then
-    for t in terraform databricks azure-cli; do
+  if confirm "Show work tools (terraform/databricks/azure-cli/poetry)?" n; then
+    for t in terraform databricks azure-cli poetry; do
       if confirm "Install ${t} (${TOOL_SPECS[$t]})?" n; then tools+=("$t"); fi
     done
   fi
@@ -154,7 +156,7 @@ fi
 
 for t in "${tools[@]}"; do
   [ -z "$t" ] && continue
-  if [ "$t" = azure-cli ] && [ "$DRY_RUN" != "1" ] && ! command_exists uv; then
+  if [ "$t" = azure-cli ] && [ "$DRY_RUN" != "1" ] && ! "$MISE_BIN" which uv >/dev/null 2>&1 && ! command_exists uv; then
     warn "azure-cli needs uv (mise installs it via uvx); skipping. Install uv and re-run."
     continue
   fi

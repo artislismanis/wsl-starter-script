@@ -25,6 +25,16 @@ command:
   terraform: { exec: 'mise exec -- terraform version',   exit-status: 0 }
   databricks: { exec: 'mise exec -- databricks --version', exit-status: 0 }
   git-spice: { exec: 'mise exec -- git-spice --version', exit-status: 0 }
+  uv:        { exec: 'mise exec -- uv --version',        exit-status: 0 }
+  # Supply chain: every global mise tool is installed at exactly the version
+  # 40-mise requested (Tier 1 pins.bats keeps every request an exact pin).
+  mise-installed-as-pinned:
+    exec: "mise ls --global --json | jq -e '[.[][] | select(.installed != true or .requested_version != .version)] | length == 0'"
+    exit-status: 0
+  uv-venv-auto:
+    exec: "mise settings get python.uv_venv_auto"
+    exit-status: 0
+    stdout: ["source"]
   gitconfig-delta-pager:
     exec: "git config --global --get core.pager"
     exit-status: 0
