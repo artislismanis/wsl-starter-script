@@ -63,6 +63,12 @@ else
   log "Masking getty@tty1"
   run "ln -sf /dev/null /etc/systemd/system/getty@tty1.service"
 fi
+# Masking doesn't clear the unit's earlier failure, so systemd stays "degraded"
+# until the distro restarts.
+if systemctl is-failed --quiet getty@tty1.service 2>/dev/null; then
+  log "Clearing getty@tty1's earlier failure"
+  run "systemctl reset-failed getty@tty1.service"
+fi
 
 USER_NAME="${WSL_USER:-}"
 [ -n "$USER_NAME" ] || USER_NAME="$(ask "Non-root username to create")"
