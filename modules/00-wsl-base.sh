@@ -24,7 +24,16 @@ case "${WSL_ISOLATE:-unset}" in
   *)          die "WSL_ISOLATE must be one of: 1/yes/true, 0/no/false, or unset (got: ${WSL_ISOLATE})" ;;
 esac
 
-apt_update_once
+# Validate WSL_USER (if set) before apt and the prompt so a bad env value
+# fails fast with a message that names the env var; otherwise the operator gets
+# a generic "Invalid username" error after a successful interactive prompt.
+# useradd's NAME_REGEX (Debian default): start with a letter or underscore;
+# alnum, dash, underscore body; optional trailing $; <=32 chars.
+_user_re='^[a-z_][a-z0-9_-]{0,30}\$?$'
+if [ -n "${WSL_USER:-}" ] && ! [[ "$WSL_USER" =~ $_user_re ]]; then
+  die "WSL_USER='$WSL_USER' is invalid — must match useradd NAME_REGEX (lowercase, _, -; start with letter/underscore; <=32 chars)."
+fi
+
 # WSL_APT_UPGRADE: 1/yes/true = upgrade, 0/no/false = skip, unset OR empty = ask
 # (default yes). Use ${VAR:-unset} (with the colon) so a set-but-empty value
 # falls through to the prompt rather than silently no-op'ing — empty is
@@ -36,6 +45,7 @@ case "${WSL_APT_UPGRADE:-unset}" in
   unset)      confirm "Run 'apt upgrade' now? (slow on a fresh image)" y && DO_UPGRADE=1 ;;
   *)          die "WSL_APT_UPGRADE must be one of: 1/yes/true, 0/no/false, or unset (got: ${WSL_APT_UPGRADE})" ;;
 esac
+apt_update_once
 [ "$DO_UPGRADE" = "1" ] && run "DEBIAN_FRONTEND=noninteractive apt-get upgrade -y"
 
 apt_install sudo systemd
@@ -43,15 +53,6 @@ apt_install sudo systemd
 replace_ini_section "wsl-starter:boot" /etc/wsl.conf boot "[boot]
 systemd=true"
 
-# Validate WSL_USER (if set) BEFORE the prompt so a bad env value fails fast
-# with a message that names the env var; otherwise the operator gets a generic
-# "Invalid username" error after a successful interactive prompt.
-# useradd's NAME_REGEX (Debian default): start with a letter or underscore;
-# alnum, dash, underscore body; optional trailing $; <=32 chars.
-_user_re='^[a-z_][a-z0-9_-]{0,30}\$?$'
-if [ -n "${WSL_USER:-}" ] && ! [[ "$WSL_USER" =~ $_user_re ]]; then
-  die "WSL_USER='$WSL_USER' is invalid — must match useradd NAME_REGEX (lowercase, _, -; start with letter/underscore; <=32 chars)."
-fi
 USER_NAME="${WSL_USER:-}"
 [ -n "$USER_NAME" ] || USER_NAME="$(ask "Non-root username to create")"
 [ -n "$USER_NAME" ] || die "Username is required."
