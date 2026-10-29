@@ -11,10 +11,11 @@ require_user
 
 # Plain bash: no aliases (`gs` is git-spice only in zsh) and maybe no
 # `mise activate`, so find each tool on PATH, then in its fixed install dir or mise.
+MISE="$(command -v mise || echo "$HOME/.local/bin/mise")"
 _bin() {
   command -v "$1" 2>/dev/null && return 0
   [ -x "$2" ] && { echo "$2"; return 0; }
-  command_exists mise && mise which "$1" 2>/dev/null && return 0
+  [ -x "$MISE" ] && "$MISE" which "$1" 2>/dev/null && return 0
   return 0
 }
 
@@ -34,7 +35,7 @@ _login() {
     run "$cmd" && return 0
     warn "$name login didn't finish."
   fi
-  TODO+=("$cmd")
+  TODO+=("$name: ${cmd//\'$bin\'/$(basename "$bin")}")
 }
 
 GH="$(_bin gh /usr/bin/gh)"
@@ -59,7 +60,7 @@ else
     run "git config --global user.name $(printf '%q' "$git_name")"
     run "git config --global user.email $(printf '%q' "$git_email")"
   else
-    TODO+=("git config --global user.name 'Your Name' && git config --global user.email you@example.com")
+    TODO+=("git identity: git config --global user.name 'Your Name' && git config --global user.email you@example.com")
   fi
 fi
 
@@ -67,12 +68,12 @@ CLAUDE="$(_bin claude "$HOME/.local/bin/claude")"
 _login Claude "$CLAUDE" "'$CLAUDE' auth status | grep '\"loggedIn\": true'" "'$CLAUDE' auth login"
 if [ -n "$CLAUDE" ] && [ -d "$HOME/.claude/plugins" ] && [ ! -d "$HOME/.claude/rules/my-claude" ] \
    && "$CLAUDE" plugin list --json 2>/dev/null | grep '"my-claude@my-agent-skills"' >/dev/null; then
-  TODO+=("In a Claude session: /my-claude:set-up")
+  TODO+=("my-claude rules: /my-claude:set-up in a Claude session")
 fi
 
 GS="$(_bin git-spice "")"
 _login git-spice "$GS" "'$GS' auth status --forge github" "'$GS' auth login --forge github"
-[ -z "$GS" ] || TODO+=("In each repo you stack branches in: gs repo init")
+[ -z "$GS" ] || TODO+=("git-spice, per repo: gs repo init")
 
 # Optional: only syncs shell history between machines.
 ATUIN="$(_bin atuin "$HOME/.atuin/bin/atuin")"
