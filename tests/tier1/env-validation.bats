@@ -63,6 +63,14 @@ sudo_or_skip() {
   echo "$output" | grep -q "MISE_TERRAFORM_VERSION='1.9; rm -rf /'"
 }
 
+@test "MISE_<TOOL>_VERSION check covers every pinned tool, not a fixed list" {
+  cd "$REPO_ROOT"
+  MISE_POETRY_VERSION='2.5.1$(id)' NON_INTERACTIVE=1 \
+    run ./install.sh --module 40-mise --dry-run
+  [ "$status" -ne 0 ]
+  echo "$output" | grep -q "MISE_POETRY_VERSION="
+}
+
 @test "MISE_TOOLS rejects unknown tools" {
   cd "$REPO_ROOT"
   MISE_TOOLS='lazygit,terrafrom' NON_INTERACTIVE=1 \

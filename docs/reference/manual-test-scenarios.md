@@ -88,7 +88,7 @@ cd ~/wsl-starter-script   # or wherever you copied it as your user
 ./install.sh --dev
 ```
 
-**Prompts expected:** zsh default shell?, per-language install prompts, uv?, per-tool install prompts (lazygit, zellij, fzf, yq, pre-commit, glow, git-spice, then "Show cloud tools?")
+**Prompts expected:** zsh default shell?, per-language install prompts, uv?, per-tool install prompts (lazygit, zellij, fzf, yq, pre-commit, glow, git-spice, then "Show work tools?")
 
 **Verify (each should print a version):**
 
@@ -685,7 +685,7 @@ MISE_GO_VERSION='1.22; rm -rf /' \
 Then the full tool set, run twice for idempotence:
 
 ```bash
-MISE_TOOLS=lazygit,zellij,fzf,yq,pre-commit,glow,git-spice,terraform,databricks,azure-cli \
+MISE_TOOLS=lazygit,zellij,fzf,yq,pre-commit,glow,git-spice,terraform,databricks,azure-cli,poetry \
   ./install.sh --module 40-mise --non-interactive
 # In a fresh shell:
 terraform version && databricks --version && git-spice --version && az version
@@ -714,6 +714,48 @@ echo "exit=$?"                                         # non-zero; clear error
 ```
 
 **Pass criteria:** `git pull --ff-only` fails loudly with the bootstrap's error message; the local clone is left untouched (no clobber, no merge commit).
+
+---
+
+## Scenario 23 — Workbench
+
+Needs `--base` and `--dev` done (mise, uv; add `poetry` to `MISE_TOOLS` for the Poetry repo), and a real uv repo (Tier 1 in herdr-workbench covers hook detection with stubs; this proves the real tools).
+
+```bash
+./install.sh --workbench
+env -i HOME=$HOME PATH=$HOME/.local/bin:/usr/bin:/bin wt --version     # the pinned version, no shell activation
+env -i HOME=$HOME PATH=$HOME/.local/bin:/usr/bin:/bin hunk --version   # same
+~/.local/share/herdr-workbench/install.sh --check                      # exit 0
+./install.sh --workbench                                               # re-run: everything reported as already present
+```
+
+Then in a fresh shell:
+
+```bash
+cd ~/some-uv-repo                       # has uv.lock; add .env to .worktreeinclude if it's gitignored
+wt switch -c try-setup                  # fast-forwards main, blocks while the setup hook runs, then cds in
+pwd                                     # ~/.herdr/worktrees/some-uv-repo/try-setup
+ls -a                                   # .env copied, .venv built by uv sync (not copied)
+echo "$VIRTUAL_ENV"                     # .../try-setup/.venv
+```
+
+Push the branch, squash-merge its PR on GitHub, then `wt rm` from the worktree: the branch is recognised as merged and deleted. Repeat the switch with a Poetry repo (`.venv` in the worktree, `mise.local.toml` present but not in `git status`), started from a shell with the main checkout's venv active.
+
+**Pass criteria:** both binaries report their pins with no activation; each worktree opens under `~/.herdr/worktrees/`, set up with no prompts and its own venv active on entry; `.venv` and `node_modules` are built, never copied; `wt rm` deletes a squash-merged branch.
+
+---
+
+## Scenario 24 — Tailscale
+
+```bash
+./install.sh --tailscale                # after --base and the reopen
+systemctl is-active tailscaled          # active
+sudo tailscale up                       # log in via the printed URL
+tailscale status                        # this machine listed
+./install.sh --tailscale                # re-run: repo and service reported as already present
+```
+
+**Pass criteria:** login works from inside an isolated distro (`WSL_ISOLATE=1`); `ssh <user>@<tailnet-name>` works from another tailnet machine once sshd is running; `./install.sh --all` never prompts for or installs Tailscale.
 
 ---
 
