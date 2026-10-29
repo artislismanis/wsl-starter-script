@@ -24,7 +24,7 @@ HUNK_VERSION=0.24.1  # bump: github:modem-dev/hunk hunkdiff-linux-x64.tar.gz
 HUNK_SHA256=4b8c98f8d97745499916cc1e1d2f27ffd258c6d6358dd4532f61e41c5eb19692
 GH_STACK_VERSION=0.3.0  # bump: github:github/gh-stack linux-amd64
 GH_STACK_SHA256=957e822cfa7e435cd84a297cd96c419b58e51e3ac58be249762c24bd9e45099b
-WORKBENCH_COMMIT=652ab914010b2f8f67c8eda7d85815e5e93911be  # bump: git:artislismanis/herdr-workbench
+WORKBENCH_COMMIT=babfb4b29b92e4bc5ea8cfb61234f57831a62c3f  # bump: git:artislismanis/herdr-workbench
 
 BIN="$HOME/.local/bin"
 SHARE="$HOME/.local/share"
