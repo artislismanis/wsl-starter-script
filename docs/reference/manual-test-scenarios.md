@@ -88,7 +88,7 @@ cd ~/wsl-starter-script   # or wherever you copied it as your user
 ./install.sh --dev
 ```
 
-**Prompts expected:** zsh default shell?, per-language install prompts, uv?, per-tool install prompts (lazygit, zellij, fzf, yq, pre-commit, glow, git-spice, then "Show work tools?")
+**Prompts expected:** zsh default shell?, per-language install prompts, uv?, per-tool install prompts (lazygit, zellij, fzf, yq, pre-commit, glow, git-spice, then "Show extra tools?")
 
 **Verify (each should print a version):**
 
