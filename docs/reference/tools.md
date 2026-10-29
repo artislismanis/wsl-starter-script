@@ -259,7 +259,7 @@ uv run python app.py        # runs inside the project venv
 uvx ruff check .            # runs ruff in a throwaway env — no install needed
 ```
 
-Nothing activates the venv on `cd`. Run project commands through `uv run` (or `poetry run`), which always uses the project's own `.venv`; an activated venv stays on PATH after you switch worktrees and quietly runs the wrong environment.
+Nothing activates the venv on `cd`. Run project commands through `uv run` (or `poetry run`), which always uses the project's own `.venv`; an activated venv stays on PATH after you switch worktrees and quietly runs the wrong environment. `40-mise` also sets `require-virtualenv = true` in `~/.config/pip/pip.conf`, so a bare `pip install` fails instead of landing in mise's global Python; use `uv add` or `uv tool install` instead.
 
 uv *can* download its own Python builds if you skip the `mise use python@...` step; both approaches work. Using mise for the interpreter keeps the version-manager story consistent across Python / Node / Go / etc., which is why this installer prompts for both.
 
