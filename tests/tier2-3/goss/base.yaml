@@ -41,10 +41,21 @@ command:
     stdout: ["1"]
 
   # WSL_ISOLATE defaults to yes: after reopen, no Windows interop and no /mnt/c.
-  # Newer WSL + systemd registers the binfmt entry as WSLInterop-late.
+  # WSL 3 registers the WSLInterop binfmt entry even with interop off, so test
+  # what the setting controls: /init hands processes no WSL_INTEROP socket.
   interop-disabled:
-    exec: "test -e /proc/sys/fs/binfmt_misc/status && test ! -e /proc/sys/fs/binfmt_misc/WSLInterop && test ! -e /proc/sys/fs/binfmt_misc/WSLInterop-late"
+    exec: 'test -z "${WSL_INTEROP:-}"'
     exit-status: 0
+  # The binfmt entry still hands .exe files to /init. With interop off it
+  # must not run: no output from whoami, and a failure (or a hang the
+  # timeout kills) instead of exit 0.
+  windows-binary-refused:
+    exec: 'timeout 15 /opt/interop-probe.exe 2>&1; echo "rc=$?"'
+    exit-status: 0
+    timeout: 30000
+    stdout:
+      - "!/runneradmin/"
+      - "/rc=[1-9]/"
   mnt-c-not-mounted:
     exec: "! mountpoint -q /mnt/c"
     exit-status: 0
