@@ -24,7 +24,6 @@ command:
   glow:      { exec: 'mise exec -- glow --version',      exit-status: 0 }
   terraform: { exec: 'mise exec -- terraform version',   exit-status: 0 }
   databricks: { exec: 'mise exec -- databricks --version', exit-status: 0 }
-  git-spice: { exec: 'mise exec -- git-spice --version', exit-status: 0 }
   uv:        { exec: 'mise exec -- uv --version',        exit-status: 0 }
   # Supply chain: every global mise tool is installed at exactly the version
   # 40-mise requested (Tier 1 pins.bats keeps every request an exact pin).
@@ -41,10 +40,6 @@ command:
     stdout: ["delta"]
   zshrc-fzf-once:
     exec: "grep -c '# >>> wsl-starter:fzf >>>' $HOME/.zshrc"
-    exit-status: 0
-    stdout: ["1"]
-  bashrc-git-spice-once:
-    exec: "grep -c '# >>> wsl-starter:git-spice >>>' $HOME/.bashrc"
     exit-status: 0
     stdout: ["1"]
 

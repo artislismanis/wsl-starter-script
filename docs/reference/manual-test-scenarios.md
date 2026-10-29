@@ -89,7 +89,7 @@ cd ~/wsl-starter-script   # or wherever you copied it as your user
 ./install.sh --dev
 ```
 
-**Prompts expected:** zsh default shell?, per-language install prompts, uv?, per-tool install prompts (lazygit, zellij, fzf, yq, pre-commit, glow, git-spice, then "Show extra tools?")
+**Prompts expected:** zsh default shell?, per-language install prompts, uv?, per-tool install prompts (lazygit, zellij, fzf, yq, pre-commit, glow, then "Show extra tools?")
 
 **Verify (each should print a version):**
 
@@ -115,7 +115,6 @@ fzf --version
 yq --version
 pre-commit --version
 glow --version
-git-spice --version
 git config --global core.pager                # delta (unless you had one set)
 bindkey '^R'                                  # zsh: still atuin's widget, not fzf-history-widget
 ```
@@ -686,13 +685,11 @@ MISE_GO_VERSION='1.22; rm -rf /' \
 Then the full tool set, run twice for idempotence:
 
 ```bash
-MISE_TOOLS=lazygit,zellij,fzf,yq,pre-commit,glow,git-spice,terraform,databricks,azure-cli,poetry \
+MISE_TOOLS=lazygit,zellij,fzf,yq,pre-commit,glow,terraform,databricks,azure-cli,poetry \
   ./install.sh --module 40-mise --non-interactive
 # In a fresh shell:
-terraform version && databricks --version && git-spice --version && az version
+terraform version && databricks --version && az version
 az devops -h >/dev/null && echo ado-ok                       # azure-devops extension present
-type gs                                                      # alias gs=git-spice
-grep -c '# >>> wsl-starter:git-spice >>>' ~/.bashrc          # exactly 1 after the re-run
 MISE_TERRAFORM_VERSION='1.9; id' \
   ./install.sh --module 40-mise --dry-run --non-interactive 2>&1 | grep -c 'unsafe characters'   # >= 1
 ```
@@ -726,6 +723,8 @@ Needs `--base` and `--dev` done (mise, uv; add `poetry` to `MISE_TOOLS` for the 
 ./install.sh --workbench
 env -i HOME=$HOME PATH=$HOME/.local/bin:/usr/bin:/bin wt --version     # the pinned version, no shell activation
 env -i HOME=$HOME PATH=$HOME/.local/bin:/usr/bin:/bin hunk --version   # same
+gh stack --version                                                     # the pinned gh-stack (needs gh from --dev)
+grep github-pinned ~/.claude/skills/gh-stack/SKILL.md                  # the same tag
 ~/.local/share/herdr-workbench/install.sh --check                      # exit 0
 ./install.sh --workbench                                               # re-run: everything reported as already present
 ```
@@ -762,13 +761,13 @@ tailscale status                        # this machine listed
 
 ## Scenario 25 — Logins
 
-Needs gh, Claude Code and at least one of git-spice / atuin / az / databricks / Tailscale installed, with no global git identity (`git config --global --unset user.name; git config --global --unset user.email`).
+Needs gh, Claude Code and at least one of atuin / az / databricks / Tailscale installed, with no global git identity (`git config --global --unset user.name; git config --global --unset user.email`).
 
 ```bash
 ./install.sh --logins --non-interactive     # reports only: each installed tool "logged in" or listed as still to do; no prompts
 ./install.sh --logins                       # gh first if needed; git identity prompt defaults to your GitHub name and <id>+<login>@users.noreply.github.com
 git config --global user.email              # the no-reply address (or what you typed)
-./install.sh --logins                       # re-run: every login reported done, only hints left (gs repo init, /my-claude:set-up if not run)
+./install.sh --logins                       # re-run: every login reported done, only hints left (/my-claude:set-up if not run)
 ```
 
 **Pass criteria:** no login runs for a tool that isn't installed or is already logged in; the identity prompt shows the GitHub defaults; the re-run makes no changes; `--non-interactive` never prompts and writes git identity only with `WSL_GIT_NAME` and `WSL_GIT_EMAIL` set.

@@ -227,7 +227,6 @@ After the runtimes, the module offers a set of standalone tools. mise pulls preb
 | [`yq`](https://github.com/mikefarah/yq) | `yq` | **yes** | jq for YAML, TOML and XML (`yq '.jobs' ci.yml`). |
 | [`pre-commit`](https://pre-commit.com/) | `pre-commit` | **yes** | Git hook manager; `pre-commit install` in a repo with a `.pre-commit-config.yaml`. |
 | [`glow`](https://github.com/charmbracelet/glow) | `glow` | **yes** | Renders markdown in the terminal (`glow README.md`). |
-| [`git-spice`](https://github.com/abhinav/git-spice) | `git-spice` | **yes** | Stacked branches and PRs. Adds `alias gs=git-spice` in a `wsl-starter:git-spice` rc-block, as upstream recommends; that shadows Ghostscript's `gs` if you install it. |
 | [`terraform`](https://github.com/hashicorp/terraform) | `terraform` | on request | Infrastructure as code. |
 | [Databricks CLI](https://github.com/databricks/cli) (`databricks`) | `databricks` | on request | Workspaces, jobs, bundles. |
 | [Azure CLI](https://learn.microsoft.com/cli/azure/) (`az`) | `azure-cli` | on request | Also installs the `azure-devops` extension (`az devops`, `az repos`, `az pipelines`, `az boards`). mise's only Linux backend for it is a pipx/uvx Python install, so it needs `uv` (the module skips it with a warning if you declined uv) and is slower than the rest. |
@@ -287,6 +286,7 @@ Never part of `--all`; pass `--workbench`.
 |---|---|
 | [`worktrunk`](https://worktrunk.dev/) (`wt`, `git-wt`) | Git worktrees for parallel agent work. Release binary in `~/.local/bin`, pinned with its sha256. Shell integration in a `wsl-starter:worktrunk` rc-block lets `wt switch` change directory. |
 | [`hunk`](https://github.com/modem-dev/hunk) | Terminal diff and code review. Release directory in `~/.local/share/hunkdiff-linux-x64` (its bundled agent skills sit next to the binary), symlinked into `~/.local/bin`, pinned with its sha256. |
+| [`gh-stack`](https://github.com/github/gh-stack) | GitHub's native [stacked PRs](https://docs.github.com/en/pull-requests/get-started/about-stacked-prs) as `gh stack`. A gh extension pinned to a release and checked against its sha256 after install; needs gh (from `--dev`). Its agent skill goes to `~/.claude/skills/gh-stack/` via `gh skill install`, pinned to the same tag. |
 | [`herdr-workbench`](https://github.com/artislismanis/herdr-workbench) | Cloned to `~/.local/share/herdr-workbench`, checked out at a pinned commit, then its `install.sh` runs: a marked block at the top of `~/.config/worktrunk/config.toml` (worktrees at `~/.herdr/worktrees/<repo>/<branch>`, a setup hook, a default-branch sync hook, `wt rm`). Its README has the details. |
 
 Why plain binaries rather than mise tools: herdr, its popups and git hooks don't always start from a shell that ran `mise activate`, so tools they call must resolve from `~/.local/bin` alone. `.github/bump-binaries.sh` (run by the bump workflow) moves each pin and recomputes its checksum.
@@ -302,7 +302,6 @@ Never part of `--all`; pass `--logins`, or answer yes to the last guided-setup q
 | gh | `gh auth status` passes | `gh auth login` |
 | git identity | global `user.name` and `user.email` set | Asks, defaulting to your GitHub name and `<id>+<login>@users.noreply.github.com` (keeps your real address out of commits) |
 | Claude Code | `claude auth status` says logged in | `claude auth login`; then `/my-claude:set-up` in a session if the plugin is installed |
-| git-spice | `git-spice auth status --forge github` passes | `git-spice auth login --forge github`; `gs repo init` stays per repo |
 | atuin (optional, default no) | `atuin status` passes | `atuin login` (history sync between machines) |
 | az | `az account show` passes | `az login --use-device-code` |
 | databricks | `~/.databrickscfg` exists | `databricks auth login` |

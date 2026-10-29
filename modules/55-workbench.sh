@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 # REQUIRES_ROOT=0
-# DESCRIPTION=Workbench: worktrunk + hunk as pinned release binaries, then herdr-workbench config at a pinned commit
+# DESCRIPTION=Workbench: worktrunk + hunk as pinned release binaries, gh-stack + its agent skill, then herdr-workbench config at a pinned commit
 # ROLLBACK=# herdr-workbench first: its own recipe strips its block from ~/.config/worktrunk/config.toml and removes its hooks.
 # ROLLBACK=[ -x "$HOME/.local/share/herdr-workbench/install.sh" ] && "$HOME/.local/share/herdr-workbench/install.sh" --rollback | bash
 # ROLLBACK=rm -rf "$HOME/.local/share/herdr-workbench"
 # ROLLBACK=rm -f "$HOME/.local/bin/wt" "$HOME/.local/bin/git-wt" "$HOME/.local/bin/hunk"
 # ROLLBACK=rm -rf "$HOME/.local/share/hunkdiff-linux-x64"
+# ROLLBACK=gh extension remove stack 2>/dev/null || true
+# ROLLBACK=rm -rf "$HOME/.claude/skills/gh-stack"
 # ROLLBACK=# wsl-starter:worktrunk rc block: covered by the cross-cutting rc-block strip.
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
@@ -20,6 +22,8 @@ WT_VERSION=0.81.0  # bump: github:max-sixty/worktrunk worktrunk-x86_64-unknown-l
 WT_SHA256=0c253f216985ce9cd7b202a11606b5ce6aa934b1019fd1fbb9b7ce2b47b1c74a
 HUNK_VERSION=0.24.1  # bump: github:modem-dev/hunk hunkdiff-linux-x64.tar.gz
 HUNK_SHA256=4b8c98f8d97745499916cc1e1d2f27ffd258c6d6358dd4532f61e41c5eb19692
+GH_STACK_VERSION=0.3.0  # bump: github:github/gh-stack linux-amd64
+GH_STACK_SHA256=957e822cfa7e435cd84a297cd96c419b58e51e3ac58be249762c24bd9e45099b
 WORKBENCH_COMMIT=652ab914010b2f8f67c8eda7d85815e5e93911be  # bump: git:artislismanis/herdr-workbench
 
 BIN="$HOME/.local/bin"
@@ -65,6 +69,32 @@ else
   run "ln -sfn '$SHARE/hunkdiff-linux-x64/hunk' '$BIN/hunk'"
 fi
 
+# ---- gh-stack ----------------------------------------------------------------
+# GitHub's native stacked PRs. A gh extension rather than a binary in
+# ~/.local/bin, since it runs as `gh stack`; the sha256 is checked after gh
+# installs it. Its agent skill is pinned to the same tag so the two agree.
+GH_STACK_BIN="${XDG_DATA_HOME:-$HOME/.local/share}/gh/extensions/gh-stack/gh-stack"
+if ! command_exists gh; then
+  warn "gh not installed (it comes with --dev); skipping gh-stack."
+else
+  if echo "$GH_STACK_SHA256  $GH_STACK_BIN" | sha256sum -c --quiet - >/dev/null 2>&1; then
+    skip "gh-stack $GH_STACK_VERSION already installed"
+  else
+    log "Installing gh-stack $GH_STACK_VERSION"
+    run "gh extension remove stack >/dev/null 2>&1 || true"
+    retry_run 3 "gh extension install github/gh-stack --pin v$GH_STACK_VERSION"
+    if [ "$DRY_RUN" != "1" ] && ! echo "$GH_STACK_SHA256  $GH_STACK_BIN" | sha256sum -c --quiet - >/dev/null 2>&1; then
+      gh extension remove stack >/dev/null 2>&1 || true
+      die "gh-stack $GH_STACK_VERSION doesn't match its pinned sha256; removed it."
+    fi
+  fi
+  if grep -qx "    github-pinned: v$GH_STACK_VERSION" "$HOME/.claude/skills/gh-stack/SKILL.md" 2>/dev/null; then
+    skip "gh-stack skill $GH_STACK_VERSION already installed"
+  else
+    retry_run 3 "gh skill install github/gh-stack gh-stack --pin v$GH_STACK_VERSION --agent claude-code --scope user --force"
+  fi
+fi
+
 # Shell integration lets `wt switch` cd. Our own block rather than
 # `wt config shell install`, which writes outside the wsl-starter fences.
 ensure_block_per_shell "wsl-starter:worktrunk" "$HOME" \
@@ -90,4 +120,4 @@ if [ "$DRY_RUN" != "1" ] && [ "$(git -C "$WB_DIR" rev-parse HEAD)" != "$WORKBENC
 fi
 run "'$WB_DIR/install.sh'"
 
-ok "Workbench ready: wt $WT_VERSION, hunk $HUNK_VERSION, herdr-workbench ${WORKBENCH_COMMIT:0:12}."
+ok "Workbench ready: wt $WT_VERSION, hunk $HUNK_VERSION, gh-stack $GH_STACK_VERSION, herdr-workbench ${WORKBENCH_COMMIT:0:12}."

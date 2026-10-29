@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 # REQUIRES_ROOT=0
-# DESCRIPTION=Logins for the installed tools (gh, git identity, claude, git-spice, atuin, az, databricks, tailscale); re-runnable
+# DESCRIPTION=Logins for the installed tools (gh, git identity, claude, atuin, az, databricks, tailscale); re-runnable
 # ROLLBACK=git config --global --unset user.name || true
 # ROLLBACK=git config --global --unset user.email || true
-# ROLLBACK=# Logins live in each tool's own store; log out with: gh auth logout, claude auth logout, git-spice auth logout, atuin logout, az logout, databricks auth logout (or edit ~/.databrickscfg), sudo tailscale logout.
+# ROLLBACK=# Logins live in each tool's own store; log out with: gh auth logout, claude auth logout, atuin logout, az logout, databricks auth logout (or edit ~/.databrickscfg), sudo tailscale logout.
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/idempotent.sh"
 require_user
 
-# Plain bash: no aliases (`gs` is git-spice only in zsh) and maybe no
-# `mise activate`, so find each tool on PATH, then in its fixed install dir or mise.
+# Plain bash: maybe no `mise activate`, so find each tool on PATH, then in its
+# fixed install dir or mise.
 MISE="$(command -v mise || echo "$HOME/.local/bin/mise")"
 _bin() {
   command -v "$1" 2>/dev/null && return 0
@@ -70,10 +70,6 @@ if [ -n "$CLAUDE" ] && [ -d "$HOME/.claude/plugins" ] && [ ! -d "$HOME/.claude/r
    && "$CLAUDE" plugin list --json 2>/dev/null | grep '"my-claude@my-agent-skills"' >/dev/null; then
   TODO+=("my-claude rules: /my-claude:set-up in a Claude session")
 fi
-
-GS="$(_bin git-spice "")"
-_login git-spice "$GS" "'$GS' auth status --forge github" "'$GS' auth login --forge github"
-[ -z "$GS" ] || TODO+=("git-spice, per repo: gs repo init")
 
 # Optional: only syncs shell history between machines.
 ATUIN="$(_bin atuin "$HOME/.atuin/bin/atuin")"

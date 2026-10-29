@@ -16,8 +16,8 @@ case "$1 $2" in
   "api user") printf '1\tocto\tOcto Cat\n' ;;
 esac
 EOF
-  # git-spice: not logged in.
-  printf '#!/bin/sh\nexit 1\n' > "$STUBS/git-spice"
+  # az: not logged in.
+  printf '#!/bin/sh\nexit 1\n' > "$STUBS/az"
   chmod +x "$STUBS"/*
   export PATH="$STUBS:$PATH"
 }
@@ -36,7 +36,7 @@ EOF
   [ "$status" -eq 0 ]
   echo "$output" | grep -q '━━ 60-logins ━━'
   echo "$output" | grep -q 'GitHub: logged in'
-  echo "$output" | grep -q 'git-spice: git-spice auth login --forge github'
+  echo "$output" | grep -q 'Azure: az login --use-device-code'
   ! echo "$output" | grep -q '\$ .*auth login'
   # No WSL_GIT_* and no prompting, so identity is left as a to-do.
   echo "$output" | grep -q 'git identity: git config'

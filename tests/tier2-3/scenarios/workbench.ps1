@@ -4,6 +4,8 @@
   -Name 'workbench' `
   -InstallSteps @(
     @{ User='root';   Command='WSL_USER=tester WSL_PASSWORD=testpass123 WSL_HOSTNAME=testbox WSL_DNS="1.1.1.1" WSL_APT_UPGRADE=0 ./install.sh --base --non-interactive' }
+    # gh-stack is a gh extension; gh comes from 20-cli-modern.
+    @{ User='root';   Command='./install.sh --module 20-cli-modern --non-interactive' }
     @{ User='tester'; Command='cp -r /root/wsl-starter-script ~/wsl-starter-script && chown -R tester:tester ~/wsl-starter-script' }
     @{ User='tester'; Command='cd ~/wsl-starter-script && ./install.sh --workbench --non-interactive' }
     @{ User='tester'; Command='cd ~/wsl-starter-script && ./install.sh --workbench --non-interactive' }
