@@ -87,6 +87,14 @@ sudo_or_skip() {
   echo "$output" | grep -q 'CLAUDE_PERMISSION_MODE'
 }
 
+@test "CLAUDE_MY_CLAUDE rejects unknown values" {
+  cd "$REPO_ROOT"
+  CLAUDE_MY_CLAUDE=maybe NON_INTERACTIVE=1 \
+    run ./install.sh --module 50-claude-code --dry-run
+  [ "$status" -ne 0 ]
+  echo "$output" | grep -q 'CLAUDE_MY_CLAUDE must be one of'
+}
+
 @test "DOCKER_MODE rejects unknown modes" {
   sudo_or_skip
   cd "$REPO_ROOT"

@@ -19,12 +19,11 @@ modules/
   31-shell-history.sh   [user] atuin + zoxide (bash & zsh)
   40-mise.sh            [user] mise + selected runtimes + uv + tools (lazygit, fzf, ...)
   files/                artefacts modules install (wsl-port-check)
-  50-claude-code.sh     [user] claude-code + ~/.claude/ templates
+  50-claude-code.sh     [user] claude-code + ~/.claude/ templates + my-claude plugin
   55-workbench.sh       [user] worktrunk + hunk (pinned binaries) + herdr-workbench config, optional
   99-cleanup.sh         [root] apt autoremove + next-steps banner
 claude/
   settings.json.tmpl    user-global Claude settings template
-  CLAUDE.md.tmpl        user-global CLAUDE.md starter
   statusline.sh.tmpl    statusline (model, ctx %, in/out tokens, 5h rate-limit)
   mcp.example.json      commented MCP servers to copy into projects
 ```

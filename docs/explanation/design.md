@@ -35,7 +35,7 @@ One tool for Node, Python, Ruby, Java, Go, Deno, Bun. One activation hook per sh
 
 ## Claude Code starter, not opinions
 
-`50-claude-code` writes a minimal `~/.claude/settings.json`, a starter `~/.claude/CLAUDE.md`, a custom statusline, and a commented `mcp.example.json`. Existing files are preserved, never clobbered — so you can re-run after editing the templates and nothing fights you.
+`50-claude-code` writes a minimal `~/.claude/settings.json`, a custom statusline, and a commented `mcp.example.json`. Existing files are preserved, never clobbered — so you can re-run after editing the templates and nothing fights you. User-global rules don't ship here: the module offers to install the `my-claude` plugin, and `/my-claude:set-up` installs its rules, so every machine syncs them from one place.
 
 ## Pure bash, no framework
 

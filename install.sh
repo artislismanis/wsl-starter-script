@@ -41,7 +41,7 @@ Flags:
                       DOCKER_MODE, DOCKER_USER, DOCKER_ROOTLESS_PASTA,
                       DOCKER_ROOTLESS_HOST_SYMLINK,
                       PODMAN_COMPOSE, PODMAN_DOCKER_SHIM,
-                      ZSH_THEME, ZSH_PLUGINS, CLAUDE_PERMISSION_MODE.
+                      ZSH_THEME, ZSH_PLUGINS, CLAUDE_PERMISSION_MODE, CLAUDE_MY_CLAUDE.
                       Full list and defaults in docs/reference/env-vars.md.
   --dry-run           Print what would happen, make no changes.
   -h, --help          This message.
