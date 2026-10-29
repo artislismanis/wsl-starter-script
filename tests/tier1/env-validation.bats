@@ -32,7 +32,8 @@ sudo_or_skip() {
 @test "WSL_APT_UPGRADE accepts empty (treated as unset)" {
   sudo_or_skip
   cd "$REPO_ROOT"
-  run sudo -n -E env WSL_APT_UPGRADE='' NON_INTERACTIVE=1 bash modules/00-wsl-base.sh
+  # DRY_RUN: empty means "ask", which defaults to a real apt upgrade.
+  run sudo -n -E env WSL_APT_UPGRADE='' NON_INTERACTIVE=1 DRY_RUN=1 bash modules/00-wsl-base.sh
   # If it dies, it must NOT be because of WSL_APT_UPGRADE.
   if [ "$status" -ne 0 ]; then
     ! echo "$output" | grep -q 'WSL_APT_UPGRADE must be one of'
