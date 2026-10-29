@@ -105,7 +105,18 @@ If `date` is wildly wrong, that's clock skew (rare on current WSL — file an is
 
 ---
 
-## 5. What this doc deliberately does not include
+## 5. Several distros at once
+
+All distros run in one WSL VM and share its kernel and its network namespace: the same interfaces, routes, iptables and ports, in NAT and mirrored mode alike. Files, users and systemd stay per distro. What that means when more than one distro is running:
+
+- **Docker:** two classic (rootful) daemons share `docker0`, the bridges and the iptables rules, and can break each other's container networking. Use rootless Docker (`DOCKER_MODE=rootless`) in all but one distro; each rootless daemon gets its own network namespace.
+- **Tailscale:** one `tailscaled` owns `tailscale0` and its routes for every distro. Run it in one distro only.
+- **Ports:** a server on port 8080 in one distro blocks 8080 in all of them, and `localhost:8080` from any distro reaches it.
+- **tty1:** `00-wsl-base` masks `getty@tty1`, which otherwise fights the other distros' gettys over the shared console.
+
+---
+
+## 6. What this doc deliberately does not include
 
 - **Cron-driven cleanup scripts.** There's no safe periodic mutation for the stuck-port class of bugs — `conntrack -F` or similar will break healthy connections. Diagnose, then `wsl --shutdown` if needed.
 - **Time-resync services.** Recent WSL has built-in time sync. Add one only if you confirm clock drift via the test above.

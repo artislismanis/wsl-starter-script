@@ -53,6 +53,7 @@ After reopen:
 ```bash
 whoami                                        # should be your new user, not root
 systemctl is-system-running                   # "running" or "degraded" (not "offline")
+systemctl is-enabled getty@tty1               # masked
 hostname                                      # matches what you set
 mountpoint /mnt/c                             # "is not a mountpoint" (isolated)
 echo "${WSL_INTEROP:-unset}"                 # unset (isolated: no interop)

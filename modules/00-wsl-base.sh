@@ -7,6 +7,7 @@
 # ROLLBACK=# Then 'wsl --shutdown' from Windows so WSL re-reads /etc/wsl.conf and regenerates resolv.conf.
 # ROLLBACK=# Carve-out: the non-root user account created by this module is NOT removed automatically.
 # ROLLBACK=#   sudo userdel -r <username>   # (also drops home dir AND the repo copy this module placed under it)
+# ROLLBACK=sudo rm -f /etc/systemd/system/getty@tty1.service   # unmask the tty1 getty
 # ROLLBACK=# Per-session: /run/wsl-starter-handoff is on tmpfs and self-clears on shutdown.
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
@@ -52,6 +53,16 @@ apt_install sudo systemd
 
 replace_ini_section "wsl-starter:boot" /etc/wsl.conf boot "[boot]
 systemd=true"
+
+# Every distro shares the VM's kernel, so /dev/tty1 is one device for all of
+# them. Each distro's getty@tty1 hangs up the others' until they all hit the
+# start limit and systemd reports "degraded". Nothing in WSL uses tty1.
+if [ "$(readlink /etc/systemd/system/getty@tty1.service 2>/dev/null)" = /dev/null ]; then
+  skip "getty@tty1 already masked"
+else
+  log "Masking getty@tty1"
+  run "ln -sf /dev/null /etc/systemd/system/getty@tty1.service"
+fi
 
 USER_NAME="${WSL_USER:-}"
 [ -n "$USER_NAME" ] || USER_NAME="$(ask "Non-root username to create")"
