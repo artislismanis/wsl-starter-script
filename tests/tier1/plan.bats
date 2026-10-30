@@ -105,3 +105,25 @@ plan() { PATH="$STUBS:${PATH//$REAL_HOME\/.local\/bin:/}" run --separate-stderr 
   plan --module 25-docker-engine
   echo "$stderr" | grep -q 'Docker: docker0 exists'
 }
+
+menu() { PATH="${PATH//$REAL_HOME\/.local\/bin:/}" run bash -c "printf '$1' | ./install.sh"; }
+
+@test "menu: a preset goes straight to the plan, and n stops there" {
+  menu '3\nn\n'
+  [ "$status" -eq 0 ]
+  echo "$output" | grep -q '  workbench:'
+  ! echo "$output" | grep -q '━━'
+}
+
+@test "menu: Custom starts from a preset and toggles by number" {
+  menu '5\ndev\n7\n\nn\n'
+  [ "$status" -eq 0 ]
+  echo "$output" | grep -q '\[x\] Podman'
+  echo "$output" | grep -q '  podman:'
+  ! echo "$output" | grep -q '━━'
+}
+
+@test "menu: a bad choice is refused" {
+  menu '9\n'
+  [ "$status" -ne 0 ]
+}

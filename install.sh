@@ -359,33 +359,21 @@ guided_plan() {
 
 interactive_menu() {
   echo "Select what to run:"
-  echo "  1) Guided setup    (start from a preset, change anything, review the plan)"
-  echo "  2) Full setup      (the full preset)"
-  echo "  3) Base only       (root: systemd, user, hostname, DNS)"
-  echo "  4) Dev only        (CLI tools, zsh, history, mise)"
-  echo "  5) Docker only     (Docker Engine)"
-  echo "  6) Podman only     (rootless, daemonless)"
-  echo "  7) Claude only     (claude-code + config)"
-  echo "  8) Tailscale only  (private network for SSH and phone access)"
-  echo "  9) Workbench only  (herdr-workbench config, plus the tools it needs)"
-  echo " 10) Logins only    (log in to installed tools, set git identity)"
-  echo " 11) Single module"
-  echo " 12) List modules"
+  echo "  1) WSL only   (base setup, nothing else)"
+  echo "  2) Dev        (terminal + dev tools)"
+  echo "  3) AI         (dev + workflow tools, Claude Code, herdr, workbench)"
+  echo "  4) Full       (AI + Docker, Tailscale, stack-specific tools)"
+  echo "  5) Custom     (start from a preset, tick what you want)"
+  echo "  6) One module"
   echo "  q) Quit"
   read -r -p "$(fmt_prompt "Choice >")" sel
   case "$sel" in
-    1) MODE=guided ;;
-    2) MODE=groups; apply_preset full ;;
-    3) MODE=groups; SELECTED=(base) ;;
-    4) MODE=groups; SELECTED=(dev) ;;
-    5) MODE=groups; SELECTED=(docker) ;;
-    6) MODE=groups; SELECTED=(podman) ;;
-    7) MODE=groups; SELECTED=(claude) ;;
-    8) MODE=groups; SELECTED=(tailscale) ;;
-    9) MODE=groups; SELECTED=(workbench) ;;
-    10) MODE=groups; SELECTED=(logins) ;;
-    11) list_modules; read -r -p "$(fmt_prompt "Module name:")" SINGLE; MODE=single ;;
-    12) list_modules; exit 0 ;;
+    1) MODE=menu; apply_preset wsl ;;
+    2) MODE=menu; apply_preset dev ;;
+    3) MODE=menu; apply_preset ai ;;
+    4) MODE=menu; apply_preset full ;;
+    5) MODE=menu; guided_plan ;;
+    6) list_modules; read -r -p "$(fmt_prompt "Module name:")" SINGLE; MODE=single ;;
     q|Q) exit 0 ;;
     *) die "Invalid selection" ;;
   esac
@@ -549,8 +537,7 @@ if [ -z "$MODE" ]; then
   interactive_menu
 fi
 
-if [ "$MODE" = guided ]; then
-  guided_plan
+if [ "$MODE" = menu ]; then
   MODE=groups
   resolve_plan
   show_plan
