@@ -20,6 +20,7 @@
 # ROLLBACK=# Marker-specific rc-block strip (so single-module --rollback is complete; the
 # ROLLBACK=#   cross-cutting tail at the end of the all-modules form covers it too).
 # ROLLBACK=sed -i '/# >>> wsl-starter:mise >>>/,/# <<< wsl-starter:mise <<</d' "$HOME/.bashrc" "$HOME/.zshrc" 2>/dev/null || true
+# ROLLBACK=sed -i '/# >>> wsl-starter:mise-shims >>>/,/# <<< wsl-starter:mise-shims <<</d' "$HOME/.zshenv" "$HOME/.profile" 2>/dev/null || true
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/idempotent.sh"
@@ -87,6 +88,13 @@ ensure_block_per_shell "wsl-starter:mise" "$HOME" \
 command -v mise >/dev/null 2>&1 && eval "$("$HOME/.local/bin/mise" activate bash)"' \
   'export PATH="$HOME/.local/bin:$PATH"
 command -v mise >/dev/null 2>&1 && eval "$("$HOME/.local/bin/mise" activate zsh)"'
+
+# Shells that skip the rc files (herdr popups, `wsl -- cmd`, IDEs) never run
+# `mise activate`; shims give them the same tools. Activated shells still put
+# real install dirs first.
+SHIMS_PATH='export PATH="$HOME/.local/share/mise/shims:$PATH"'
+ensure_block "wsl-starter:mise-shims" "$HOME/.zshenv" "$SHIMS_PATH"
+ensure_block "wsl-starter:mise-shims" "$HOME/.profile" "$SHIMS_PATH"
 
 # ---- Runtimes ---------------------------------------------------------------
 # MISE_LANGUAGES env var overrides the prompts (comma-separated).

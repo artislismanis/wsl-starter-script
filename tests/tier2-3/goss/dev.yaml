@@ -26,6 +26,16 @@ command:
   terraform: { exec: 'mise exec -- terraform version',   exit-status: 0 }
   databricks: { exec: 'mise exec -- databricks --version', exit-status: 0 }
   uv:        { exec: 'mise exec -- uv --version',        exit-status: 0 }
+  # Shims reach global tools from shells that never ran `mise activate`.
+  shims-zsh-c:
+    exec: "env -i HOME=$HOME PATH=/usr/bin:/bin zsh -c 'cd / && pre-commit --version'"
+    exit-status: 0
+  shims-zsh-lc:
+    exec: "env -i HOME=$HOME PATH=/usr/bin:/bin zsh -lc 'cd / && pre-commit --version'"
+    exit-status: 0
+  shims-bash-lc:
+    exec: "env -i HOME=$HOME PATH=/usr/bin:/bin bash -lc 'cd / && pre-commit --version'"
+    exit-status: 0
   # Supply chain: every global mise tool is installed at exactly the version
   # 40-mise requested (Tier 1 pins.bats keeps every request an exact pin).
   mise-installed-as-pinned:
@@ -55,6 +65,14 @@ command:
     stdout: ["1"]
   bashrc-mise-once:
     exec: "grep -c '# >>> wsl-starter:mise >>>' $HOME/.bashrc"
+    exit-status: 0
+    stdout: ["1"]
+  zshenv-mise-shims-once:
+    exec: "grep -c '# >>> wsl-starter:mise-shims >>>' $HOME/.zshenv"
+    exit-status: 0
+    stdout: ["1"]
+  profile-mise-shims-once:
+    exec: "grep -c '# >>> wsl-starter:mise-shims >>>' $HOME/.profile"
     exit-status: 0
     stdout: ["1"]
   zshrc-atuin-once:

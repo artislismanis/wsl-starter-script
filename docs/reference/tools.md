@@ -158,7 +158,7 @@ Both tools get wired into `~/.bashrc` and `~/.zshrc` through a `wsl-starter:atui
 
 ## Module `40-mise` — unified version manager + language runtimes *(user)*
 
-[`mise`](https://mise.jdx.dev/) is a modern replacement for asdf / nvm / pyenv / rbenv / chruby / goenv — one tool, one `.mise.toml` per project, auto-activates runtimes on `cd`. The module wires `mise activate` into both shells.
+[`mise`](https://mise.jdx.dev/) is a modern replacement for asdf / nvm / pyenv / rbenv / chruby / goenv — one tool, one `.mise.toml` per project, auto-activates runtimes on `cd`. The module wires `mise activate` into both shells, and adds mise's shims to `PATH` in `~/.zshenv` and `~/.profile`, so global tools also work in shells that skip the rc files (`zsh -c`, `bash -lc`, herdr popups, IDEs). A shim runs whichever version applies in the current directory, so a project-only tool fails outside its project. Bare `bash -c` with a clean environment, cron and systemd units still need full paths or `mise exec`.
 
 ### What the installer asks about
 
