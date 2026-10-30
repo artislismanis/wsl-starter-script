@@ -106,6 +106,12 @@ command:
     exec: 'grep -q "^name: hunk-review" "$HOME/.claude/skills/hunk-review/SKILL.md"'
     exit-status: 0
 
+  worktrunk-claude-plugin:
+    exec: "$HOME/.local/bin/claude plugin list --json"
+    exit-status: 0
+    stdout:
+      contain-substring: "worktrunk@my-agent-skills"
+
   herdr-worktree-keys:
     exec: "grep -cE '^key = \"prefix\\+shift\\+[ge]\"$' $HOME/.config/herdr/config.toml"
     exit-status: 0
