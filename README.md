@@ -22,7 +22,7 @@ Or interactively — drop `--all` for a menu. The full walk-through (creating th
 - `mise` + Node + Python (Ruby/Java/Go/Deno/Bun on request) + uv, every version pinned
 - Optional workbench: worktrunk and hunk as pinned binaries, plus [herdr-workbench](https://github.com/artislismanis/herdr-workbench) config (worktrees with a stack-agnostic setup hook)
 - Claude Code with a starter `~/.claude/` config
-- Optional: Docker Engine (classic or rootless with pasta networking), Podman, Tailscale
+- Optional: Docker Engine, Podman, Tailscale
 
 [`docs/reference/tools.md`](docs/reference/tools.md) has the per-module breakdown — every package, what it replaces, why it earned a slot on your `$PATH`.
 

@@ -14,10 +14,8 @@ Under `--non-interactive` the installer reads answers from these env vars instea
 | `MISE_<LANG>_VERSION`     | Override a runtime's pinned version — see defaults below |
 | `MISE_TOOLS`              | CSV of mise-managed tools, e.g. `lazygit,zellij,terraform`. Valid: `lazygit`, `zellij`, `fzf`, `yq`, `pre-commit`, `glow`, `terraform`, `databricks`, `azure-cli`, `poetry`. Replaces the prompts entirely. |
 | `MISE_<TOOL>_VERSION`     | Override a tool's pinned version — see defaults below |
-| `DOCKER_MODE`             | `classic` / `rootless` / `skip` (only for `25-docker-engine`) |
-| `DOCKER_USER`             | Target user — added to `docker` group (classic) or owns the rootless daemon (rootless). Resolution: `DOCKER_USER` → `SUDO_USER` → `/run/wsl-starter-handoff` (user `00-wsl-base` created earlier in this WSL session) → `WSL_USER`; only prompts if none of those name a real non-root account. |
-| `DOCKER_ROOTLESS_PASTA`   | `1` to use pasta as the rootlesskit network driver (rootless only) |
-| `DOCKER_ROOTLESS_HOST_SYMLINK` | `1` (default) symlinks `/var/run/docker.sock` → `/run/user/$UID/docker.sock` so dev-containers and tooling that bind-mount the well-known path keep working under rootless. `0` to skip. |
+| `DOCKER_MODE`             | `classic` / `skip` (only for `25-docker-engine`) |
+| `DOCKER_USER`             | Target user — added to the `docker` group. Resolution: `DOCKER_USER` → `SUDO_USER` → `/run/wsl-starter-handoff` (user `00-wsl-base` created earlier in this WSL session) → `WSL_USER`; only prompts if none of those name a real non-root account. |
 | `PODMAN_COMPOSE`          | `1` (default) installs `podman-compose`, `0` skips |
 | `PODMAN_DOCKER_SHIM`      | `1` (default) installs `podman-docker` shim if `docker-ce-cli` isn't present |
 | `ZSH_THEME`               | Override the oh-my-zsh theme |

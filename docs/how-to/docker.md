@@ -12,20 +12,9 @@ Non-interactively — pass tunables as `VAR=val` args to sudo (modern sudo forwa
 sudo DOCKER_MODE=classic DOCKER_USER=$USER ./install.sh --module 25-docker-engine --non-interactive
 ```
 
-`DOCKER_MODE` accepts `classic`, `rootless`, or `skip`.
+`DOCKER_MODE` accepts `classic` or `skip`.
 
 Requires systemd, which `00-wsl-base` enables. On a fresh image WSL hasn't restarted yet, so `systemd=true` in `/etc/wsl.conf` isn't live until you `wsl --terminate <distro>` and reopen. Running `--docker` standalone before that reopen aborts with a clear message. When you chain groups (`sudo ./install.sh --all` or `--base --docker`), the dispatcher detects this and **defers the docker step to the post-reopen leg** — finish the root phase, run `wsl --terminate`, reopen, then re-run `./install.sh --docker` (or the full deferred set printed in the handoff banner).
-
-## Rootless + WSL mirrored networking
-
-The default `slirp4netns` rootlesskit driver doesn't route to the WSL host, so `host.docker.internal` / `host-gateway` don't resolve to anything useful. The installer swaps in [`pasta`](https://passt.top/) (newer rootlesskit backend; installs the `passt` package and writes a systemd-user override setting `NET=pasta`). Default-on at the prompt and under `--non-interactive`; opt out with `DOCKER_ROOTLESS_PASTA=0`.
-
-Then in any compose file:
-
-```yaml
-extra_hosts:
-  - "host.docker.internal:host-gateway"
-```
 
 ## Auto-fired companion: 27-wsl-network
 

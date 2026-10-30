@@ -290,33 +290,26 @@ sudo ./install.sh --module 40-mise
 
 ---
 
-## Scenario 11a — Docker (rootless + pasta)
+## Scenario 11a — Docker
 
 After base + reopen, as the user:
 
 ```bash
-sudo DOCKER_MODE=rootless DOCKER_ROOTLESS_PASTA=1 \
-  ./install.sh --docker --non-interactive
+sudo DOCKER_MODE=classic ./install.sh --docker --non-interactive
 ```
 
-**Verify (in a fresh shell so rc-file blocks load):**
+**Verify (in a fresh shell so the docker group applies):**
 
 ```bash
-echo "$DOCKER_HOST"                                  # unix:///run/user/<uid>/docker.sock
 docker info >/dev/null && echo ok                    # daemon reachable
-systemctl --user is-active docker                    # active
-grep -c '# >>> wsl-starter:docker-rootless >>>' ~/.bashrc   # exactly 1 (re-run twice)
+systemctl is-active docker                           # active
+cat /etc/docker/daemon.json                          # live-restore
 systemctl is-enabled wsl-rshared-root.service        # 27-wsl-network ran
 command -v wsl-port-check                            # /usr/local/bin/wsl-port-check
-
-# /var/run/docker.sock compatibility symlink (DOCKER_ROOTLESS_HOST_SYMLINK, default on):
-ls -la /var/run/docker.sock                                   # symlink → /run/user/<uid>/docker.sock
-cat /etc/tmpfiles.d/wsl-starter-docker-rootless-symlink.conf  # the systemd-tmpfiles entry
-docker -H unix:///var/run/docker.sock info >/dev/null && echo ok   # daemon reachable via the well-known path
-ls /etc/apt/apt.conf.d/51unattended-upgrades-docker           # hold in place (docker-ce, plugins, containerd.io)
+ls /etc/apt/apt.conf.d/51unattended-upgrades-docker  # hold in place (docker-ce, plugins, containerd.io)
 ```
 
-**Pass criteria:** rootless daemon up; pasta override file present at `~/.config/systemd/user/docker.service.d/pasta.conf`; rc-file block exactly once after a re-run; `/var/run/docker.sock` resolves to the per-user socket and `docker info` succeeds against it.
+**Pass criteria:** daemon up and reachable without sudo; a re-run changes nothing; 27-wsl-network artifacts present.
 
 **Sub-scenario — `DOCKER_MODE=skip` suppresses 27-wsl-network.** On a fresh image (no prior runtime install), as root:
 
@@ -478,7 +471,7 @@ cd /root/wsl-starter-script
 sudo ./install.sh --all
 ```
 
-Pick `1) classic` (or `2) rootless`) at the docker prompt — **not** `skip` — so this scenario also exercises the deferred-runtime path.
+Answer yes at the docker prompt so this scenario also exercises the deferred-runtime path.
 
 Expect the dispatcher to log `Deferring docker until after the WSL reopen — base just enabled systemd.` and then skip the in-session handoff offer (since docker needs PID 1 systemd, which a `sudo -iu` handoff can't provide). The post-root banner names the full deferred set, e.g. `./install.sh --dev --docker --claude`.
 
@@ -564,7 +557,7 @@ MISE_NODE_VERSION='22; rm -rf /' \
 CLAUDE_PERMISSION_MODE=invalid \
   ./install.sh --module 50-claude-code --dry-run --non-interactive 2>&1 | grep -c 'CLAUDE_PERMISSION_MODE'    # >= 1
 
-# DOCKER_MODE must be classic | rootless | skip
+# DOCKER_MODE must be classic | skip
 sudo DOCKER_MODE=invalid bash modules/25-docker-engine.sh; echo "exit=$?"   # exit=1
 ```
 
@@ -650,13 +643,13 @@ grep '^default=' /etc/wsl.conf                                # default=<your-us
 
 ## Scenario 20 — `ensure_block_per_shell` divergent payloads
 
-Scenario 4 confirms marker uniqueness; this confirms bash and zsh actually got *different* content where the helper is used (`25-docker-engine` is the canonical caller).
+Scenario 4 confirms marker uniqueness; this confirms bash and zsh actually got *different* content where the helper is used (`31-shell-history` is the canonical caller).
 
-After Scenario 11a:
+After `--dev`:
 
 ```bash
-diff <(sed -n '/# >>> wsl-starter:docker-rootless >>>/,/# <<< wsl-starter:docker-rootless <<</p' ~/.bashrc) \
-     <(sed -n '/# >>> wsl-starter:docker-rootless >>>/,/# <<< wsl-starter:docker-rootless <<</p' ~/.zshrc)
+diff <(sed -n '/# >>> wsl-starter:atuin-zoxide >>>/,/# <<< wsl-starter:atuin-zoxide <<</p' ~/.bashrc) \
+     <(sed -n '/# >>> wsl-starter:atuin-zoxide >>>/,/# <<< wsl-starter:atuin-zoxide <<</p' ~/.zshrc)
 ```
 
 **Pass criteria:** the two blocks differ (each shell gets its own init form); both files still contain exactly one block (re-run idempotence preserved).
