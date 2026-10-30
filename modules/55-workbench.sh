@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # REQUIRES_ROOT=0
-# DESCRIPTION=Workbench: worktrunk + hunk as pinned release binaries, gh-stack + its agent skill, then herdr-workbench config at a pinned commit
+# DESCRIPTION=Workbench: herdr + worktrunk + hunk as pinned release binaries, gh-stack + its agent skill, then herdr-workbench config at a pinned commit
 # ROLLBACK=# herdr-workbench first: its own recipe strips its block from ~/.config/worktrunk/config.toml and removes its hooks.
-# ROLLBACK=[ -x "$HOME/.local/share/herdr-workbench/install.sh" ] && "$HOME/.local/share/herdr-workbench/install.sh" --rollback | bash
+# ROLLBACK=[ -x "$HOME/.local/share/herdr-workbench/install.sh" ] && "$HOME/.local/share/herdr-workbench/install.sh" --rollback | PATH="$HOME/.local/bin:$PATH" bash
 # ROLLBACK=rm -rf "$HOME/.local/share/herdr-workbench"
-# ROLLBACK=rm -f "$HOME/.local/bin/wt" "$HOME/.local/bin/git-wt" "$HOME/.local/bin/hunk"
+# ROLLBACK=rm -f "$HOME/.local/bin/herdr" "$HOME/.local/bin/wt" "$HOME/.local/bin/git-wt" "$HOME/.local/bin/hunk"
 # ROLLBACK=rm -rf "$HOME/.local/share/hunkdiff-linux-x64"
 # ROLLBACK=gh extension remove stack 2>/dev/null || true
 # ROLLBACK=rm -rf "$HOME/.claude/skills/gh-stack"
@@ -18,13 +18,15 @@ require_user
 # git hooks don't always start from a shell that ran `mise activate`.
 # .github/bump-pins.sh moves each pin to upstream's latest and recomputes its
 # sha256; reviewing the upstream diff and merging that PR is the approval.
+HERDR_VERSION=0.9.5  # bump: github:herdrdev/herdr herdr-linux-x86_64
+HERDR_SHA256=14d9e8bc8b4a9e0118d77c32266f76d461f09b40342eb23752960bd89f59929d
 WT_VERSION=0.81.0  # bump: github:max-sixty/worktrunk worktrunk-x86_64-unknown-linux-musl.tar.xz
 WT_SHA256=0c253f216985ce9cd7b202a11606b5ce6aa934b1019fd1fbb9b7ce2b47b1c74a
 HUNK_VERSION=0.24.1  # bump: github:modem-dev/hunk hunkdiff-linux-x64.tar.gz
 HUNK_SHA256=4b8c98f8d97745499916cc1e1d2f27ffd258c6d6358dd4532f61e41c5eb19692
 GH_STACK_VERSION=0.3.0  # bump: github:github/gh-stack linux-amd64
 GH_STACK_SHA256=957e822cfa7e435cd84a297cd96c419b58e51e3ac58be249762c24bd9e45099b
-WORKBENCH_COMMIT=babfb4b29b92e4bc5ea8cfb61234f57831a62c3f  # bump: git:artislismanis/herdr-workbench
+WORKBENCH_COMMIT=c0db4e901618e0cbd62f5ce5ee6df98ca2fc42a2  # bump: git:artislismanis/herdr-workbench
 
 BIN="$HOME/.local/bin"
 SHARE="$HOME/.local/share"
@@ -50,7 +52,31 @@ _install_release() {
   return "$rc"
 }
 
+# _install_binary <url> <sha256> <dest>: like _install_release for a release
+# that is a bare binary rather than a tarball.
+_install_binary() {
+  local url="$1" sha="$2" dest="$3" t rc=0
+  t="$(mktemp)"
+  if curl -fsSL -o "$t" "$url" && echo "$sha  $t" | sha256sum -c --quiet -; then
+    mkdir -p "$(dirname "$dest")"
+    install -m 755 "$t" "$dest" || rc=1
+  else
+    rc=1
+  fi
+  rm -f "$t"
+  return "$rc"
+}
+
 _has_version() { [ -x "$1" ] && "$1" --version 2>/dev/null | grep -qF "$2"; }
+
+# herdr updates itself unless told not to; herdr-workbench's config turns the
+# version check off, so this pin is the only thing that moves it.
+if _has_version "$BIN/herdr" "$HERDR_VERSION"; then
+  skip "herdr $HERDR_VERSION already installed"
+else
+  log "Installing herdr $HERDR_VERSION"
+  retry_run 3 "_install_binary https://github.com/herdrdev/herdr/releases/download/v$HERDR_VERSION/herdr-linux-x86_64 $HERDR_SHA256 '$BIN/herdr'"
+fi
 
 if _has_version "$BIN/wt" "$WT_VERSION"; then
   skip "worktrunk $WT_VERSION already installed"
@@ -118,6 +144,7 @@ fi
 if [ "$DRY_RUN" != "1" ] && [ "$(git -C "$WB_DIR" rev-parse HEAD)" != "$WORKBENCH_COMMIT" ]; then
   die "herdr-workbench is at $(git -C "$WB_DIR" rev-parse HEAD), expected $WORKBENCH_COMMIT"
 fi
-run "'$WB_DIR/install.sh'"
+# Our binaries may not be on PATH yet in this shell; install.sh needs herdr.
+run "PATH='$BIN':\"\$PATH\" '$WB_DIR/install.sh'"
 
-ok "Workbench ready: wt $WT_VERSION, hunk $HUNK_VERSION, gh-stack $GH_STACK_VERSION, herdr-workbench ${WORKBENCH_COMMIT:0:12}."
+ok "Workbench ready: herdr $HERDR_VERSION, wt $WT_VERSION, hunk $HUNK_VERSION, gh-stack $GH_STACK_VERSION, herdr-workbench ${WORKBENCH_COMMIT:0:12}."

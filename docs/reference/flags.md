@@ -15,7 +15,7 @@
 --claude              Claude Code + user-global config.
 --tailscale           Tailscale (private network for SSH and phone access). Never part of
                       --all. Waits for the reopen after --base, like --docker.
---workbench           worktrunk + hunk (pinned binaries) + herdr-workbench config. Never
+--workbench           herdr + worktrunk + hunk (pinned binaries) + gh-stack + herdr-workbench config. Never
                       part of --all.
 --logins              Log in to the installed tools and set git identity. Re-runnable;
                       never part of --all. Under --non-interactive it only reports.

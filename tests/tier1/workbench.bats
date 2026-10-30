@@ -31,8 +31,8 @@ MOD=modules/55-workbench.sh
   cd "$REPO_ROOT"
   run ./install.sh --rollback 55-workbench
   [ "$status" -eq 0 ]
-  echo "$output" | grep -q 'herdr-workbench/install.sh" --rollback | bash'
-  echo "$output" | grep -q 'rm -f "$HOME/.local/bin/wt"'
+  echo "$output" | grep -q 'herdr-workbench/install.sh" --rollback | PATH="$HOME/.local/bin:$PATH" bash'
+  echo "$output" | grep -q 'rm -f "$HOME/.local/bin/herdr" "$HOME/.local/bin/wt"'
   [ "$(echo "$output" | grep -n 'install.sh" --rollback' | cut -d: -f1)" -lt \
     "$(echo "$output" | grep -n 'local/bin/wt' | cut -d: -f1)" ]
 }

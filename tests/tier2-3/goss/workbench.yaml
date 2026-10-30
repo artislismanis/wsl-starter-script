@@ -3,6 +3,12 @@
 
 command:
   # Plan check: the binaries resolve with no shell activation at all.
+  herdr-pinned-without-activation:
+    exec: |
+      pin="$(sed -n 's/^HERDR_VERSION=\([^ ]*\).*/\1/p' "$HOME/wsl-starter-script/modules/55-workbench.sh")"
+      [ -n "$pin" ] && env -i HOME="$HOME" PATH="$HOME/.local/bin:/usr/bin:/bin" herdr --version | grep -qF "$pin"
+    exit-status: 0
+
   wt-pinned-without-activation:
     exec: |
       pin="$(sed -n 's/^WT_VERSION=\([^ ]*\).*/\1/p' "$HOME/wsl-starter-script/modules/55-workbench.sh")"
@@ -58,12 +64,29 @@ command:
     exit-status: 0
     stdout: ["# >>> herdr-workbench:worktrunk >>>"]
 
+  # Same idea for herdr: the real binary must accept the file with our block.
+  herdr-config-loads:
+    exec: 'herdr config check'
+    exit-status: 0
+
+  herdr-config-block-once:
+    exec: "grep -c '^# >>> herdr-workbench:herdr >>>$' $HOME/.config/herdr/config.toml"
+    exit-status: 0
+    stdout: ["1"]
+
+  herdr-claude-integration:
+    exec: 'herdr integration status'
+    exit-status: 0
+    stdout: ["/claude: current/"]
+
   bashrc-worktrunk-once:
     exec: "grep -c '# >>> wsl-starter:worktrunk >>>' $HOME/.bashrc"
     exit-status: 0
     stdout: ["1"]
 
 file:
+  "{{.Env.HOME}}/.claude/skills/herdr/SKILL.md":
+    exists: true
   "{{.Env.HOME}}/.config/worktrunk/hooks/worktree-setup":
     exists: true
     mode: "0755"

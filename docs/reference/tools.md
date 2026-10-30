@@ -57,6 +57,7 @@ Faster, friendlier defaults for the commands you use hourly. All installed from 
 | [`delta`](https://github.com/dandavison/delta) | `git diff` pager | Syntax-highlighted, side-by-side-capable pager for `git diff` / `log` / `show`. `40-mise` sets `core.pager=delta` and `interactive.diffFilter=delta --color-only` in `~/.gitconfig`, but only where those keys are unset, so your own pager config wins. From apt rather than mise because git launches it from processes that never ran `mise activate` (`wsl -- git`, IDEs). |
 | [`eza`](https://github.com/eza-community/eza) | `ls` | Colors, git status column (`eza -l --git`), tree view (`eza --tree`), icons optional. |
 | [`gh`](https://cli.github.com/) | web UI for GitHub | Create/review PRs, manage issues, clone repos, run Actions — without leaving the shell. |
+| [`wl-clipboard`](https://github.com/bugaevc/wl-clipboard) | — | `wl-copy` / `wl-paste` over WSLg's Wayland socket, which reaches the Windows clipboard even with interop off. The workbench's copy keys use it. |
 
 Ubuntu ships `fd` as `fdfind` and `bat` as `batcat` to avoid namespace clashes; the module symlinks the conventional names under `/usr/local/bin` so muscle memory works.
 
@@ -284,6 +285,7 @@ Never part of `--all`; pass `--workbench`.
 
 | Item | Purpose |
 |---|---|
+| [`herdr`](https://github.com/herdrdev/herdr) | Terminal workspace for coding agents: workspaces, panes, agent state. Release binary in `~/.local/bin`, pinned with its sha256. herdr-workbench's config turns off its self-update, so the pin is the only thing that moves it. |
 | [`worktrunk`](https://worktrunk.dev/) (`wt`, `git-wt`) | Git worktrees for parallel agent work. Release binary in `~/.local/bin`, pinned with its sha256. Shell integration in a `wsl-starter:worktrunk` rc-block lets `wt switch` change directory. |
 | [`hunk`](https://github.com/modem-dev/hunk) | Terminal diff and code review. Release directory in `~/.local/share/hunkdiff-linux-x64` (its bundled agent skills sit next to the binary), symlinked into `~/.local/bin`, pinned with its sha256. |
 | [`gh-stack`](https://github.com/github/gh-stack) | GitHub's native [stacked PRs](https://docs.github.com/en/pull-requests/get-started/about-stacked-prs) as `gh stack`. A gh extension pinned to a release and checked against its sha256 after install; needs gh (from `--dev`). Its agent skill goes to `~/.claude/skills/gh-stack/` via `gh skill install`, pinned to the same tag. |
