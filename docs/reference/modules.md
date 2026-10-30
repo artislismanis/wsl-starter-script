@@ -11,7 +11,7 @@ modules/
   00-wsl-base.sh        [root] systemd, user, hostname, DNS, interop, automount
   10-apt-core.sh        [root] build-essential, git, tmux, locales, ...
   20-cli-modern.sh      [root] zsh, ripgrep, fd, bat, eza, gh
-  25-docker-engine.sh   [root] Docker Engine (classic or rootless), optional
+  25-docker-engine.sh   [root] Docker Engine, optional
   26-podman.sh          [root] Podman (rootless, daemonless) + docker shim, optional
   27-wsl-network.sh     [root] wsl-port-check, rshared-root unit
   28-tailscale.sh       [root] Tailscale client + tailscaled, optional

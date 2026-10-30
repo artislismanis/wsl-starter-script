@@ -271,15 +271,6 @@ replace_ini_section() {
   mv "$file.tmp" "$file"
 }
 
-# ensure_block_in_rcs <marker> <home_dir> <content> [owner]
-#   Same content into bash + zsh rc files. Thin wrapper around
-#   ensure_block_per_shell — kept as a separate name so call sites that write
-#   identical content in both shells don't have to duplicate the string.
-ensure_block_in_rcs() {
-  local marker="$1" home="$2" content="$3" owner="${4:-}"
-  ensure_block_per_shell "$marker" "$home" "$content" "$content" "$owner"
-}
-
 # write_file_once <path> [owner] [mode]   — content read from stdin (heredoc).
 #   Skip if <path> already exists (preserves operator edits). Otherwise
 #   mkdir -p the parent and write. With [owner] set, mkdir + write run as
@@ -316,8 +307,7 @@ write_file_once() {
 #   Write a marked block into ~/.bashrc (always) and ~/.zshrc (only if it
 #   already exists — zsh wiring lives in 30-shell-zsh, which creates it).
 #   If [owner] is given, chown the touched rc files to that user; use this
-#   when root is editing rc files in another user's home (rootless-docker
-#   handoff). For identical bash/zsh content, prefer ensure_block_in_rcs.
+#   when root is editing rc files in another user's home.
 ensure_block_per_shell() {
   local marker="$1" home="$2" bash_content="$3" zsh_content="$4" owner="${5:-}"
   ensure_block "$marker" "$home/.bashrc" "$bash_content"

@@ -7,7 +7,7 @@
 ## How-to guides
 
 - [Installing](how-to/install.md) — one-liner, clone-first, offline
-- [Installing Docker](how-to/docker.md) — classic vs rootless, pasta networking
+- [Installing Docker](how-to/docker.md) — rootful daemon, companion module
 - [Rolling back](how-to/rollback.md) — `--rollback` recipe and carve-outs
 - [Running tests locally](how-to/testing.md) — Tier 1 (bats) and Tier 2/3 (PowerShell + Goss)
 - [Windows-side configuration](how-to/wsl-host.md) — `.wslconfig`, auto-start at login, mirrored-mode recovery

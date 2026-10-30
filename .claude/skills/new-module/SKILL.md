@@ -43,7 +43,7 @@ Current numeric map (do not collide):
 
 ## Conventions to remind the user about when writing the body
 
-The full helper table lives in **CLAUDE.md § Idempotency discipline** — point the user there for canonical signatures (`apt_install`, `apt_add_signed_repo`, `apt_hold_unattended`, `ensure_block`, `ensure_block_in_rcs`, `ensure_block_per_shell`, `replace_ini_section`, `write_file_once`, `write_if_drift`, `copy_if_drift`). Surface these conventions inline:
+The full helper table lives in **CLAUDE.md § Idempotency discipline** — point the user there for canonical signatures (`apt_install`, `apt_add_signed_repo`, `apt_hold_unattended`, `ensure_block`, `ensure_block_per_shell`, `replace_ini_section`, `write_file_once`, `write_if_drift`, `copy_if_drift`). Surface these conventions inline:
 
 - Don't hand-roll apt work — `apt_install` invokes `apt_update_once` itself.
 - Guard every mutation (`command_exists`, `pkg_installed`, the helpers above).

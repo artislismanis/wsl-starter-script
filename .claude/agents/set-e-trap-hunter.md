@@ -47,7 +47,7 @@ Group hits by file. End with a one-line summary: `N hits across M files` or `cle
 
 ## Reference
 
-The CLAUDE.md section "`set -e` + trailing `&&` footgun" documents the rule. The fixes from PR #20 in `lib/idempotent.sh` (`write_file_once`, `ensure_block_per_shell`, `ensure_block_in_rcs`) are the canonical examples of the rewrite shape.
+The CLAUDE.md section "`set -e` + trailing `&&` footgun" documents the rule. The fixes from PR #20 in `lib/idempotent.sh` (`write_file_once`, `ensure_block_per_shell`) are the canonical examples of the rewrite shape.
 
 ## Out of scope
 

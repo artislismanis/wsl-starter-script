@@ -11,8 +11,7 @@ Path: `%UserProfile%\.wslconfig` (i.e. `C:\Users\<you>\.wslconfig`). Applies to 
 ```ini
 [wsl2]
 # Mirrored networking: host and guest share network interfaces. Required for
-# `localhost` to work bidirectionally and for host.docker.internal under
-# rootless docker (combined with the pasta driver from 25-docker-engine).
+# `localhost` to work bidirectionally.
 networkingMode=mirrored
 
 # Companion flags people forget to set when enabling mirrored mode.
@@ -66,7 +65,7 @@ Register-ScheduledTask -TaskName "WSL-Warmup" `
 
 Replace `<YourDistro>` with the name from `wsl --list`. Verify with `Get-ScheduledTask WSL-Warmup` or in `taskschd.msc`.
 
-If you also want docker (classic mode) up as soon as the VM boots, that already happens — module `25-docker-engine` enables `docker.service` via systemd. Rootless docker auto-starts via the user's lingering systemd instance.
+If you also want docker up as soon as the VM boots, that already happens — module `25-docker-engine` enables `docker.service` via systemd.
 
 ---
 
@@ -101,7 +100,7 @@ docker info >/dev/null && echo "docker: ok"
 wsl-port-check
 ```
 
-If `date` is wildly wrong, that's clock skew (rare on current WSL — file an issue if you see it). If `docker info` fails, restart the daemon: `sudo systemctl restart docker` for classic, or `systemctl --user restart docker` for rootless. If `wsl-port-check` flags a leak, `wsl --shutdown` from PowerShell.
+If `date` is wildly wrong, that's clock skew (rare on current WSL — file an issue if you see it). If `docker info` fails, restart the daemon: `sudo systemctl restart docker`. If `wsl-port-check` flags a leak, `wsl --shutdown` from PowerShell.
 
 ---
 
@@ -109,7 +108,7 @@ If `date` is wildly wrong, that's clock skew (rare on current WSL — file an is
 
 All distros run in one WSL VM and share its kernel and its network namespace: the same interfaces, routes, iptables and ports, in NAT and mirrored mode alike. Files, users and systemd stay per distro. What that means when more than one distro is running:
 
-- **Docker:** two classic (rootful) daemons share `docker0`, the bridges and the iptables rules, and can break each other's container networking. Use rootless Docker (`DOCKER_MODE=rootless`) in all but one distro; each rootless daemon gets its own network namespace.
+- **Docker:** two classic (rootful) daemons share `docker0`, the bridges and the iptables rules, and can break each other's container networking. Run Docker in one distro at a time, and use Podman (rootless, no daemon) in the others.
 - **Tailscale:** one `tailscaled` owns `tailscale0` and its routes for every distro. Run it in one distro only.
 - **Ports:** a server on port 8080 in one distro blocks 8080 in all of them, and `localhost:8080` from any distro reaches it.
 - **tty1:** `00-wsl-base` masks `getty@tty1`, which otherwise fights the other distros' gettys over the shared console.

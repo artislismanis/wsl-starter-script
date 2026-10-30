@@ -1,0 +1,30 @@
+# Scenario 11a — DOCKER_MODE=classic.
+
+command:
+  # Through the docker group, so this also proves tester got it.
+  docker-info:
+    exec: 'docker info'
+    exit-status: 0
+
+  docker-active:
+    exec: 'systemctl is-active docker'
+    exit-status: 0
+    stdout:
+      - "active"
+
+file:
+  /etc/docker/daemon.json:
+    exists: true
+    contains:
+      - "live-restore"
+
+  /etc/apt/apt.conf.d/51unattended-upgrades-docker:
+    exists: true
+
+  # Removed: this sysctl tuning collapsed throughput under WSL2 mirrored
+  # networking. See modules/27-wsl-network.sh.
+  /etc/sysctl.d/99-wsl-network.conf:
+    exists: false
+  /usr/local/bin/wsl-port-check:
+    exists: true
+    mode: "0755"
