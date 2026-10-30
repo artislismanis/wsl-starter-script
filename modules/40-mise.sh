@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # REQUIRES_ROOT=0
 # DESCRIPTION=mise (unified version manager) + optional runtimes + uv + CLI/cloud tools
-# PROVIDES=mise
+# PROVIDES=mise node
 # ROLLBACK=# Per runtime first (clean removal of toolchains): mise uninstall <node|python|ruby|java|go|deno|bun>
 # ROLLBACK=# Per tool: mise uninstall <uv|lazygit|yq|pre-commit|glow|terraform|databricks-cli|azure|poetry> (older installs also zellij, fzf, github:abhinav/git-spice)
 # ROLLBACK=# azure-devops az extension (leave the rest of ~/.azure: it holds az login state):
