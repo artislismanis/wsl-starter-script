@@ -110,7 +110,7 @@ Neither remaining item is a fix for the hypervisor port leak — that lives in H
 
 ## Module `28-tailscale` — private network *(root, optional)*
 
-[Tailscale](https://tailscale.com/) puts the distro on your tailnet, for SSH from other machines and (later) phone access to agents. Opt-in: `--tailscale`, the `full` preset, or menu entry 8. Other presets don't install it.
+[Tailscale](https://tailscale.com/) puts the distro on your tailnet, for SSH from other machines and (later) phone access to agents. Opt-in: `--tailscale`, or the `full` preset. Other presets don't install it.
 
 | What | Where | Purpose |
 |---|---|---|

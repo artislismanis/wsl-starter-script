@@ -52,7 +52,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/artislismanis/wsl-starter-sc
 
 This installs `git`/`curl` if missing, clones the repo to `/root/wsl-starter-script`, then hands off to `install.sh` with the interactive menu.
 
-Pick **Guided setup** and choose a preset. The installer will prompt for:
+Pick a preset, or **Custom** to change what it includes. The installer shows the plan, then prompts for:
 
 - Username and password for the non-root user
 - Hostname
