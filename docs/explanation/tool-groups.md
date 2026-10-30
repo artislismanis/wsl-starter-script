@@ -1,6 +1,6 @@
 # How tools are grouped and chosen
 
-Target design, not yet built. Today's groups are in [Layout & modules](../reference/modules.md).
+The design behind `--preset` and the plan step (see [Flags](../reference/flags.md)). In the installer, Terminal and Basic dev are one `--dev` group, Stack-specific tools install through it, and `gh` comes with `20-cli-modern`.
 
 Three questions get separate answers, because mixing them produces bad defaults:
 
