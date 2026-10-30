@@ -21,6 +21,12 @@ command:
       [ -n "$pin" ] && env -i HOME="$HOME" PATH="$HOME/.local/bin:/usr/bin:/bin" hunk --version | grep -qF "$pin"
     exit-status: 0
 
+  plannotator-pinned-without-activation:
+    exec: |
+      pin="$(sed -n 's/^PLANNOTATOR_VERSION=\([^ ]*\).*/\1/p' "$HOME/wsl-starter-script/modules/55-workbench.sh")"
+      [ -n "$pin" ] && env -i HOME="$HOME" PATH="$HOME/.local/bin:/usr/bin:/bin" plannotator --version | grep -qF "$pin"
+    exit-status: 0
+
   hunk-skill-from-binary:
     exec: 'hunk skill path hunk-review'
     exit-status: 0

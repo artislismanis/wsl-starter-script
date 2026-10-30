@@ -89,7 +89,7 @@ cd ~/wsl-starter-script   # or wherever you copied it as your user
 ./install.sh --dev
 ```
 
-**Prompts expected:** zsh default shell?, per-language install prompts, uv?, per-tool install prompts (lazygit, zellij, fzf, yq, pre-commit, glow, then "Show extra tools?")
+**Prompts expected:** zsh default shell?, per-language install prompts, uv?, per-tool install prompts (lazygit, yq, pre-commit, glow, then "Show extra tools?")
 
 **Verify (each should print a version):**
 
@@ -110,7 +110,6 @@ In a new shell (the tools are mise-managed):
 
 ```bash
 lazygit --version
-zellij --version
 fzf --version
 yq --version
 pre-commit --version
@@ -678,7 +677,7 @@ MISE_GO_VERSION='1.22; rm -rf /' \
 Then the full tool set, run twice for idempotence:
 
 ```bash
-MISE_TOOLS=lazygit,zellij,fzf,yq,pre-commit,glow,terraform,databricks,azure-cli,poetry \
+MISE_TOOLS=lazygit,yq,pre-commit,glow,terraform,databricks,azure-cli,poetry \
   ./install.sh --module 40-mise --non-interactive
 # In a fresh shell:
 terraform version && databricks --version && az version

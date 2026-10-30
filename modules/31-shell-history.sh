@@ -31,6 +31,13 @@ else
   skip "zoxide already installed"
 fi
 
+# Empty FZF_CTRL_R_COMMAND stops fzf binding Ctrl-R, which atuin owns.
+ensure_block_per_shell "wsl-starter:fzf" "$HOME" \
+  'command -v atuin >/dev/null 2>&1 && FZF_CTRL_R_COMMAND=
+command -v fzf >/dev/null 2>&1 && eval "$(fzf --bash)"' \
+  'command -v atuin >/dev/null 2>&1 && FZF_CTRL_R_COMMAND=
+command -v fzf >/dev/null 2>&1 && eval "$(fzf --zsh)"'
+
 # bash needs bash-preexec to give atuin a hook into command history; zsh has
 # preexec built in. So the bash and zsh blocks below intentionally diverge.
 BASH_PX="$HOME/.bash-preexec.sh"
