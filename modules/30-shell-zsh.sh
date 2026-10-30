@@ -116,7 +116,7 @@ if [ -f "$ZSHRC" ]; then
   # Offered only over omz's stock theme, so a re-run never undoes a theme
   # picked since.
   if [ -z "${ZSH_THEME:-}" ] && grep -qx 'ZSH_THEME="robbyrussell"' "$ZSHRC" \
-     && confirm "Use the essembeh theme (user@host, path, git status) instead of robbyrussell?" y; then
+     && confirm "Use the essembeh zsh theme instead of robbyrussell?" y; then
     ZSH_THEME=essembeh
   fi
   if [ -n "${ZSH_THEME:-}" ]; then
