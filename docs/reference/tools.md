@@ -273,7 +273,7 @@ Re-runs preserve any existing file, so edits to your settings are safe.
 
 ---
 
-## Module `55-workbench` — worktrees and review tools *(user, optional)*
+## Modules `52-workflow-tools`, `54-herdr`, `55-workbench` — worktrees, review and herdr *(user, optional)*
 
 Never part of `--all`; pass `--workbench`.
 

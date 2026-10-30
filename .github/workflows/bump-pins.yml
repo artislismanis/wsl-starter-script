@@ -1,7 +1,7 @@
 name: bump-pins
 
 # Fortnightly (same cadence as dependabot.yml): move the pinned tool versions in
-# 40-mise, and the release binaries and herdr-workbench commit in 55-workbench,
+# 40-mise, and the release binaries and herdr-workbench commit in 52-workflow-tools, 54-herdr and 55-workbench,
 # to upstream's latest and open (or refresh) one PR. Reviewing the
 # upstream changes and merging is the approval.
 #
@@ -36,7 +36,7 @@ jobs:
       - name: Bump pins
         id: bump
         run: |
-          changes="$(.github/bump-pins.sh modules/40-mise.sh; .github/bump-binaries.sh modules/55-workbench.sh)"
+          changes="$(.github/bump-pins.sh modules/40-mise.sh; .github/bump-binaries.sh modules/52-workflow-tools.sh; .github/bump-binaries.sh modules/54-herdr.sh; .github/bump-binaries.sh modules/55-workbench.sh)"
           {
             echo 'changes<<EOF'
             echo "$changes"

@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # REQUIRES_ROOT=0
 # DESCRIPTION=Claude Code CLI + user-global settings + statusline + my-claude plugin (optional)
+# NEEDS=jq socat
+# PROVIDES=claude
 # ROLLBACK=# Plugin first: the uninstall needs the claude binary that the next lines remove.
 # ROLLBACK="$HOME/.local/bin/claude" plugin uninstall my-claude@my-agent-skills || true
 # ROLLBACK="$HOME/.local/bin/claude" plugin marketplace remove my-agent-skills || true

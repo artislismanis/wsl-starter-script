@@ -323,3 +323,40 @@ ensure_block_per_shell() {
     fi
   fi
 }
+
+# _install_release <url> <sha256> <dest-dir> <path>...: fetch the tarball,
+# refuse it unless its sha256 matches the pin, then copy each <path> inside it
+# into <dest-dir>. Called through run/retry_run so dry-run stays total.
+_install_release() {
+  local url="$1" sha="$2" dest="$3" t rc=0 p
+  shift 3
+  t="$(mktemp -d)"
+  if curl -fsSL -o "$t/pkg" "$url" && echo "$sha  $t/pkg" | sha256sum -c --quiet - && tar -xf "$t/pkg" -C "$t"; then
+    mkdir -p "$dest"
+    for p in "$@"; do
+      rm -rf "${dest:?}/$(basename "$p")"
+      cp -a "$t/$p" "$dest/" || rc=1
+    done
+  else
+    rc=1
+  fi
+  rm -rf "$t"
+  return "$rc"
+}
+
+# _install_binary <url> <sha256> <dest>: like _install_release for a release
+# that is a bare binary rather than a tarball.
+_install_binary() {
+  local url="$1" sha="$2" dest="$3" t rc=0
+  t="$(mktemp)"
+  if curl -fsSL -o "$t" "$url" && echo "$sha  $t" | sha256sum -c --quiet -; then
+    mkdir -p "$(dirname "$dest")"
+    install -m 755 "$t" "$dest" || rc=1
+  else
+    rc=1
+  fi
+  rm -f "$t"
+  return "$rc"
+}
+
+_has_version() { [ -x "$1" ] && "$1" --version 2>/dev/null | grep -qF "$2"; }

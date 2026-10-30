@@ -10,6 +10,10 @@
 --docker              Docker Engine. WSL network defenses
                       (27-wsl-network) auto-fire when a runtime actually installs;
                       DOCKER_MODE=skip suppresses both.
+--workflow            worktrunk, hunk, plannotator, gh-stack.
+--herdr               herdr.
+--preset NAME         Saved selection: wsl, dev, ai, full. Groups can be added to it.
+--print-plan          Show the plan and what NEEDS added, change nothing.
 --podman              Podman (rootless, daemonless). Same auto-fire of 27-wsl-network
                       after a successful install.
 --claude              Claude Code + user-global config.
