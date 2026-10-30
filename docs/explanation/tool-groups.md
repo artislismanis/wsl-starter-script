@@ -36,11 +36,11 @@ Being useful on its own doesn't put a tool in a preset. Rule 4 is about labellin
 | Group | Tools | Notes |
 |---|---|---|
 | Base | `00-wsl-base`, `10-apt-core` | Always. `git`, `curl`, `tmux` and `python3` already come with the Ubuntu image |
-| Terminal | zsh, shell history, `ripgrep`, `fd`, `bat`, `eza`, `delta`, `fzf`, `yq`, `glow`, `wl-clipboard`, `zellij` | `wl-clipboard` is the clipboard when interop is off. `fzf` comes from apt so it's on PATH without mise |
+| Terminal | zsh, shell history, `ripgrep`, `fd`, `bat`, `eza`, `delta`, `fzf`, `yq`, `glow`, `wl-clipboard` | `wl-clipboard` is the clipboard when interop is off. `fzf` comes from apt so it's on PATH without mise |
 | Basic dev | `gh`, mise, uv, Python, Node, `lazygit`, `pre-commit` | mise and uv install most other tools |
-| Workflow | wt (worktrees), gh-stack (stacked PRs), hunk (review) | hunk is 184 MB; its reason is the review loop |
+| Workflow | wt (worktrees), gh-stack (stacked PRs), hunk (code review), plannotator (document review) | hunk and plannotator are over 100 MB; the review loops are their reason |
 | Agents | Claude Code, herdr, herdr-workbench config | The workbench config needs herdr, wt, hunk, gh-stack, `fzf` and `wl-clipboard` |
-| Platform services | Docker (rootful), Tailscale, Podman | Docker and Tailscale: one distro per WSL VM. Podman is rootless with no daemon, and sits here because it's the alternative to Docker |
+| Platform services | Docker (rootful), Tailscale, Podman | Docker and Tailscale: one distro per WSL VM, and the installer warns if it sees either running elsewhere. Podman is rootless with no daemon, and sits here because it's the alternative to Docker |
 | Stack-specific | `terraform`, `azure-cli`, `databricks`, `poetry` | Heavy or tied to a project |
 
 Logins aren't a group: they run last, for whatever got installed.
@@ -54,10 +54,14 @@ Logins aren't a group: they run last, for whatever got installed.
 | Basic dev | | Yes | Yes | Yes |
 | Workflow | | | Yes | Yes |
 | Agents | | | Yes | Yes |
-| Platform services | | | | Docker |
+| Platform services | | | | Docker, Tailscale |
 | Stack-specific | | | | Yes |
 
-A preset is a saved selection, not a tier: the interactive list starts from it and you can change anything. Podman and Tailscale are in no preset, because Podman is an alternative to Docker and Tailscale is a per-machine decision.
+A preset is a saved selection, not a tier: the interactive list starts from it and you can change anything. Podman is in no preset, because it's the alternative to Docker.
+
+## Other distros in the VM
+
+All distros share one VM and network namespace, so `docker0` and `tailscale0` are visible from every distro. Before installing Docker or Tailscale, the installer warns if the interface exists while this distro's own service isn't running: another distro probably owns it. It only warns. A stopped local service gives the same signal, and two daemons that are both already running aren't detected.
 
 ## Measured sizes
 
@@ -67,10 +71,10 @@ Installed on a test distro, 30 Oct 2026. `azure-cli`, `terraform` and `databrick
 |---|---|
 | Claude Code | 280 MB |
 | Node | 208 MB |
+| plannotator | 190 MB |
 | hunk | 184 MB |
 | Python | 113 MB |
 | `poetry` | 90 MB |
-| `zellij` | 51 MB |
 | `uv` | 37 MB |
 | herdr | 29 MB |
 | wt | 28 MB |
