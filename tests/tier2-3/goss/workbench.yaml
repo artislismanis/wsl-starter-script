@@ -43,9 +43,12 @@ command:
       [ "$(git -C "$HOME/.local/share/herdr-workbench" rev-parse HEAD)" = "$pin" ]
     exit-status: 0
 
+  # Matched on stdout rather than exit status so a failure prints what drifted
+  # (goss shows output only for a stdout mismatch).
   workbench-install-clean:
-    exec: '"$HOME/.local/share/herdr-workbench/install.sh" --check'
+    exec: '"$HOME/.local/share/herdr-workbench/install.sh" --check 2>&1; echo "check rc=$?"'
     exit-status: 0
+    stdout: ["check rc=0"]
 
   # The block only went through tomllib in herdr-workbench's CI; here the real
   # wt has to load it and see our alias.
