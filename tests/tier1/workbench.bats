@@ -1,15 +1,21 @@
 #!/usr/bin/env bats
-# 55-workbench: opt-in dispatch, dry-run, rollback, and pins that bump-pins.sh
+# Workflow tools, herdr and workbench: opt-in dispatch, dry-run, rollback, and pins that bump-pins.sh
 # can move.
 
 load helpers
 
-MOD=modules/55-workbench.sh
+MOD=modules/52-workflow-tools.sh
 
 @test "--workbench --dry-run previews a verified download, the clone and the install" {
   cd "$REPO_ROOT"
-  HOME="$BATS_TEST_TMPDIR" run ./install.sh --workbench --dry-run --non-interactive
+  # Present, so the plan doesn't pull in dev, which needs root.
+  local stubs="$BATS_TEST_TMPDIR/stubs" c
+  mkdir -p "$stubs"
+  for c in gh fzf wl-copy jq; do printf '#!/bin/sh\n' >"$stubs/$c"; chmod +x "$stubs/$c"; done
+  PATH="$stubs:$PATH" HOME="$BATS_TEST_TMPDIR" run ./install.sh --workflow --herdr --workbench --dry-run --non-interactive
   [ "$status" -eq 0 ]
+  echo "$output" | grep -q '━━ 52-workflow-tools ━━'
+  echo "$output" | grep -q '━━ 54-herdr ━━'
   echo "$output" | grep -q '━━ 55-workbench ━━'
   echo "$output" | grep -q '_install_release https://github.com/max-sixty/worktrunk/releases/download/'
   echo "$output" | grep -q '_install_release https://github.com/modem-dev/hunk/releases/download/'
@@ -19,20 +25,13 @@ MOD=modules/55-workbench.sh
   [ ! -e "$BATS_TEST_TMPDIR/.config/worktrunk" ]
 }
 
-@test "--all never runs 55-workbench" {
-  cd "$REPO_ROOT"
-  local branch
-  branch="$(sed -n '/^  all)$/,/^    ;;$/p' install.sh)"
-  echo "$branch" | grep -q 'run_group claude'
-  ! echo "$branch" | grep -q workbench
-}
-
 @test "rollback 55-workbench undoes herdr-workbench before removing the binaries" {
   cd "$REPO_ROOT"
-  run ./install.sh --rollback 55-workbench
+  run ./install.sh --rollback
   [ "$status" -eq 0 ]
   echo "$output" | grep -q 'herdr-workbench/install.sh" --rollback | PATH="$HOME/.local/bin:$PATH" bash'
-  echo "$output" | grep -q 'rm -f "$HOME/.local/bin/herdr" "$HOME/.local/bin/wt"'
+  echo "$output" | grep -q 'rm -f "$HOME/.local/bin/herdr"'
+  echo "$output" | grep -q 'rm -f "$HOME/.local/bin/wt"'
   [ "$(echo "$output" | grep -n 'install.sh" --rollback' | cut -d: -f1)" -lt \
     "$(echo "$output" | grep -n 'local/bin/wt' | cut -d: -f1)" ]
 }
@@ -43,7 +42,7 @@ MOD=modules/55-workbench.sh
   grep -qE '^WT_SHA256=[0-9a-f]{64}$' "$MOD"
   grep -qE '^HUNK_VERSION=[0-9.]+  # bump: github:modem-dev/hunk [^ ]+$' "$MOD"
   grep -qE '^HUNK_SHA256=[0-9a-f]{64}$' "$MOD"
-  grep -qE '^WORKBENCH_COMMIT=[0-9a-f]{40}  # bump: git:artislismanis/herdr-workbench$' "$MOD"
+  grep -qE '^WORKBENCH_COMMIT=[0-9a-f]{40}  # bump: git:artislismanis/herdr-workbench$' modules/55-workbench.sh
 }
 
 @test "bump-binaries.sh moves a version with its sha256, and a commit" {

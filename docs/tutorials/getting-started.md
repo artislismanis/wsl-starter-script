@@ -52,7 +52,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/artislismanis/wsl-starter-sc
 
 This installs `git`/`curl` if missing, clones the repo to `/root/wsl-starter-script`, then hands off to `install.sh` with the interactive menu.
 
-Pick **`--all`** for the full ride. The installer will prompt for:
+Pick **Guided setup** and choose a preset. The installer will prompt for:
 
 - Username and password for the non-root user
 - Hostname
@@ -79,7 +79,7 @@ Reopen. You should land as your new user. `whoami`, `hostname`, and `systemctl i
 
 ## Where to next
 
-- **Add Docker:** [how-to/docker.md](../how-to/docker.md) — not in `--all` by default
+- **Add Docker:** [how-to/docker.md](../how-to/docker.md) — only in the `full` preset
 - **Host-side polish:** [how-to/wsl-host.md](../how-to/wsl-host.md) — `.wslconfig`, auto-start at login, mirrored-mode recovery
 - **What got installed:** [reference/tools.md](../reference/tools.md) — every package, why it's there
 - **Tune a re-run:** [reference/env-vars.md](../reference/env-vars.md) — non-interactive knobs

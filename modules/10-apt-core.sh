@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # REQUIRES_ROOT=1
 # DESCRIPTION=Core apt packages (build-essential, git, tmux, locales, ...)
+# PROVIDES=jq socat
 # ROLLBACK=# Re-comment en_US.UTF-8 in /etc/locale.gen, regenerate, reset default:
 # ROLLBACK=sudo sed -i 's/^en_US.UTF-8 UTF-8/# en_US.UTF-8 UTF-8/' /etc/locale.gen
 # ROLLBACK=sudo locale-gen

@@ -110,7 +110,7 @@ Neither remaining item is a fix for the hypervisor port leak — that lives in H
 
 ## Module `28-tailscale` — private network *(root, optional)*
 
-[Tailscale](https://tailscale.com/) puts the distro on your tailnet, for SSH from other machines and (later) phone access to agents. Opt-in only: `--tailscale`, its own guided-setup question (default no), or menu entry 8. `--all` never installs it.
+[Tailscale](https://tailscale.com/) puts the distro on your tailnet, for SSH from other machines and (later) phone access to agents. Opt-in: `--tailscale`, the `full` preset, or menu entry 8. Other presets don't install it.
 
 | What | Where | Purpose |
 |---|---|---|
@@ -273,9 +273,9 @@ Re-runs preserve any existing file, so edits to your settings are safe.
 
 ---
 
-## Module `55-workbench` — worktrees and review tools *(user, optional)*
+## Modules `52-workflow-tools`, `54-herdr`, `55-workbench` — worktrees, review and herdr *(user, optional)*
 
-Never part of `--all`; pass `--workbench`.
+In the `ai` and `full` presets, or pass `--workbench`, which adds what it needs.
 
 | Item | Purpose |
 |---|---|
@@ -291,7 +291,7 @@ Why plain binaries rather than mise tools: herdr, its popups and git hooks don't
 
 ## Module `60-logins` — logins and git identity *(user, re-runnable)*
 
-Never part of `--all`; pass `--logins`, or answer yes to the last guided-setup question. For each installed tool it checks whether you're logged in and offers the login only if you aren't. A re-run lists what's still missing, so it doubles as a "what's left" check.
+Pass `--logins`, or use a preset, which includes it (except `wsl`). For each installed tool it checks whether you're logged in and offers the login only if you aren't. A re-run lists what's still missing, so it doubles as a "what's left" check.
 
 | Tool | Done when | Login |
 |---|---|---|

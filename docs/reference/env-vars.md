@@ -51,7 +51,7 @@ sudo \
   MISE_NODE_VERSION=22 MISE_PYTHON_VERSION=3.13 MISE_GO_VERSION=1.23 \
   MISE_TOOLS=lazygit,yq,terraform MISE_TERRAFORM_VERSION=1.9.5 \
   CLAUDE_PERMISSION_MODE=acceptEdits \
-  ./install.sh --all --non-interactive
+  ./install.sh --preset full --non-interactive
 ```
 
 ## Bootstrap-only env vars

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # wsl-starter-script — modular WSL bootstrap.
-# Usage: ./install.sh [--all|--base|--dev|--claude|--tailscale|--workbench|--logins|--module NAME] [--non-interactive] [--dry-run]
+# Usage: ./install.sh [--preset NAME|--base|--dev|--claude|--tailscale|--workbench|--logins|--module NAME] [--non-interactive] [--dry-run]
 set -euo pipefail
 
 # lib/common.sh re-derives + exports REPO_ROOT itself; we set it here so the
@@ -16,7 +16,6 @@ usage() {
 wsl-starter-script
 
   ./install.sh                       Interactive menu.
-  ./install.sh --all                 Run every module in order.
   ./install.sh --base                Root-phase only: 00-wsl-base + 10-apt-core.
   ./install.sh --dev                 cli-modern (root, auto-escalates) + zsh + history + mise.
                                      If invoked as root the user-phase is deferred to the
@@ -25,7 +24,11 @@ wsl-starter-script
   ./install.sh --podman              Podman (rootless, daemonless).
   ./install.sh --claude              Claude Code CLI + user-global config.
   ./install.sh --tailscale           Tailscale (private network for SSH and phone access).
-  ./install.sh --workbench           herdr + worktrunk + hunk (pinned binaries) + gh-stack + herdr-workbench config.
+  ./install.sh --workflow            worktrunk + hunk (pinned binaries) + gh-stack.
+  ./install.sh --herdr               herdr (pinned binary).
+  ./install.sh --workbench           herdr-workbench config, plus any tools above it needs.
+  ./install.sh --preset NAME         Saved selection: wsl, dev, ai, full.
+  ./install.sh --print-plan          With any of the above: show the plan, change nothing.
   ./install.sh --logins              Log in to the installed tools and set git identity. Re-runnable.
   ./install.sh --module NAME         Run one module (e.g. 20-cli-modern).
   ./install.sh --list                List available modules.
@@ -46,10 +49,8 @@ Flags:
   --dry-run           Print what would happen, make no changes.
   -h, --help          This message.
 
-Note: --all runs base → dev → docker → claude → cleanup. Podman is excluded
-(it's an alternative to Docker, not a complement); pass --podman explicitly.
-Tailscale and the workbench are excluded too (personal-use opt-ins); pass
---tailscale or --workbench explicitly. --logins is never part of --all.
+Note: presets don't include Podman; it's the alternative to Docker, so pass --podman
+explicitly. See docs/explanation/tool-groups.md.
 USAGE
 }
 
@@ -180,30 +181,193 @@ run_module() {
   fi
 }
 
-BASE_MODULES=(00-wsl-base 10-apt-core)
+BASE_MODULES=(00-wsl-base)
+CORE_MODULES=(10-apt-core)
 DEV_ROOT_MODULES=(20-cli-modern)
 DEV_USER_MODULES=(30-shell-zsh 31-shell-history 40-mise)
 DOCKER_MODULES=(25-docker-engine)
 PODMAN_MODULES=(26-podman)
 CLAUDE_MODULES=(50-claude-code)
 TAILSCALE_MODULES=(28-tailscale)
+WORKFLOW_MODULES=(52-workflow-tools)
+HERDR_MODULES=(54-herdr)
 WORKBENCH_MODULES=(55-workbench)
 LOGINS_MODULES=(60-logins)
 # 27-wsl-network is fired once at the bottom of the script (see the gate after
 # the case block) when a container-runtime module ran AND actually installed.
 # Combining --docker --podman in one invocation runs it once via RAN_MODULES.
 
+# ----- plan -------------------------------------------------------------------
+# Every group flag, preset and the guided list become one SELECTED list. Install
+# order comes from GROUP_ORDER. What a group pulls in comes from its modules'
+# NEEDS / PROVIDES headers: commands, so a tool that's already there adds nothing.
+# See docs/explanation/tool-groups.md.
+GROUP_ORDER=(base core dev stack workflow docker podman tailscale claude herdr workbench logins cleanup)
+declare -A GROUP_MODULES=(
+  [base]="${BASE_MODULES[*]}"
+  [core]="${CORE_MODULES[*]}"
+  [dev]="${DEV_ROOT_MODULES[*]} ${DEV_USER_MODULES[*]}"
+  [docker]="${DOCKER_MODULES[*]}"
+  [podman]="${PODMAN_MODULES[*]}"
+  [tailscale]="${TAILSCALE_MODULES[*]}"
+  [workflow]="${WORKFLOW_MODULES[*]}"
+  [claude]="${CLAUDE_MODULES[*]}"
+  [herdr]="${HERDR_MODULES[*]}"
+  [workbench]="${WORKBENCH_MODULES[*]}"
+  [logins]="${LOGINS_MODULES[*]}"
+)
+declare -A GROUP_LABELS=(
+  [base]="WSL base (systemd, user, hostname, DNS)"
+  [core]="Core apt packages"
+  [dev]="Terminal and basic dev (zsh, CLI tools, gh, mise, languages)"
+  [stack]="Stack-specific tools (terraform, azure-cli, databricks, poetry)"
+  [workflow]="Workflow tools (worktrunk, hunk, gh-stack)"
+  [docker]="Docker Engine (rootful; one distro per WSL VM)"
+  [podman]="Podman (rootless, daemonless)"
+  [tailscale]="Tailscale (one distro per WSL VM)"
+  [claude]="Claude Code"
+  [herdr]="herdr"
+  [workbench]="herdr-workbench config"
+  [logins]="Logins and git identity"
+)
+declare -A PRESETS=(
+  [wsl]="base core"
+  [dev]="base core dev logins"
+  [ai]="base core dev workflow claude herdr workbench logins"
+  [full]="base core dev stack workflow docker tailscale claude herdr workbench logins"
+)
+STACK_TOOLS=lazygit,yq,pre-commit,glow,terraform,databricks,azure-cli,poetry
+PLAN_NOTES=()
+
+_selected() {
+  local g
+  for g in "${SELECTED[@]}"; do
+    if [ "$g" = "$1" ]; then return 0; fi
+  done
+  return 1
+}
+
+_module_header() { sed -n "s/^# $2=//p" "$MODULES_DIR/$1.sh" | head -1; }
+
+# ~/.local/bin isn't on PATH in every shell this runs from.
+_have() { command -v "$1" >/dev/null 2>&1 || [ -x "$HOME/.local/bin/$1" ]; }
+
+_group_providing() {
+  local g m
+  for g in "${GROUP_ORDER[@]}"; do
+    for m in ${GROUP_MODULES[$g]:-}; do
+      if [[ " $(_module_header "$m" PROVIDES) " == *" $1 "* ]]; then
+        printf '%s\n' "$g"
+        return 0
+      fi
+    done
+  done
+  return 1
+}
+
+# Add what the selection needs until nothing changes, then sort into install order.
+resolve_plan() {
+  local changed=1 g m cmd provider
+  while [ "$changed" = 1 ]; do
+    changed=0
+    if _selected stack && ! _selected dev; then
+      SELECTED+=(dev); PLAN_NOTES+=("dev: stack-specific tools install through mise"); changed=1
+    fi
+    for g in "${SELECTED[@]}"; do
+      for m in ${GROUP_MODULES[$g]:-}; do
+        for cmd in $(_module_header "$m" NEEDS); do
+          provider="$(_group_providing "$cmd")" || die "$m needs $cmd, but no module provides it."
+          if ! _selected "$provider" && ! _have "$cmd"; then
+            SELECTED+=("$provider"); PLAN_NOTES+=("$provider: needed by $m ($cmd)"); changed=1
+          fi
+        done
+      done
+    done
+  done
+  local sorted=()
+  for g in "${GROUP_ORDER[@]}"; do
+    if _selected "$g"; then sorted+=("$g"); fi
+  done
+  SELECTED=("${sorted[@]}")
+  if _selected stack && [ -z "${MISE_TOOLS:-}" ]; then export MISE_TOOLS="$STACK_TOOLS"; fi
+}
+
+# All distros share one VM and network namespace, so another distro's daemon
+# shows up here as an interface. A stopped local service looks the same, so warn
+# and carry on.
+_warn_vm_service() {
+  if ip link show "$2" >/dev/null 2>&1 && ! systemctl is-active --quiet "$3" 2>/dev/null; then
+    warn "$1: $2 exists but $3 isn't running here. Another distro in this WSL VM probably runs it, and they'd conflict."
+  fi
+}
+_warn_vm_services() {
+  if _selected docker; then _warn_vm_service Docker docker0 docker; fi
+  if _selected tailscale; then _warn_vm_service Tailscale tailscale0 tailscaled; fi
+}
+
+show_plan() {
+  local g note
+  log "Plan:"
+  for g in "${SELECTED[@]}"; do log "  $g: ${GROUP_MODULES[$g]:-${GROUP_LABELS[$g]:-$g}}"; done
+  for note in "${PLAN_NOTES[@]}"; do log "  added $note"; done
+  if [ -n "${MISE_TOOLS:-}" ]; then log "  MISE_TOOLS=$MISE_TOOLS"; fi
+  _warn_vm_services
+}
+
+apply_preset() {
+  [ -n "${PRESETS[$1]:-}" ] || die "Unknown preset: $1. Valid: ${!PRESETS[*]}"
+  local g
+  for g in ${PRESETS[$1]}; do
+    # 00-wsl-base creates the user, so running as that user means it's done.
+    if [ "$g" != base ] || is_root; then SELECTED+=("$g"); fi
+  done
+  if is_root; then SELECTED+=(cleanup); fi
+}
+
+# Start from a preset, then toggle groups by number.
+guided_plan() {
+  local preset reply n g i
+  preset="$(ask "Preset (wsl, dev, ai, full)" ai)"
+  apply_preset "$preset"
+  local list=()
+  for g in "${GROUP_ORDER[@]}"; do
+    if [ "$g" != cleanup ]; then list+=("$g"); fi
+  done
+  while true; do
+    for i in "${!list[@]}"; do
+      g="${list[$i]}"
+      if _selected "$g"; then n="x"; else n=" "; fi
+      printf '  %2d) [%s] %s\n' "$((i + 1))" "$n" "${GROUP_LABELS[$g]}"
+    done
+    reply="$(ask "Toggle by number, Enter to continue")"
+    [ -n "$reply" ] || break
+    for n in $reply; do
+      [[ "$n" =~ ^[0-9]+$ ]] && [ "$n" -ge 1 ] && [ "$n" -le "${#list[@]}" ] || die "Invalid selection: $n"
+      g="${list[$((n - 1))]}"
+      if _selected "$g"; then
+        local kept=() s
+        for s in "${SELECTED[@]}"; do
+          if [ "$s" != "$g" ]; then kept+=("$s"); fi
+        done
+        SELECTED=("${kept[@]}")
+      else
+        SELECTED+=("$g")
+      fi
+    done
+  done
+}
+
 interactive_menu() {
   echo "Select what to run:"
-  echo "  1) Guided setup    (ask about each group: base / dev / docker / podman / claude / tailscale / workbench / logins)"
-  echo "  2) Full setup      (base → dev → docker → claude → cleanup; excludes podman)"
+  echo "  1) Guided setup    (start from a preset, change anything, review the plan)"
+  echo "  2) Full setup      (the full preset)"
   echo "  3) Base only       (root: systemd, user, hostname, DNS)"
   echo "  4) Dev only        (CLI tools, zsh, history, mise)"
   echo "  5) Docker only     (Docker Engine)"
   echo "  6) Podman only     (rootless, daemonless)"
   echo "  7) Claude only     (claude-code + config)"
   echo "  8) Tailscale only  (private network for SSH and phone access)"
-  echo "  9) Workbench only  (herdr + worktrunk + hunk + gh-stack + config)"
+  echo "  9) Workbench only  (herdr-workbench config, plus the tools it needs)"
   echo " 10) Logins only    (log in to installed tools, set git identity)"
   echo " 11) Single module"
   echo " 12) List modules"
@@ -211,7 +375,7 @@ interactive_menu() {
   read -r -p "$(fmt_prompt "Choice >")" sel
   case "$sel" in
     1) MODE=guided ;;
-    2) MODE=all ;;
+    2) MODE=groups; apply_preset full ;;
     3) MODE=groups; SELECTED=(base) ;;
     4) MODE=groups; SELECTED=(dev) ;;
     5) MODE=groups; SELECTED=(docker) ;;
@@ -247,6 +411,7 @@ _runtime_needs_defer() {
 run_group() {
   case "$1" in
     base)    _run_each "${BASE_MODULES[@]}" ;;
+    core)    _run_each "${CORE_MODULES[@]}" ;;
     dev)
       # When invoked as root, defer the entire dev group (root + user phase) to
       # the post-handoff child so the root-phase modules run exactly once — the
@@ -291,6 +456,21 @@ run_group() {
         _run_each "${TAILSCALE_MODULES[@]}"
       fi
       ;;
+    stack) ;;
+    workflow)
+      if is_root; then
+        DEFERRED+=("--workflow")
+      else
+        _run_each "${WORKFLOW_MODULES[@]}"
+      fi
+      ;;
+    herdr)
+      if is_root; then
+        DEFERRED+=("--herdr")
+      else
+        _run_each "${HERDR_MODULES[@]}"
+      fi
+      ;;
     workbench)
       if is_root; then
         DEFERRED+=("--workbench")
@@ -313,16 +493,21 @@ run_group() {
 MODE=""
 SINGLE=""
 SELECTED=()
+PRINT_PLAN=0
 while [ $# -gt 0 ]; do
   case "$1" in
-    --all)              MODE=all ;;
-    --base)             SELECTED+=(base) ;;
+    --base)             SELECTED+=(base core) ;;
     --dev)              SELECTED+=(dev) ;;
     --docker)           SELECTED+=(docker) ;;
     --podman)           SELECTED+=(podman) ;;
     --claude)           SELECTED+=(claude) ;;
     --tailscale)        SELECTED+=(tailscale) ;;
+    --workflow)         SELECTED+=(workflow) ;;
+    --herdr)            SELECTED+=(herdr) ;;
     --workbench)        SELECTED+=(workbench) ;;
+    --preset)
+      MODE="${MODE:-groups}"; apply_preset "${2:-none}"; shift ;;
+    --print-plan)       PRINT_PLAN=1 ;;
     --logins)           SELECTED+=(logins) ;;
     --module)
       [ -z "$SINGLE" ] || die "--module specified twice (got '$SINGLE' then '${2:-}'). Pick one."
@@ -350,9 +535,9 @@ while [ $# -gt 0 ]; do
   shift || true
 done
 
-# --all and --module are exclusive with group flags.
-if [ "$MODE" = "all" ] || [ "$MODE" = "single" ]; then
-  [ ${#SELECTED[@]} -eq 0 ] || die "--all/--module can't be combined with --base/--dev/--docker/--podman/--claude/--tailscale/--workbench/--logins."
+# --module is exclusive with group flags.
+if [ "$MODE" = "single" ]; then
+  [ ${#SELECTED[@]} -eq 0 ] || die "--module can't be combined with --preset or a group flag (--base, --dev, ...)."
 fi
 
 [ "$MODE" = "" ] && [ ${#SELECTED[@]} -gt 0 ] && MODE=groups
@@ -360,32 +545,30 @@ if [ -z "$MODE" ]; then
   # Refuse to drop into the interactive menu under --non-interactive — `read`
   # would block on the closed stdin (CI, sudo handoff). Operator must say
   # explicitly which group(s) to run.
-  [ "$NON_INTERACTIVE" = "1" ] && die "--non-interactive requires --all, --module, or one of --base/--dev/--docker/--podman/--claude/--tailscale/--workbench/--logins."
+  [ "$NON_INTERACTIVE" = "1" ] && die "--non-interactive requires --module, --preset or a group flag (--base, --dev, ...)."
   interactive_menu
 fi
 
+if [ "$MODE" = guided ]; then
+  guided_plan
+  MODE=groups
+  resolve_plan
+  show_plan
+  confirm "Run this plan?" y || exit 0
+elif [ "$MODE" = groups ]; then
+  resolve_plan
+  show_plan
+elif [ "$MODE" = single ]; then
+  case "$SINGLE" in
+    25-docker-engine) _warn_vm_service Docker docker0 docker ;;
+    28-tailscale)     _warn_vm_service Tailscale tailscale0 tailscaled ;;
+  esac
+fi
+[ "$PRINT_PLAN" = 0 ] || exit 0
+
 case "$MODE" in
-  all)
-    run_group base
-    run_group dev
-    run_group docker
-    run_group claude
-    # Cleanup is root-only; skip when we're running the user-phase tail of --all.
-    if is_root; then run_group cleanup; fi
-    ;;
   groups)
     for g in "${SELECTED[@]}"; do run_group "$g"; done
-    ;;
-  guided)
-    confirm "Run base setup (systemd, user, hostname, DNS)?" y && run_group base
-    confirm "Install dev tools (CLI modern, zsh, history, mise)?" y && run_group dev
-    confirm "Install Docker Engine?" n && run_group docker
-    confirm "Install Podman (daemonless, rootless — co-installable with docker)?" n && run_group podman
-    confirm "Install Claude Code?" y && run_group claude
-    confirm "Install Tailscale (private network for SSH and phone access)?" n && run_group tailscale
-    confirm "Install the workbench (herdr, worktrunk, hunk, gh-stack, herdr-workbench config)?" n && run_group workbench
-    # Last, so every tool it logs in to is already installed.
-    confirm "Log in to the installed tools and set your git identity?" y && run_group logins
     ;;
   single)
     [ -n "$SINGLE" ] || die "--module needs a name. See --list."
@@ -395,7 +578,7 @@ esac
 
 # Auto-fire 27 only when this invocation ran a runtime module AND that module
 # wrote $RUNTIME_STAMP (i.e. install actually happened, not DOCKER_MODE=skip).
-# RAN_MODULES gates re-fire across the user-phase --all tail; stamp gates skip.
+# RAN_MODULES gates re-fire across the user-phase tail; stamp gates skip.
 if { [ -n "${RAN_MODULES[25-docker-engine]:-}" ] || [ -n "${RAN_MODULES[26-podman]:-}" ]; } \
    && [ -f "$RUNTIME_STAMP" ]; then
   run_module 27-wsl-network

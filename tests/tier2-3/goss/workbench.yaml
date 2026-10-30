@@ -5,19 +5,19 @@ command:
   # Plan check: the binaries resolve with no shell activation at all.
   herdr-pinned-without-activation:
     exec: |
-      pin="$(sed -n 's/^HERDR_VERSION=\([^ ]*\).*/\1/p' "$HOME/wsl-starter-script/modules/55-workbench.sh")"
+      pin="$(sed -n 's/^HERDR_VERSION=\([^ ]*\).*/\1/p' "$HOME/wsl-starter-script/modules/54-herdr.sh")"
       [ -n "$pin" ] && env -i HOME="$HOME" PATH="$HOME/.local/bin:/usr/bin:/bin" herdr --version | grep -qF "$pin"
     exit-status: 0
 
   wt-pinned-without-activation:
     exec: |
-      pin="$(sed -n 's/^WT_VERSION=\([^ ]*\).*/\1/p' "$HOME/wsl-starter-script/modules/55-workbench.sh")"
+      pin="$(sed -n 's/^WT_VERSION=\([^ ]*\).*/\1/p' "$HOME/wsl-starter-script/modules/52-workflow-tools.sh")"
       [ -n "$pin" ] && env -i HOME="$HOME" PATH="$HOME/.local/bin:/usr/bin:/bin" wt --version | grep -qF "$pin"
     exit-status: 0
 
   hunk-pinned-without-activation:
     exec: |
-      pin="$(sed -n 's/^HUNK_VERSION=\([^ ]*\).*/\1/p' "$HOME/wsl-starter-script/modules/55-workbench.sh")"
+      pin="$(sed -n 's/^HUNK_VERSION=\([^ ]*\).*/\1/p' "$HOME/wsl-starter-script/modules/52-workflow-tools.sh")"
       [ -n "$pin" ] && env -i HOME="$HOME" PATH="$HOME/.local/bin:/usr/bin:/bin" hunk --version | grep -qF "$pin"
     exit-status: 0
 
@@ -27,13 +27,13 @@ command:
 
   gh-stack-pinned:
     exec: |
-      pin="$(sed -n 's/^GH_STACK_VERSION=\([^ ]*\).*/\1/p' "$HOME/wsl-starter-script/modules/55-workbench.sh")"
+      pin="$(sed -n 's/^GH_STACK_VERSION=\([^ ]*\).*/\1/p' "$HOME/wsl-starter-script/modules/52-workflow-tools.sh")"
       [ -n "$pin" ] && gh stack --version | grep -qF "$pin"
     exit-status: 0
 
   gh-stack-skill-pinned:
     exec: |
-      pin="$(sed -n 's/^GH_STACK_VERSION=\([^ ]*\).*/\1/p' "$HOME/wsl-starter-script/modules/55-workbench.sh")"
+      pin="$(sed -n 's/^GH_STACK_VERSION=\([^ ]*\).*/\1/p' "$HOME/wsl-starter-script/modules/52-workflow-tools.sh")"
       grep -qx "    github-pinned: v$pin" "$HOME/.claude/skills/gh-stack/SKILL.md"
     exit-status: 0
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # REQUIRES_ROOT=1
 # DESCRIPTION=Modern CLI (zsh, ripgrep, fd, bat, delta, fzf, eza, gh, wl-clipboard)
+# PROVIDES=zsh rg fd bat delta fzf eza gh wl-copy
 # ROLLBACK=sudo rm -f /usr/local/bin/fd /usr/local/bin/bat
 # ROLLBACK=sudo rm -f /etc/apt/sources.list.d/gierens.list /etc/apt/keyrings/gierens.gpg
 # ROLLBACK=sudo rm -f /etc/apt/sources.list.d/github-cli.list /etc/apt/keyrings/github-cli.gpg

@@ -66,4 +66,4 @@ After creating the file, ask whether to add it to one of the arrays in `install.
 
 99-cleanup is invoked directly by `install.sh` (no array). `27-wsl-network` is auto-fired at the bottom of `install.sh` whenever a runtime module ran in this invocation (`RAN_MODULES[25-docker-engine]` or `RAN_MODULES[26-podman]`) **and** that module dropped `$RUNTIME_STAMP` (`/run/wsl-starter.container-runtime`, defined in `lib/common.sh`). The stamp gate distinguishes "install actually happened" from `DOCKER_MODE=skip`. There's no separate array for it.
 
-`--all` and the named flags only execute what's listed in these arrays; `--module NAME` and the interactive "single module" picker work regardless.
+Presets and the named flags only execute what's listed in these arrays; `--module NAME` and the interactive "single module" picker work regardless.

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # REQUIRES_ROOT=0
 # DESCRIPTION=oh-my-zsh + plugins (autosuggestions, syntax-highlighting); needs zsh from 20-cli-modern
+# NEEDS=zsh
 # ROLLBACK=sudo chsh -s /bin/bash "$USER"
 # ROLLBACK=rm -rf "$HOME/.oh-my-zsh"
 # ROLLBACK=# ~/.zshrc has ZSH_THEME / plugins=() lines edited in place (outside any wsl-starter:* fence).
