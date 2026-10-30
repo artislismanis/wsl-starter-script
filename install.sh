@@ -25,7 +25,7 @@ wsl-starter-script
   ./install.sh --podman              Podman (rootless, daemonless).
   ./install.sh --claude              Claude Code CLI + user-global config.
   ./install.sh --tailscale           Tailscale (private network for SSH and phone access).
-  ./install.sh --workbench           herdr + worktrunk + hunk + plannotator (pinned binaries) + gh-stack + herdr-workbench config.
+  ./install.sh --workbench           herdr + worktrunk + hunk (pinned binaries) + gh-stack + herdr-workbench config.
   ./install.sh --logins              Log in to the installed tools and set git identity. Re-runnable.
   ./install.sh --module NAME         Run one module (e.g. 20-cli-modern).
   ./install.sh --list                List available modules.
@@ -203,7 +203,7 @@ interactive_menu() {
   echo "  6) Podman only     (rootless, daemonless)"
   echo "  7) Claude only     (claude-code + config)"
   echo "  8) Tailscale only  (private network for SSH and phone access)"
-  echo "  9) Workbench only  (herdr + worktrunk + hunk + plannotator + gh-stack + config)"
+  echo "  9) Workbench only  (herdr + worktrunk + hunk + gh-stack + config)"
   echo " 10) Logins only    (log in to installed tools, set git identity)"
   echo " 11) Single module"
   echo " 12) List modules"
@@ -383,7 +383,7 @@ case "$MODE" in
     confirm "Install Podman (daemonless, rootless — co-installable with docker)?" n && run_group podman
     confirm "Install Claude Code?" y && run_group claude
     confirm "Install Tailscale (private network for SSH and phone access)?" n && run_group tailscale
-    confirm "Install the workbench (herdr, worktrunk, hunk, plannotator, gh-stack, herdr-workbench config)?" n && run_group workbench
+    confirm "Install the workbench (herdr, worktrunk, hunk, gh-stack, herdr-workbench config)?" n && run_group workbench
     # Last, so every tool it logs in to is already installed.
     confirm "Log in to the installed tools and set your git identity?" y && run_group logins
     ;;

@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # REQUIRES_ROOT=0
-# DESCRIPTION=Workbench: herdr + worktrunk + hunk + plannotator as pinned release binaries, gh-stack + its agent skill, then herdr-workbench config at a pinned commit
+# DESCRIPTION=Workbench: herdr + worktrunk + hunk as pinned release binaries, gh-stack + its agent skill, then herdr-workbench config at a pinned commit
 # ROLLBACK=# herdr-workbench first: its own recipe strips its block from ~/.config/worktrunk/config.toml and removes its hooks.
 # ROLLBACK=[ -x "$HOME/.local/share/herdr-workbench/install.sh" ] && "$HOME/.local/share/herdr-workbench/install.sh" --rollback | PATH="$HOME/.local/bin:$PATH" bash
 # ROLLBACK=rm -rf "$HOME/.local/share/herdr-workbench"
-# ROLLBACK=rm -f "$HOME/.local/bin/herdr" "$HOME/.local/bin/wt" "$HOME/.local/bin/git-wt" "$HOME/.local/bin/hunk" "$HOME/.local/bin/plannotator"
+# ROLLBACK=rm -f "$HOME/.local/bin/herdr" "$HOME/.local/bin/wt" "$HOME/.local/bin/git-wt" "$HOME/.local/bin/hunk"
 # ROLLBACK=rm -rf "$HOME/.local/share/hunkdiff-linux-x64"
 # ROLLBACK=gh extension remove stack 2>/dev/null || true
 # ROLLBACK=rm -rf "$HOME/.claude/skills/gh-stack"
@@ -24,8 +24,6 @@ WT_VERSION=0.81.0  # bump: github:max-sixty/worktrunk worktrunk-x86_64-unknown-l
 WT_SHA256=0c253f216985ce9cd7b202a11606b5ce6aa934b1019fd1fbb9b7ce2b47b1c74a
 HUNK_VERSION=0.24.1  # bump: github:modem-dev/hunk hunkdiff-linux-x64.tar.gz
 HUNK_SHA256=4b8c98f8d97745499916cc1e1d2f27ffd258c6d6358dd4532f61e41c5eb19692
-PLANNOTATOR_VERSION=0.28.39  # bump: github:backnotprop/plannotator plannotator-linux-x64
-PLANNOTATOR_SHA256=5d44c752116a9fa14d13b5fd48c8dca80d4ea3023df40b7552b54de457439fe3
 GH_STACK_VERSION=0.3.0  # bump: github:github/gh-stack linux-amd64
 GH_STACK_SHA256=957e822cfa7e435cd84a297cd96c419b58e51e3ac58be249762c24bd9e45099b
 WORKBENCH_COMMIT=bbf5fc40593e2f6f83862a241f48fb50ca624881  # bump: git:artislismanis/herdr-workbench
@@ -97,13 +95,6 @@ else
   run "ln -sfn '$SHARE/hunkdiff-linux-x64/hunk' '$BIN/hunk'"
 fi
 
-if _has_version "$BIN/plannotator" "$PLANNOTATOR_VERSION"; then
-  skip "plannotator $PLANNOTATOR_VERSION already installed"
-else
-  log "Installing plannotator $PLANNOTATOR_VERSION"
-  retry_run 3 "_install_binary https://github.com/backnotprop/plannotator/releases/download/v$PLANNOTATOR_VERSION/plannotator-linux-x64 $PLANNOTATOR_SHA256 '$BIN/plannotator'"
-fi
-
 # ---- gh-stack ----------------------------------------------------------------
 # GitHub's native stacked PRs. A gh extension rather than a binary in
 # ~/.local/bin, since it runs as `gh stack`; the sha256 is checked after gh
@@ -156,4 +147,4 @@ fi
 # Our binaries may not be on PATH yet in this shell; install.sh needs herdr.
 run "PATH='$BIN':\"\$PATH\" '$WB_DIR/install.sh'"
 
-ok "Workbench ready: herdr $HERDR_VERSION, wt $WT_VERSION, hunk $HUNK_VERSION, plannotator $PLANNOTATOR_VERSION, gh-stack $GH_STACK_VERSION, herdr-workbench ${WORKBENCH_COMMIT:0:12}."
+ok "Workbench ready: herdr $HERDR_VERSION, wt $WT_VERSION, hunk $HUNK_VERSION, gh-stack $GH_STACK_VERSION, herdr-workbench ${WORKBENCH_COMMIT:0:12}."
