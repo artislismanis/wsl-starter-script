@@ -24,6 +24,7 @@
 
 - [Design notes](explanation/design.md) — idempotency, privilege split, no hidden chains
 - [Testing strategy](explanation/testing-strategy.md) — three tiers, what each catches
+- [Tool groups](explanation/tool-groups.md) — target design: how tools are grouped and which presets include them
 
 ---
 
