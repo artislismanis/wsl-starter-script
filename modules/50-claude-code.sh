@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # REQUIRES_ROOT=0
 # DESCRIPTION=Claude Code CLI + user-global settings + statusline + my-claude plugin (optional)
-# NEEDS=jq socat
+# NEEDS=jq
 # PROVIDES=claude
 # ROLLBACK=# Plugin first: the uninstall needs the claude binary that the next lines remove.
 # ROLLBACK="$HOME/.local/bin/claude" plugin uninstall my-claude@my-agent-skills || true
@@ -124,9 +124,6 @@ fi
 # `sudo apt-get install -y jq` when convenient.
 command_exists jq || warn "jq not on PATH — statusline will be blank until you 'sudo apt-get install -y jq' (normally pulled in by --base/10-apt-core)."
 
-# settings.json enables the sandbox with failIfUnavailable=true; without socat
-# claude exits immediately on launch. Same standalone-install caveat as jq.
-command_exists socat || warn "socat not on PATH — settings.json enables the sandbox with failIfUnavailable=true, so claude will exit on launch until you 'sudo apt-get install -y socat' (normally pulled in by --base/10-apt-core)."
 
 ok "Claude Code ready. Run 'claude' in a project directory to start."
 echo "  - Settings:  $SETTINGS"
