@@ -1,28 +1,23 @@
 # Flags
 
 ```
---all                 Run base → dev → docker → claude → cleanup. (Excludes podman.)
-                      Cleanup is root-only — skipped when --all runs as a non-root user.
-                      Under --non-interactive, Docker installs in 'classic' mode by
-                      default; set DOCKER_MODE=skip to opt out.
 --base                Root-phase only (modules 00, 10).
 --dev                 cli-modern + zsh + history + mise. (apt-core is in --base.)
 --docker              Docker Engine. WSL network defenses
                       (27-wsl-network) auto-fire when a runtime actually installs;
                       DOCKER_MODE=skip suppresses both.
---workflow            worktrunk, hunk, plannotator, gh-stack.
+--workflow            worktrunk, hunk, gh-stack.
 --herdr               herdr.
 --preset NAME         Saved selection: wsl, dev, ai, full. Groups can be added to it.
 --print-plan          Show the plan and what NEEDS added, change nothing.
 --podman              Podman (rootless, daemonless). Same auto-fire of 27-wsl-network
                       after a successful install.
 --claude              Claude Code + user-global config.
---tailscale           Tailscale (private network for SSH and phone access). Never part of
-                      --all. Waits for the reopen after --base, like --docker.
---workbench           herdr + worktrunk + hunk (pinned binaries) + gh-stack + herdr-workbench config. Never
-                      part of --all.
---logins              Log in to the installed tools and set git identity. Re-runnable;
-                      never part of --all. Under --non-interactive it only reports.
+--tailscale           Tailscale (private network for SSH and phone access). In the full preset.
+                      Waits for the reopen after --base, like --docker.
+--workbench           herdr-workbench config, plus any tools it needs. In the ai and full presets.
+--logins              Log in to the installed tools and set git identity. Re-runnable.
+                      Under --non-interactive it only reports.
 --module NAME         Run one module (see --list).
 --list                List modules with descriptions.
 --non-interactive     Read answers from env vars (see env-vars.md).

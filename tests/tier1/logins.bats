@@ -22,14 +22,6 @@ EOF
   export PATH="$STUBS:$PATH"
 }
 
-@test "--all never runs 60-logins" {
-  cd "$REPO_ROOT"
-  local branch
-  branch="$(sed -n '/^  all)$/,/^    ;;$/p' install.sh)"
-  echo "$branch" | grep -q 'run_group claude'
-  ! echo "$branch" | grep -q logins
-}
-
 @test "non-interactive reports what's missing and runs no logins" {
   cd "$REPO_ROOT"
   run ./install.sh --logins --non-interactive --dry-run

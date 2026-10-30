@@ -110,7 +110,7 @@ Neither remaining item is a fix for the hypervisor port leak — that lives in H
 
 ## Module `28-tailscale` — private network *(root, optional)*
 
-[Tailscale](https://tailscale.com/) puts the distro on your tailnet, for SSH from other machines and (later) phone access to agents. Opt-in: `--tailscale`, the `full` preset, or menu entry 8. `--all` never installs it.
+[Tailscale](https://tailscale.com/) puts the distro on your tailnet, for SSH from other machines and (later) phone access to agents. Opt-in: `--tailscale`, the `full` preset, or menu entry 8. Other presets don't install it.
 
 | What | Where | Purpose |
 |---|---|---|
@@ -275,14 +275,13 @@ Re-runs preserve any existing file, so edits to your settings are safe.
 
 ## Modules `52-workflow-tools`, `54-herdr`, `55-workbench` — worktrees, review and herdr *(user, optional)*
 
-Never part of `--all`; pass `--workbench`.
+In the `ai` and `full` presets, or pass `--workbench`, which adds what it needs.
 
 | Item | Purpose |
 |---|---|
 | [`herdr`](https://github.com/herdrdev/herdr) | Terminal workspace for coding agents: workspaces, panes, agent state. Release binary in `~/.local/bin`, pinned with its sha256. herdr-workbench's config turns off its self-update, so the pin is the only thing that moves it. |
 | [`worktrunk`](https://worktrunk.dev/) (`wt`, `git-wt`) | Git worktrees for parallel agent work. Release binary in `~/.local/bin`, pinned with its sha256. Shell integration in a `wsl-starter:worktrunk` rc-block lets `wt switch` change directory. |
 | [`hunk`](https://github.com/modem-dev/hunk) | Terminal diff and code review. Release directory in `~/.local/share/hunkdiff-linux-x64` (its bundled agent skills sit next to the binary), symlinked into `~/.local/bin`, pinned with its sha256. |
-| [`plannotator`](https://github.com/backnotprop/plannotator) | Review plans and documents. Release binary in `~/.local/bin`, pinned with its sha256. `plannotator update` would move it off the pin; the bump workflow is what moves it here. |
 | [`gh-stack`](https://github.com/github/gh-stack) | GitHub's native [stacked PRs](https://docs.github.com/en/pull-requests/get-started/about-stacked-prs) as `gh stack`. A gh extension pinned to a release and checked against its sha256 after install; needs gh (from `--dev`). Its agent skill goes to `~/.claude/skills/gh-stack/` via `gh skill install`, pinned to the same tag. |
 | [`herdr-workbench`](https://github.com/artislismanis/herdr-workbench) | Cloned to `~/.local/share/herdr-workbench`, checked out at a pinned commit, then its `install.sh` runs: a marked block at the top of `~/.config/worktrunk/config.toml` (worktrees at `~/.herdr/worktrees/<repo>/<branch>`, a setup hook, a default-branch sync hook, `wt rm`). Its README has the details. |
 
@@ -292,7 +291,7 @@ Why plain binaries rather than mise tools: herdr, its popups and git hooks don't
 
 ## Module `60-logins` — logins and git identity *(user, re-runnable)*
 
-Never part of `--all`; pass `--logins`, or use a preset, which includes it (except `wsl`). For each installed tool it checks whether you're logged in and offers the login only if you aren't. A re-run lists what's still missing, so it doubles as a "what's left" check.
+Pass `--logins`, or use a preset, which includes it (except `wsl`). For each installed tool it checks whether you're logged in and offers the login only if you aren't. A re-run lists what's still missing, so it doubles as a "what's left" check.
 
 | Tool | Done when | Login |
 |---|---|---|

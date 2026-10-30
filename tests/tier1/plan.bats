@@ -71,6 +71,12 @@ plan() { PATH="$STUBS:${PATH//$REAL_HOME\/.local\/bin:/}" run --separate-stderr 
   echo "$output" | grep -q 'MISE_TOOLS=lazygit$'
 }
 
+@test "--all is gone" {
+  plan --all
+  [ "$status" -ne 0 ]
+  echo "$stderr" | grep -q 'Unknown flag: --all'
+}
+
 @test "an unknown preset is refused" {
   plan --preset nope
   [ "$status" -ne 0 ]

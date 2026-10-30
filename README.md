@@ -9,10 +9,10 @@ Replaces my older [base](https://gist.github.com/artislismanis/ac78234ef067e782e
 On a fresh WSL distro (still as root):
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/artislismanis/wsl-starter-script/main/bootstrap.sh) --all
+bash <(curl -fsSL https://raw.githubusercontent.com/artislismanis/wsl-starter-script/main/bootstrap.sh) --preset dev
 ```
 
-Or interactively — drop `--all` for a menu. The full walk-through (creating the distro from PowerShell, picking modules, reopening as the new user) is in [docs/tutorials/getting-started.md](docs/tutorials/getting-started.md).
+Or interactively — drop `--preset dev` for a menu. The full walk-through (creating the distro from PowerShell, picking modules, reopening as the new user) is in [docs/tutorials/getting-started.md](docs/tutorials/getting-started.md).
 
 ## What you get
 

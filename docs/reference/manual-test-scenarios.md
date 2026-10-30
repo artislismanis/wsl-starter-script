@@ -440,7 +440,7 @@ After unregistering the test distro and reimporting fresh, as root:
 
 ```bash
 cd /root/wsl-starter-script
-sudo ./install.sh --all
+sudo ./install.sh --preset full
 ```
 
 Answer the prompts through the root phase (user creation, hostname, DNS, etc.). When the root phase finishes, the installer asks **"Continue as '<user>' now in this WSL session…?"** — answer **y**.
@@ -467,7 +467,7 @@ The long one. Unregister, reinstall, then from root:
 
 ```bash
 cd /root/wsl-starter-script
-sudo ./install.sh --all
+sudo ./install.sh --preset full
 ```
 
 Answer yes at the docker prompt so this scenario also exercises the deferred-runtime path.
@@ -579,7 +579,7 @@ bash -c 'set -euo pipefail; source lib/common.sh; x="$(false)"; echo "should not
 
 ## Scenario 16 — `99-cleanup` no-op module
 
-`99-cleanup.sh` declares no writes (just a placeholder `# ROLLBACK=# Nothing to roll back …` header) but is still part of `--all`. Confirm it runs cleanly.
+`99-cleanup.sh` declares no writes (just a placeholder `# ROLLBACK=# Nothing to roll back …` header) but still runs at the end of a preset as root. Confirm it runs cleanly.
 
 ```bash
 ./install.sh --module 99-cleanup; echo "exit=$?"     # exit=0
@@ -748,7 +748,7 @@ tailscale status                        # this machine listed
 ./install.sh --tailscale                # re-run: repo and service reported as already present
 ```
 
-**Pass criteria:** login works from inside an isolated distro (`WSL_ISOLATE=1`); `ssh <user>@<tailnet-name>` works from another tailnet machine once sshd is running; `./install.sh --all` never prompts for or installs Tailscale.
+**Pass criteria:** login works from inside an isolated distro (`WSL_ISOLATE=1`); `ssh <user>@<tailnet-name>` works from another tailnet machine once sshd is running; `./install.sh --preset ai` never prompts for or installs Tailscale.
 
 ---
 

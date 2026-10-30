@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # wsl-starter-script — modular WSL bootstrap.
-# Usage: ./install.sh [--all|--base|--dev|--claude|--tailscale|--workbench|--logins|--module NAME] [--non-interactive] [--dry-run]
+# Usage: ./install.sh [--preset NAME|--base|--dev|--claude|--tailscale|--workbench|--logins|--module NAME] [--non-interactive] [--dry-run]
 set -euo pipefail
 
 # lib/common.sh re-derives + exports REPO_ROOT itself; we set it here so the
@@ -16,7 +16,6 @@ usage() {
 wsl-starter-script
 
   ./install.sh                       Interactive menu.
-  ./install.sh --all                 Run every module in order.
   ./install.sh --base                Root-phase only: 00-wsl-base + 10-apt-core.
   ./install.sh --dev                 cli-modern (root, auto-escalates) + zsh + history + mise.
                                      If invoked as root the user-phase is deferred to the
@@ -25,7 +24,7 @@ wsl-starter-script
   ./install.sh --podman              Podman (rootless, daemonless).
   ./install.sh --claude              Claude Code CLI + user-global config.
   ./install.sh --tailscale           Tailscale (private network for SSH and phone access).
-  ./install.sh --workflow            worktrunk + hunk + plannotator (pinned binaries) + gh-stack.
+  ./install.sh --workflow            worktrunk + hunk (pinned binaries) + gh-stack.
   ./install.sh --herdr               herdr (pinned binary).
   ./install.sh --workbench           herdr-workbench config, plus any tools above it needs.
   ./install.sh --preset NAME         Saved selection: wsl, dev, ai, full.
@@ -50,10 +49,8 @@ Flags:
   --dry-run           Print what would happen, make no changes.
   -h, --help          This message.
 
-Note: --all runs base → dev → docker → claude → cleanup. Podman is excluded
-(it's an alternative to Docker, not a complement); pass --podman explicitly.
-Tailscale and the workbench are excluded too (personal-use opt-ins); pass
---tailscale or --workbench explicitly. --logins is never part of --all.
+Note: presets don't include Podman; it's the alternative to Docker, so pass --podman
+explicitly. See docs/explanation/tool-groups.md.
 USAGE
 }
 
@@ -224,7 +221,7 @@ declare -A GROUP_LABELS=(
   [core]="Core apt packages"
   [dev]="Terminal and basic dev (zsh, CLI tools, gh, mise, languages)"
   [stack]="Stack-specific tools (terraform, azure-cli, databricks, poetry)"
-  [workflow]="Workflow tools (worktrunk, hunk, plannotator, gh-stack)"
+  [workflow]="Workflow tools (worktrunk, hunk, gh-stack)"
   [docker]="Docker Engine (rootful; one distro per WSL VM)"
   [podman]="Podman (rootless, daemonless)"
   [tailscale]="Tailscale (one distro per WSL VM)"
@@ -363,7 +360,7 @@ guided_plan() {
 interactive_menu() {
   echo "Select what to run:"
   echo "  1) Guided setup    (start from a preset, change anything, review the plan)"
-  echo "  2) Full setup      (base → dev → docker → claude → cleanup; excludes podman)"
+  echo "  2) Full setup      (the full preset)"
   echo "  3) Base only       (root: systemd, user, hostname, DNS)"
   echo "  4) Dev only        (CLI tools, zsh, history, mise)"
   echo "  5) Docker only     (Docker Engine)"
@@ -378,7 +375,7 @@ interactive_menu() {
   read -r -p "$(fmt_prompt "Choice >")" sel
   case "$sel" in
     1) MODE=guided ;;
-    2) MODE=all ;;
+    2) MODE=groups; apply_preset full ;;
     3) MODE=groups; SELECTED=(base) ;;
     4) MODE=groups; SELECTED=(dev) ;;
     5) MODE=groups; SELECTED=(docker) ;;
@@ -499,7 +496,6 @@ SELECTED=()
 PRINT_PLAN=0
 while [ $# -gt 0 ]; do
   case "$1" in
-    --all)              MODE=all ;;
     --base)             SELECTED+=(base core) ;;
     --dev)              SELECTED+=(dev) ;;
     --docker)           SELECTED+=(docker) ;;
@@ -539,9 +535,9 @@ while [ $# -gt 0 ]; do
   shift || true
 done
 
-# --all and --module are exclusive with group flags.
-if [ "$MODE" = "all" ] || [ "$MODE" = "single" ]; then
-  [ ${#SELECTED[@]} -eq 0 ] || die "--all/--module can't be combined with --preset or a group flag (--base, --dev, ...)."
+# --module is exclusive with group flags.
+if [ "$MODE" = "single" ]; then
+  [ ${#SELECTED[@]} -eq 0 ] || die "--module can't be combined with --preset or a group flag (--base, --dev, ...)."
 fi
 
 [ "$MODE" = "" ] && [ ${#SELECTED[@]} -gt 0 ] && MODE=groups
@@ -549,7 +545,7 @@ if [ -z "$MODE" ]; then
   # Refuse to drop into the interactive menu under --non-interactive — `read`
   # would block on the closed stdin (CI, sudo handoff). Operator must say
   # explicitly which group(s) to run.
-  [ "$NON_INTERACTIVE" = "1" ] && die "--non-interactive requires --all, --module, or one of --preset or a group flag (--base, --dev, ...)."
+  [ "$NON_INTERACTIVE" = "1" ] && die "--non-interactive requires --module, --preset or a group flag (--base, --dev, ...)."
   interactive_menu
 fi
 
@@ -567,21 +563,10 @@ elif [ "$MODE" = single ]; then
     25-docker-engine) _warn_vm_service Docker docker0 docker ;;
     28-tailscale)     _warn_vm_service Tailscale tailscale0 tailscaled ;;
   esac
-elif [ "$MODE" = all ]; then
-  _warn_vm_service Docker docker0 docker
 fi
 [ "$PRINT_PLAN" = 0 ] || exit 0
 
 case "$MODE" in
-  all)
-    run_group base
-    run_group core
-    run_group dev
-    run_group docker
-    run_group claude
-    # Cleanup is root-only; skip when we're running the user-phase tail of --all.
-    if is_root; then run_group cleanup; fi
-    ;;
   groups)
     for g in "${SELECTED[@]}"; do run_group "$g"; done
     ;;
@@ -593,7 +578,7 @@ esac
 
 # Auto-fire 27 only when this invocation ran a runtime module AND that module
 # wrote $RUNTIME_STAMP (i.e. install actually happened, not DOCKER_MODE=skip).
-# RAN_MODULES gates re-fire across the user-phase --all tail; stamp gates skip.
+# RAN_MODULES gates re-fire across the user-phase tail; stamp gates skip.
 if { [ -n "${RAN_MODULES[25-docker-engine]:-}" ] || [ -n "${RAN_MODULES[26-podman]:-}" ]; } \
    && [ -f "$RUNTIME_STAMP" ]; then
   run_module 27-wsl-network

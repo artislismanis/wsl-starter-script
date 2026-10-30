@@ -25,15 +25,6 @@ MOD=modules/52-workflow-tools.sh
   [ ! -e "$BATS_TEST_TMPDIR/.config/worktrunk" ]
 }
 
-@test "--all never runs 55-workbench" {
-  cd "$REPO_ROOT"
-  local branch
-  branch="$(sed -n '/^  all)$/,/^    ;;$/p' install.sh)"
-  echo "$branch" | grep -q 'run_group claude'
-  ! echo "$branch" | grep -q workbench
-  ! echo "$branch" | grep -q workflow
-}
-
 @test "rollback 55-workbench undoes herdr-workbench before removing the binaries" {
   cd "$REPO_ROOT"
   run ./install.sh --rollback
@@ -51,8 +42,6 @@ MOD=modules/52-workflow-tools.sh
   grep -qE '^WT_SHA256=[0-9a-f]{64}$' "$MOD"
   grep -qE '^HUNK_VERSION=[0-9.]+  # bump: github:modem-dev/hunk [^ ]+$' "$MOD"
   grep -qE '^HUNK_SHA256=[0-9a-f]{64}$' "$MOD"
-  grep -qE '^PLANNOTATOR_VERSION=[0-9.]+  # bump: github:backnotprop/plannotator [^ ]+$' "$MOD"
-  grep -qE '^PLANNOTATOR_SHA256=[0-9a-f]{64}$' "$MOD"
   grep -qE '^WORKBENCH_COMMIT=[0-9a-f]{40}  # bump: git:artislismanis/herdr-workbench$' modules/55-workbench.sh
 }
 
