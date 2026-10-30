@@ -47,7 +47,8 @@ ZSH_CUSTOM="${ZSH_CUSTOM:-$ZSH_DIR/custom}"
 # ZSH_PLUGINS: space-separated list. If unset, we additively append the two
 # third-party plugins we clone (preserving whatever omz put in plugins=(...)).
 # If set in the env, we replace the full plugins=() line — caller is in charge.
-# ZSH_THEME: if set, replaces the ZSH_THEME="..." line omz wrote.
+# ZSH_THEME: if set, replaces the ZSH_THEME="..." line omz wrote. If unset,
+# we offer essembeh (default yes) over omz's robbyrussell.
 PLUGINS_OVERRIDE=0
 # Treat an empty value the same as unset — otherwise the override branch would
 # rewrite the .zshrc plugins line to `plugins=()`, silently zeroing the
@@ -110,6 +111,12 @@ if [ -f "$ZSHRC" ]; then
     else
       skip "zsh-autosuggestions + zsh-syntax-highlighting already in plugins=()"
     fi
+  fi
+  # Offered only over omz's stock theme, so a re-run never undoes a theme
+  # picked since.
+  if [ -z "${ZSH_THEME:-}" ] && grep -qx 'ZSH_THEME="robbyrussell"' "$ZSHRC" \
+     && confirm "Use the essembeh theme (user@host, path, git status) instead of robbyrussell?" y; then
+    ZSH_THEME=essembeh
   fi
   if [ -n "${ZSH_THEME:-}" ]; then
     if grep -qF "ZSH_THEME=\"$ZSH_THEME\"" "$ZSHRC"; then

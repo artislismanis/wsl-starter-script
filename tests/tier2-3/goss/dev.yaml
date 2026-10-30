@@ -38,6 +38,10 @@ command:
     exec: "git config --global --get core.pager"
     exit-status: 0
     stdout: ["delta"]
+  # Non-interactive takes the essembeh question's default.
+  zshrc-theme-essembeh:
+    exec: "grep -x 'ZSH_THEME=\"essembeh\"' $HOME/.zshrc"
+    exit-status: 0
   zshrc-fzf-once:
     exec: "grep -c '# >>> wsl-starter:fzf >>>' $HOME/.zshrc"
     exit-status: 0

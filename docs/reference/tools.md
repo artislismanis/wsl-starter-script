@@ -135,16 +135,16 @@ The `zsh` package itself is installed by `20-cli-modern` (root); this user-phase
 | [`zsh-autosuggestions`](https://github.com/zsh-users/zsh-autosuggestions) | Fish-style history-based completion: grayed-out suggestion as you type; `→` accepts. |
 | [`zsh-syntax-highlighting`](https://github.com/zsh-users/zsh-syntax-highlighting) | Commands colored red until valid, quoted strings highlighted, typos caught before Enter. |
 
-Both plugins get auto-registered in `~/.zshrc`. With your permission the module also runs `chsh -s $(command -v zsh)` so new sessions start in zsh.
+Both plugins get auto-registered in `~/.zshrc`. The module offers the `essembeh` theme (default yes) in place of omz's `robbyrussell`; it only asks while the line is still `robbyrussell`, so a theme you pick later survives re-runs. With your permission the module also runs `chsh -s $(command -v zsh)` so new sessions start in zsh.
 
 > **Non-interactive note:** `chsh` needs sudo auth, and under `--non-interactive` sudo can't prompt. If there's no cached sudo credential, the module warns and skips the `chsh` step rather than dying — run `sudo chsh -s "$(command -v zsh)" "$USER"` yourself afterwards. (Interactive runs fall through to a normal sudo prompt.)
 
 **Overrides for non-interactive runs:**
 
-- `ZSH_THEME=agnoster` — replaces the omz-written `ZSH_THEME="..."` line with your choice.
+- `ZSH_THEME=agnoster` — replaces the omz-written `ZSH_THEME="..."` line with your choice, and skips the essembeh question.
 - `ZSH_PLUGINS="git docker kubectl zsh-autosuggestions"` — replaces the entire `plugins=(...)` line. Plugins not known to the installer are assumed to be bundled with omz; unknown external plugins won't be cloned (add them to the module's `PLUGIN_REPOS` map if you need cloning).
 
-Leave either var unset to keep the defaults (`robbyrussell` theme, additively append the two zsh-users plugins).
+Leave either var unset for the defaults: the essembeh question (yes under `--non-interactive`), and the two zsh-users plugins appended to your list.
 
 ---
 
