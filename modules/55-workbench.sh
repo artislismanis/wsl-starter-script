@@ -2,7 +2,7 @@
 # REQUIRES_ROOT=0
 # DESCRIPTION=Workbench: herdr + worktrunk + hunk as pinned release binaries, gh-stack + its agent skill, then herdr-workbench config at a pinned commit
 # ROLLBACK=# herdr-workbench first: its own recipe strips its block from ~/.config/worktrunk/config.toml and removes its hooks.
-# ROLLBACK=[ -x "$HOME/.local/share/herdr-workbench/install.sh" ] && "$HOME/.local/share/herdr-workbench/install.sh" --rollback | bash
+# ROLLBACK=[ -x "$HOME/.local/share/herdr-workbench/install.sh" ] && "$HOME/.local/share/herdr-workbench/install.sh" --rollback | PATH="$HOME/.local/bin:$PATH" bash
 # ROLLBACK=rm -rf "$HOME/.local/share/herdr-workbench"
 # ROLLBACK=rm -f "$HOME/.local/bin/herdr" "$HOME/.local/bin/wt" "$HOME/.local/bin/git-wt" "$HOME/.local/bin/hunk"
 # ROLLBACK=rm -rf "$HOME/.local/share/hunkdiff-linux-x64"
@@ -144,6 +144,7 @@ fi
 if [ "$DRY_RUN" != "1" ] && [ "$(git -C "$WB_DIR" rev-parse HEAD)" != "$WORKBENCH_COMMIT" ]; then
   die "herdr-workbench is at $(git -C "$WB_DIR" rev-parse HEAD), expected $WORKBENCH_COMMIT"
 fi
-run "'$WB_DIR/install.sh'"
+# Our binaries may not be on PATH yet in this shell; install.sh needs herdr.
+run "PATH='$BIN':\"\$PATH\" '$WB_DIR/install.sh'"
 
 ok "Workbench ready: herdr $HERDR_VERSION, wt $WT_VERSION, hunk $HUNK_VERSION, gh-stack $GH_STACK_VERSION, herdr-workbench ${WORKBENCH_COMMIT:0:12}."
