@@ -124,7 +124,6 @@ fi
 # `sudo apt-get install -y jq` when convenient.
 command_exists jq || warn "jq not on PATH — statusline will be blank until you 'sudo apt-get install -y jq' (normally pulled in by --base/10-apt-core)."
 
-
 ok "Claude Code ready. Run 'claude' in a project directory to start."
 echo "  - Settings:  $SETTINGS"
 echo "  - MCP example: $MCP_EXAMPLE"
