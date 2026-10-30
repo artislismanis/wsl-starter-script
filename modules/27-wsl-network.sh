@@ -53,7 +53,7 @@ copy_if_drift \
   /usr/local/bin/wsl-port-check \
   0755
 
-# Rootless container engines (rootless docker, rootless podman) emit
+# Rootless container engines (podman) emit
 #   WARN[0000] "/" is not a shared mount, this could cause issues or missing
 #   mounts with rootless containers
 # on every invocation when the root mount has private (or unset) propagation.

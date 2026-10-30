@@ -123,7 +123,7 @@ require_root() { is_root || die "This module must run as root (sudo)."; }
 require_user() { if is_root; then die "This module must run as a non-root user (not sudo)."; fi; }
 
 # truthy "value"  -> exit 0 if value is 1/yes/true (case-insensitive), else 1.
-# Single source of truth for env-var booleans (DOCKER_ROOTLESS_*, PODMAN_*,
+# Single source of truth for env-var booleans (PODMAN_*,
 # etc.). ${1,,} requires bash 4+, which Ubuntu has shipped since 14.04.
 truthy() {
   case "${1,,}" in 1|yes|true) return 0 ;; *) return 1 ;; esac

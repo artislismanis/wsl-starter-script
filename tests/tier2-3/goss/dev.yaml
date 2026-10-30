@@ -64,8 +64,7 @@ command:
   # Scenario 20 — ensure_block_per_shell emits *different* content into bash
   # vs zsh for shells that initialize differently (atuin/zoxide register
   # `atuin init bash` vs `atuin init zsh`). Both blocks must exist and must
-  # not be byte-identical. (The docker-rootless block uses ensure_block_in_rcs
-  # — same content both sides — so isn't the right target for this check.)
+  # not be byte-identical.
   atuin-block-per-shell-divergent:
     exec: |
       sed -n '/# >>> wsl-starter:atuin-zoxide >>>/,/# <<< wsl-starter:atuin-zoxide <<</p' "$HOME/.bashrc" > /tmp/bash.block

@@ -21,7 +21,7 @@ wsl-starter-script
   ./install.sh --dev                 cli-modern (root, auto-escalates) + zsh + history + mise.
                                      If invoked as root the user-phase is deferred to the
                                      post-handoff/reopen user run.
-  ./install.sh --docker              Docker Engine (classic or rootless).
+  ./install.sh --docker              Docker Engine.
   ./install.sh --podman              Podman (rootless, daemonless).
   ./install.sh --claude              Claude Code CLI + user-global config.
   ./install.sh --tailscale           Tailscale (private network for SSH and phone access).
@@ -39,8 +39,7 @@ Flags:
                       WSL_USER, WSL_PASSWORD, WSL_HOSTNAME, WSL_DNS, WSL_APT_UPGRADE,
                       MISE_LANGUAGES (csv), MISE_<LANG>_VERSION,
                       MISE_TOOLS (csv), MISE_<TOOL>_VERSION,
-                      DOCKER_MODE, DOCKER_USER, DOCKER_ROOTLESS_PASTA,
-                      DOCKER_ROOTLESS_HOST_SYMLINK,
+                      DOCKER_MODE, DOCKER_USER,
                       PODMAN_COMPOSE, PODMAN_DOCKER_SHIM,
                       ZSH_THEME, ZSH_PLUGINS, CLAUDE_PERMISSION_MODE, CLAUDE_MY_CLAUDE.
                       Full list and defaults in docs/reference/env-vars.md.
@@ -200,7 +199,7 @@ interactive_menu() {
   echo "  2) Full setup      (base → dev → docker → claude → cleanup; excludes podman)"
   echo "  3) Base only       (root: systemd, user, hostname, DNS)"
   echo "  4) Dev only        (CLI tools, zsh, history, mise)"
-  echo "  5) Docker only     (Docker Engine: classic or rootless)"
+  echo "  5) Docker only     (Docker Engine)"
   echo "  6) Podman only     (rootless, daemonless)"
   echo "  7) Claude only     (claude-code + config)"
   echo "  8) Tailscale only  (private network for SSH and phone access)"

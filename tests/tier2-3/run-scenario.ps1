@@ -187,7 +187,7 @@ printf 'machine api.github.com login x-access-token password %s\n' "$GH_API_TOKE
     # bash -ilc (interactive + login) so ~/.bashrc actually runs — Ubuntu's
     # default ~/.bashrc bails out at the top for non-interactive shells,
     # which would skip every `export FOO=...` set by our wsl-starter:*
-    # marker blocks (e.g. DOCKER_HOST for rootless docker).
+    # marker blocks (e.g. mise activation).
     & wsl -d $distro -u $GossUser -- bash -ilc "$envExports goss -g $gossPath validate --format documentation"
     if ($LASTEXITCODE -ne 0) {
       $script:keep = $KeepDistroOnFailure.IsPresent
