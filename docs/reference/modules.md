@@ -20,7 +20,7 @@ modules/
   40-mise.sh            [user] mise + selected runtimes + uv + tools (lazygit, yq, ...)
   files/                artefacts modules install (wsl-port-check)
   50-claude-code.sh     [user] claude-code + ~/.claude/ templates + my-claude plugin
-  52-workflow-tools.sh  [user] worktrunk + hunk + plannotator (pinned binaries) + gh-stack, optional
+  52-workflow-tools.sh  [user] worktrunk + hunk (pinned binaries) + gh-stack, optional
   54-herdr.sh           [user] herdr (pinned binary), optional
   55-workbench.sh       [user] herdr-workbench config, optional
   60-logins.sh          [user] logins for the installed tools + git identity, re-runnable
