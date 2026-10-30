@@ -12,7 +12,7 @@ Under `--non-interactive` the installer reads answers from these env vars instea
 | `WSL_ISOLATE`             | `1`/`yes` disables Windows interop and `/mnt/*` automount; `0`/`no` keeps both; unset prompts (default-yes, so `--non-interactive` isolates) |
 | `MISE_LANGUAGES`          | CSV of runtimes to install, e.g. `node,python,go` |
 | `MISE_<LANG>_VERSION`     | Override a runtime's pinned version — see defaults below |
-| `MISE_TOOLS`              | CSV of mise-managed tools, e.g. `lazygit,zellij,terraform`. Valid: `lazygit`, `zellij`, `fzf`, `yq`, `pre-commit`, `glow`, `terraform`, `databricks`, `azure-cli`, `poetry`. Replaces the prompts entirely. |
+| `MISE_TOOLS`              | CSV of mise-managed tools, e.g. `lazygit,yq,terraform`. Valid: `lazygit`, `yq`, `pre-commit`, `glow`, `terraform`, `databricks`, `azure-cli`, `poetry`. Replaces the prompts entirely. |
 | `MISE_<TOOL>_VERSION`     | Override a tool's pinned version — see defaults below |
 | `DOCKER_MODE`             | `classic` / `skip` (only for `25-docker-engine`) |
 | `DOCKER_USER`             | Target user — added to the `docker` group. Resolution: `DOCKER_USER` → `SUDO_USER` → `/run/wsl-starter-handoff` (user `00-wsl-base` created earlier in this WSL session) → `WSL_USER`; only prompts if none of those name a real non-root account. |
@@ -49,7 +49,7 @@ sudo \
   WSL_USER=artis WSL_PASSWORD='...' WSL_HOSTNAME=box \
   MISE_LANGUAGES=node,python,go \
   MISE_NODE_VERSION=22 MISE_PYTHON_VERSION=3.13 MISE_GO_VERSION=1.23 \
-  MISE_TOOLS=lazygit,zellij,terraform MISE_TERRAFORM_VERSION=1.9.5 \
+  MISE_TOOLS=lazygit,yq,terraform MISE_TERRAFORM_VERSION=1.9.5 \
   CLAUDE_PERMISSION_MODE=acceptEdits \
   ./install.sh --all --non-interactive
 ```

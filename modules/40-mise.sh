@@ -2,7 +2,7 @@
 # REQUIRES_ROOT=0
 # DESCRIPTION=mise (unified version manager) + optional runtimes + uv + CLI/cloud tools
 # ROLLBACK=# Per runtime first (clean removal of toolchains): mise uninstall <node|python|ruby|java|go|deno|bun>
-# ROLLBACK=# Per tool: mise uninstall <uv|lazygit|zellij|fzf|yq|pre-commit|glow|terraform|databricks-cli|azure|poetry> (older installs also github:abhinav/git-spice)
+# ROLLBACK=# Per tool: mise uninstall <uv|lazygit|yq|pre-commit|glow|terraform|databricks-cli|azure|poetry> (older installs also zellij, fzf, github:abhinav/git-spice)
 # ROLLBACK=# azure-devops az extension (leave the rest of ~/.azure: it holds az login state):
 # ROLLBACK=rm -rf "$HOME/.azure/cliextensions/azure-devops"
 # ROLLBACK=# delta git wiring (only unset if still pointing at delta; we never overwrite an existing pager):
@@ -44,8 +44,6 @@ done < <(compgen -v | grep -E '^MISE_[A-Z_]+_VERSION$' || true)
 # Parsed here so a typo fails fast, same as the version checks above.
 declare -A TOOL_SPECS=(
   [lazygit]="lazygit@${MISE_LAZYGIT_VERSION:-0.66.2}"
-  [zellij]="zellij@${MISE_ZELLIJ_VERSION:-0.45.1}"
-  [fzf]="fzf@${MISE_FZF_VERSION:-0.74.5}"
   [yq]="yq@${MISE_YQ_VERSION:-4.54.1}"
   [pre-commit]="pre-commit@${MISE_PRE_COMMIT_VERSION:-4.7.0}"
   [glow]="glow@${MISE_GLOW_VERSION:-3.0.0}"
@@ -144,7 +142,7 @@ fi
 # Runs after uv because azure-cli's only Linux backend in mise is pipx, which
 # runs via uvx.
 if [ -z "${MISE_TOOLS:-}" ]; then
-  for t in lazygit zellij fzf yq pre-commit glow; do
+  for t in lazygit yq pre-commit glow; do
     if confirm "Install ${t} (${TOOL_SPECS[$t]})?" y; then tools+=("$t"); fi
   done
   if confirm "Show extra tools (terraform/databricks/azure-cli/poetry)?" n; then
@@ -172,14 +170,6 @@ for t in "${tools[@]}"; do
       else
         run "\"$MISE_BIN\" exec -- az extension add --name azure-devops --only-show-errors"
       fi
-      ;;
-    fzf)
-      # Empty FZF_CTRL_R_COMMAND stops fzf binding Ctrl-R, which atuin owns.
-      ensure_block_per_shell "wsl-starter:fzf" "$HOME" \
-        'command -v atuin >/dev/null 2>&1 && FZF_CTRL_R_COMMAND=
-command -v fzf >/dev/null 2>&1 && eval "$(fzf --bash)"' \
-        'command -v atuin >/dev/null 2>&1 && FZF_CTRL_R_COMMAND=
-command -v fzf >/dev/null 2>&1 && eval "$(fzf --zsh)"'
       ;;
   esac
 done
