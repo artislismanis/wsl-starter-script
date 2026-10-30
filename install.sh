@@ -250,7 +250,7 @@ _selected() {
 _module_header() { sed -n "s/^# $2=//p" "$MODULES_DIR/$1.sh" | head -1; }
 
 # ~/.local/bin isn't on PATH in every shell this runs from.
-_have() { command -v "$1" >/dev/null 2>&1 || [ -x "$HOME/.local/bin/$1" ]; }
+_have() { command -v "$1" >/dev/null 2>&1 || [ -x "$HOME/.local/bin/$1" ] || [ -x "$HOME/.local/share/mise/shims/$1" ]; }
 
 _group_providing() {
   local g m

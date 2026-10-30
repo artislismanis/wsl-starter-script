@@ -39,7 +39,7 @@ Being useful on its own doesn't put a tool in a preset. Rule 4 is about labellin
 | Terminal | zsh, shell history, `ripgrep`, `fd`, `bat`, `eza`, `delta`, `fzf`, `yq`, `glow`, `wl-clipboard` | `wl-clipboard` is the clipboard when interop is off. `fzf` comes from apt so it's on PATH without mise |
 | Basic dev | `gh`, mise, uv, Python, Node, `lazygit`, `pre-commit` | mise and uv install most other tools |
 | Workflow | wt (worktrees), gh-stack (stacked PRs), hunk (code review) | hunk is over 100 MB; the review loop is its reason. Document review comes through the workbench's annotate plugin, which brings its own `plannotator-tui` |
-| Agents | Claude Code, herdr, herdr-workbench config | The workbench config needs herdr, wt, hunk, gh-stack, `fzf` and `wl-clipboard` |
+| Agents | Claude Code, herdr, herdr-workbench config | The workbench config needs herdr, wt, hunk, gh-stack, `fzf`, `wl-clipboard` and Node, which runs the hunkdiff plugin |
 | Platform services | Docker (rootful), Tailscale, Podman | Docker and Tailscale: one distro per WSL VM, and the installer warns if it sees either running elsewhere. Podman is rootless with no daemon, and sits here because it's the alternative to Docker |
 | Stack-specific | `terraform`, `azure-cli`, `databricks`, `poetry` | Heavy or tied to a project |
 

@@ -90,6 +90,22 @@ command:
       herdr plugin list --plugin worktrunk | grep -qF "[github:$WORKTRUNK_PLUGIN@$WORKTRUNK_PLUGIN_COMMIT]"
     exit-status: 0
 
+  herdr-review-plugins-pinned:
+    exec: |
+      . "$HOME/.local/share/herdr-workbench/pins"
+      herdr plugin list --plugin jhochenbaum.hunkdiff | grep -qF "[github:$HUNKDIFF_PLUGIN@$HUNKDIFF_PLUGIN_COMMIT]" &&
+        herdr plugin list --plugin annotate | grep -qF "[github:$ANNOTATE_PLUGIN@$ANNOTATE_PLUGIN_COMMIT]"
+    exit-status: 0
+
+  # hunkdiff's build needs node, which only reaches install.sh through the shims.
+  hunkdiff-plugin-built:
+    exec: 'ls "$HOME"/.config/herdr/plugins/github-installations/jhochenbaum.hunkdiff-*/*/checkout/dist/bin/pane.js'
+    exit-status: 0
+
+  hunk-skill-installed:
+    exec: 'grep -q "^name: hunk-review" "$HOME/.claude/skills/hunk-review/SKILL.md"'
+    exit-status: 0
+
   herdr-worktree-keys:
     exec: "grep -cE '^key = \"prefix\\+shift\\+[ge]\"$' $HOME/.config/herdr/config.toml"
     exit-status: 0

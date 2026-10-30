@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # REQUIRES_ROOT=0
 # DESCRIPTION=Workbench: herdr-workbench config at a pinned commit
-# NEEDS=herdr wt hunk gh fzf wl-copy jq
+# NEEDS=herdr wt hunk gh fzf wl-copy jq node
 # ROLLBACK=# Its own recipe strips its block from ~/.config/worktrunk/config.toml and removes its hooks.
 # ROLLBACK=[ -x "$HOME/.local/share/herdr-workbench/install.sh" ] && "$HOME/.local/share/herdr-workbench/install.sh" --rollback | PATH="$HOME/.local/bin:$PATH" bash
 # ROLLBACK=rm -rf "$HOME/.local/share/herdr-workbench"
@@ -10,7 +10,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/idempotent.sh"
 require_user
 
-WORKBENCH_COMMIT=bb969f2739060511025a7be367fe2c10d2e2261f  # bump: git:artislismanis/herdr-workbench
+WORKBENCH_COMMIT=516f7ed132816d7baf5df69403b003e49150948c  # bump: git:artislismanis/herdr-workbench
 
 BIN="$HOME/.local/bin"
 WB_DIR="$HOME/.local/share/herdr-workbench"
@@ -32,7 +32,8 @@ fi
 if [ "$DRY_RUN" != "1" ] && [ "$(git -C "$WB_DIR" rev-parse HEAD)" != "$WORKBENCH_COMMIT" ]; then
   die "herdr-workbench is at $(git -C "$WB_DIR" rev-parse HEAD), expected $WORKBENCH_COMMIT"
 fi
-# Our binaries may not be on PATH yet in this shell; install.sh needs herdr.
-run "PATH='$BIN':\"\$PATH\" '$WB_DIR/install.sh'"
+# Our binaries and mise's Node may not be on PATH yet in this shell; install.sh
+# needs herdr, and the hunkdiff plugin's build needs node.
+run "PATH='$BIN:$HOME/.local/share/mise/shims':\"\$PATH\" '$WB_DIR/install.sh'"
 
 ok "Workbench ready: herdr-workbench ${WORKBENCH_COMMIT:0:12}."
