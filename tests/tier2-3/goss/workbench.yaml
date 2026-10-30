@@ -83,12 +83,27 @@ command:
     exit-status: 0
     stdout: ["/claude: current/"]
 
+  # The commit comes from herdr-workbench's own pins file.
+  herdr-worktrunk-plugin-pinned:
+    exec: |
+      . "$HOME/.local/share/herdr-workbench/pins"
+      herdr plugin list --plugin worktrunk | grep -qF "[github:$WORKTRUNK_PLUGIN@$WORKTRUNK_PLUGIN_COMMIT]"
+    exit-status: 0
+
+  herdr-worktree-keys:
+    exec: "grep -cE '^key = \"prefix\\+shift\\+[ge]\"$' $HOME/.config/herdr/config.toml"
+    exit-status: 0
+    stdout: ["2"]
+
   bashrc-worktrunk-once:
     exec: "grep -c '# >>> wsl-starter:worktrunk >>>' $HOME/.bashrc"
     exit-status: 0
     stdout: ["1"]
 
 file:
+  "{{.Env.HOME}}/.config/herdr/bin/wt-remove-current":
+    exists: true
+    mode: "0755"
   "{{.Env.HOME}}/.claude/skills/herdr/SKILL.md":
     exists: true
   "{{.Env.HOME}}/.config/worktrunk/hooks/worktree-setup":
