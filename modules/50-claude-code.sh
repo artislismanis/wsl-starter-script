@@ -11,6 +11,7 @@
 # ROLLBACK=# The native installer also drops a versioned install dir + cache; safe to remove since we're uninstalling:
 # ROLLBACK=rm -rf "$HOME/.local/share/claude" "$HOME/.cache/claude"
 # ROLLBACK=rm -f "$HOME/.claude/scripts/statusline.sh"
+# ROLLBACK=rm -f "${XDG_STATE_HOME:-$HOME/.local/state}/claude-usage.json"
 # ROLLBACK=rmdir --ignore-fail-on-non-empty "$HOME/.claude/scripts" 2>/dev/null || true
 # ROLLBACK=rm -f "$HOME/.claude/settings.json" "$HOME/.claude/mcp.example.json"
 # ROLLBACK=# Legacy rc block from before the MCP server fetched its own token; re-runs strip it too.
