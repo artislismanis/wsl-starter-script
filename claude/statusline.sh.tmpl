@@ -12,6 +12,8 @@ input=$(cat)
   read -r total_out
   read -r five_pct
   read -r five_resets
+  read -r week_pct
+  read -r week_resets
 } <<EOF
 $(printf '%s' "$input" | jq -r '
     .model.display_name                    // "",
@@ -19,7 +21,9 @@ $(printf '%s' "$input" | jq -r '
     .context_window.total_input_tokens     // "",
     .context_window.total_output_tokens    // "",
     .rate_limits.five_hour.used_percentage // "",
-    .rate_limits.five_hour.resets_at       // ""
+    .rate_limits.five_hour.resets_at       // "",
+    .rate_limits.seven_day.used_percentage // "",
+    .rate_limits.seven_day.resets_at       // ""
   ')
 EOF
 
@@ -39,21 +43,31 @@ if [ -n "$total_in" ] || [ -n "$total_out" ]; then
     printf ' \033[02;37min:%s out:%s\033[00m' "$in_fmt" "$out_fmt"
 fi
 
-if [ -n "$five_pct" ]; then
-    pct_fmt=$(printf '%.0f' "$five_pct")
-    printf ' \033[00;35m5h:%s%%\033[00m' "$pct_fmt"
-    if [ -n "$five_resets" ]; then
-        now=$(date +%s)
-        secs_left=$(( five_resets - now ))
-        if [ "$secs_left" -le 0 ]; then
-            printf ' \033[02;35m(now)\033[00m'
-        elif [ "$secs_left" -lt 3600 ]; then
-            mins=$(( secs_left / 60 ))
-            printf ' \033[02;35m(%dm)\033[00m' "$mins"
-        else
-            hrs=$(( secs_left / 3600 ))
-            mins=$(( (secs_left % 3600) / 60 ))
-            printf ' \033[02;35m(%dh%dm)\033[00m' "$hrs" "$mins"
-        fi
+# LABEL PERCENT RESETS_AT: one rate-limit window, with the time left on it.
+window() {
+    [ -n "$2" ] || return 0
+    printf ' \033[00;35m%s:%s%%\033[00m' "$1" "$(printf '%.0f' "$2")"
+    [ -n "$3" ] || return 0
+    secs_left=$(( $3 - $(date +%s) ))
+    if [ "$secs_left" -le 0 ]; then
+        printf ' \033[02;35m(now)\033[00m'
+    elif [ "$secs_left" -lt 3600 ]; then
+        printf ' \033[02;35m(%dm)\033[00m' "$(( secs_left / 60 ))"
+    elif [ "$secs_left" -lt 86400 ]; then
+        printf ' \033[02;35m(%dh%dm)\033[00m' "$(( secs_left / 3600 ))" "$(( (secs_left % 3600) / 60 ))"
+    else
+        printf ' \033[02;35m(%dd%dh)\033[00m' "$(( secs_left / 86400 ))" "$(( (secs_left % 86400) / 3600 ))"
+    fi
+}
+
+window 5h "$five_pct" "$five_resets"
+window 7d "$week_pct" "$week_resets"
+
+# Saved for tools that pace their work, such as herdr-workbench's workshop.
+if [ -n "$five_pct$week_pct" ]; then
+    state="${XDG_STATE_HOME:-$HOME/.local/state}/claude-usage.json"
+    mkdir -p "$(dirname "$state")" 2>/dev/null
+    if printf '%s' "$input" | jq -c --argjson at "$(date +%s)" '.rate_limits + {at: $at}' >"$state.tmp" 2>/dev/null; then
+        mv -f "$state.tmp" "$state"
     fi
 fi
