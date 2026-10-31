@@ -103,6 +103,13 @@ command:
         "$HOME/.local/bin/workshop" --help 2>&1 | grep -q "^Usage: workshop"
     exit-status: 0
 
+  # Installed but off: enabling it starts tickets unattended.
+  workshop-timer-off:
+    exec: |
+      [ -f "$HOME/.config/systemd/user/workshop-tick.timer" ] &&
+        [ "$(systemctl --user is-enabled workshop-tick.timer 2>&1)" != enabled ]
+    exit-status: 0
+
   # hunkdiff's build needs node, which only reaches install.sh through the shims.
   hunkdiff-plugin-built:
     exec: 'ls "$HOME"/.config/herdr/plugins/github-installations/jhochenbaum.hunkdiff-*/*/checkout/dist/bin/pane.js'
