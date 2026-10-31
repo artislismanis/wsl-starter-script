@@ -97,6 +97,12 @@ command:
         herdr plugin list --plugin annotate | grep -qF "[github:$ANNOTATE_PLUGIN@$ANNOTATE_PLUGIN_COMMIT]"
     exit-status: 0
 
+  workshop-installed:
+    exec: |
+      herdr plugin list --plugin workshop | grep -qF "[local:$HOME/.local/share/herdr-workbench/plugins/workshop]" &&
+        "$HOME/.local/bin/workshop" --help 2>&1 | grep -q "^Usage: workshop"
+    exit-status: 0
+
   # hunkdiff's build needs node, which only reaches install.sh through the shims.
   hunkdiff-plugin-built:
     exec: 'ls "$HOME"/.config/herdr/plugins/github-installations/jhochenbaum.hunkdiff-*/*/checkout/dist/bin/pane.js'
