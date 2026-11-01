@@ -49,8 +49,8 @@ declare -A TOOL_SPECS=(
   [yq]="yq@${MISE_YQ_VERSION:-4.54.1}"
   [pre-commit]="pre-commit@${MISE_PRE_COMMIT_VERSION:-4.7.0}"
   [glow]="glow@${MISE_GLOW_VERSION:-3.0.0}"
-  [terraform]="terraform@${MISE_TERRAFORM_VERSION:-1.16.6}"
-  [databricks]="databricks-cli@${MISE_DATABRICKS_VERSION:-1.21.0}"
+  [terraform]="terraform@${MISE_TERRAFORM_VERSION:-1.17.1}"
+  [databricks]="databricks-cli@${MISE_DATABRICKS_VERSION:-1.23.0}"
   # uv venvs ship without pip, which `az extension add` shells out to. Setting
   # uvx_args replaces the registry's own --prerelease=allow, so repeat it.
   [azure-cli]="azure[uvx_args=--prerelease=allow --with=pip]@${MISE_AZURE_CLI_VERSION:-2.91.0}"
@@ -68,7 +68,7 @@ fi
 
 if ! command_exists mise; then
   log "Installing mise"
-  run "curl -fsSL https://mise.run | MISE_VERSION=v${MISE_SELF_VERSION:-2026.10.14} sh"  # bump: aqua:jdx/mise
+  run "curl -fsSL https://mise.run | MISE_VERSION=v${MISE_SELF_VERSION:-2026.10.25} sh"  # bump: aqua:jdx/mise
 else
   skip "mise already installed"
 fi
@@ -100,13 +100,13 @@ ensure_block "wsl-starter:mise-shims" "$HOME/.profile" "$SHIMS_PATH"
 # MISE_LANGUAGES env var overrides the prompts (comma-separated).
 # Per-language version overrides via env: MISE_<LANG>_VERSION (e.g. MISE_NODE_VERSION=22).
 declare -A SPECS=(
-  [node]="node@${MISE_NODE_VERSION:-24.22.0}"  # bump: node@lts
-  [python]="python@${MISE_PYTHON_VERSION:-3.12.15}"  # bump: python@3.12
-  [ruby]="ruby@${MISE_RUBY_VERSION:-3.3.12}"  # bump: ruby@3.3
-  [java]="java@${MISE_JAVA_VERSION:-temurin-21.0.12+101.0.LTS}"  # bump: java@temurin-21
-  [go]="go@${MISE_GO_VERSION:-1.27.2}"
-  [deno]="deno@${MISE_DENO_VERSION:-2.9.7}"
-  [bun]="bun@${MISE_BUN_VERSION:-1.4.3}"
+  [node]="node@${MISE_NODE_VERSION:-24.22.2}"  # bump: node@lts
+  [python]="python@${MISE_PYTHON_VERSION:-3.12.16}"  # bump: python@3.12
+  [ruby]="ruby@${MISE_RUBY_VERSION:-3.3.13}"  # bump: ruby@3.3
+  [java]="java@${MISE_JAVA_VERSION:-temurin-21.0.13+9.0.LTS}"  # bump: java@temurin-21
+  [go]="go@${MISE_GO_VERSION:-1.27.3}"
+  [deno]="deno@${MISE_DENO_VERSION:-2.9.8}"
+  [bun]="bun@${MISE_BUN_VERSION:-1.4.4}"
 )
 
 if [ -n "${MISE_LANGUAGES:-}" ]; then
@@ -141,7 +141,7 @@ done
 # uv — project-local Python env manager (complements mise-managed python).
 # No venv activation on cd: commands go through `uv run`, which always picks
 # the project's own .venv (an activated one goes stale across worktrees).
-UV_SPEC="uv@${MISE_UV_VERSION:-0.13.1}"
+UV_SPEC="uv@${MISE_UV_VERSION:-0.13.6}"
 if confirm "Install uv (fast Python project/env manager, ${UV_SPEC})?" y; then
   log "mise use -g $UV_SPEC"
   run "\"$MISE_BIN\" use -g $UV_SPEC"
