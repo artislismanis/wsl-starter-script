@@ -20,5 +20,7 @@ cat <<BANNER
     3. Log in to the installed tools and set git identity:
                                   ./install.sh --logins   (re-run any time to see what's left)
     4. In a Claude session:       /my-claude:set-up   (user-global rules)
+    5. With the workbench: keep WSL running from login, with Windows toasts and links:
+                                  ~/.config/herdr/bin/win-bridge setup   (paste what it prints into PowerShell)
 
 BANNER

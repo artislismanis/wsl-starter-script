@@ -80,7 +80,7 @@ Reopen. You should land as your new user. `whoami`, `hostname`, and `systemctl i
 ## Where to next
 
 - **Add Docker:** [how-to/docker.md](../how-to/docker.md) — only in the `full` preset
-- **Host-side polish:** [how-to/wsl-host.md](../how-to/wsl-host.md) — `.wslconfig`, auto-start at login, mirrored-mode recovery
+- **Host-side polish:** [how-to/wsl-host.md](../how-to/wsl-host.md) — `.wslconfig`, keeping WSL running from login, Windows toasts, mirrored-mode recovery
 - **What got installed:** [reference/tools.md](../reference/tools.md) — every package, why it's there
 - **Tune a re-run:** [reference/env-vars.md](../reference/env-vars.md) — non-interactive knobs
 - **Undo:** [how-to/rollback.md](../how-to/rollback.md)

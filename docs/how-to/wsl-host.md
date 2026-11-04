@@ -41,31 +41,33 @@ Then reopen the distro. `wsl --status` will confirm the VM is running.
 
 ---
 
-## 2. Auto-start WSL at login
+## 2. Keep WSL running from login, and get its notifications
 
-The cheapest reliable approach: a Task Scheduler task triggered "at logon" that runs a no-op WSL command. The VM boots in the background; by the time you open a terminal it's already warm.
+WSL stops a distro a while after its last terminal closes, and `vmIdleTimeout=-1` above doesn't always prevent it. Anything running in the distro stops with it: timers, the workbench's background jobs, docker. A Task Scheduler task holding a hidden `sleep infinity` keeps it up from login. It needs **no admin**, and `conhost --headless` stops any window flashing up.
 
-From an **admin PowerShell**:
+If the workbench is installed (module `55-workbench`), let it write the PowerShell for you, with your distro's name filled in. In WSL, run:
 
-```powershell
-$action  = New-ScheduledTaskAction `
-  -Execute "C:\Windows\System32\wsl.exe" `
-  -Argument "-d <YourDistro> -u root -- /bin/true"
-
-$trigger = New-ScheduledTaskTrigger -AtLogOn -User "$env:USERNAME"
-
-$settings = New-ScheduledTaskSettingsSet `
-  -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries `
-  -StartWhenAvailable -ExecutionTimeLimit (New-TimeSpan -Minutes 2)
-
-Register-ScheduledTask -TaskName "WSL-Warmup" `
-  -Action $action -Trigger $trigger -Settings $settings `
-  -Description "Boot the WSL2 VM at login so the first terminal is instant."
+```bash
+~/.config/herdr/bin/win-bridge setup
 ```
 
-Replace `<YourDistro>` with the name from `wsl --list`. Verify with `Get-ScheduledTask WSL-Warmup` or in `taskschd.msc`.
+Paste what it prints into PowerShell on Windows. It sets up two things:
+- **The keep-alive task** for this distro.
+- **win-bridge.** WSL links (`xdg-open`, `gh --web`) open in your Windows browser, and herdr's notifications show as Windows toasts. Clicking a toast takes you to that workspace in herdr. This works with interop off: Windows asks WSL over `localhost`. The workbench README covers the details, including running herdr in a Windows Terminal tab named `herdr`.
 
-If you also want docker up as soon as the VM boots, that already happens — module `25-docker-engine` enables `docker.service` via systemd.
+Without the workbench, the keep-alive alone, from a normal PowerShell, with your distro from `wsl -l -v`:
+
+```powershell
+$distro = "<YourDistro>"
+$run = New-ScheduledTaskAction -Execute conhost.exe -Argument "--headless wsl.exe -d $distro --exec sleep infinity"
+$keep = New-ScheduledTaskSettingsSet -ExecutionTimeLimit (New-TimeSpan -Seconds 0) -RestartCount 999 -RestartInterval (New-TimeSpan -Minutes 1) -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -MultipleInstances IgnoreNew
+Register-ScheduledTask -TaskName "WSL-KeepAlive-$distro" -Action $run -Trigger (New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME) -Settings $keep -Force > $null
+Start-ScheduledTask -TaskName "WSL-KeepAlive-$distro"
+```
+
+`wsl -l -v` should then say Running, and keep saying it after you close every terminal. The VM stays in memory all day, so mind the memory cap in section 1. Nothing runs while Windows sleeps or you're logged out. To remove it: `Unregister-ScheduledTask "WSL-KeepAlive-$distro" -Confirm:$false`.
+
+Docker comes up with the distro, as module `25-docker-engine` enables `docker.service` via systemd.
 
 ---
 
@@ -110,7 +112,7 @@ All distros run in one WSL VM and share its kernel and its network namespace: th
 
 - **Docker:** two classic (rootful) daemons share `docker0`, the bridges and the iptables rules, and can break each other's container networking. Run Docker in one distro at a time, and use Podman (rootless, no daemon) in the others.
 - **Tailscale:** one `tailscaled` owns `tailscale0` and its routes for every distro. Run it in one distro only.
-- **Ports:** a server on port 8080 in one distro blocks 8080 in all of them, and `localhost:8080` from any distro reaches it.
+- **Ports:** a server on port 8080 in one distro blocks 8080 in all of them, and `localhost:8080` from any distro reaches it. That includes win-bridge's port (47123), so run its setup in one distro only, or give the others their own with `WIN_BRIDGE_PORT`.
 - **tty1:** `00-wsl-base` masks `getty@tty1`, which otherwise fights the other distros' gettys over the shared console.
 
 ---
