@@ -51,9 +51,9 @@ declare -A TOOL_SPECS=(
   [glow]="glow@${MISE_GLOW_VERSION:-3.0.0}"
   [terraform]="terraform@${MISE_TERRAFORM_VERSION:-1.17.1}"
   [databricks]="databricks-cli@${MISE_DATABRICKS_VERSION:-1.24.0}"
-  # uv venvs ship without pip, which `az extension add` shells out to. Setting
-  # uvx_args replaces the registry's own --prerelease=allow, so repeat it.
-  [azure-cli]="azure[uvx_args=--prerelease=allow --with=pip]@${MISE_AZURE_CLI_VERSION:-2.92.0}"
+  # mise's registry already passes uv `--with pip` (for `az extension add`) and
+  # `--prerelease allow`; uvx_args repeating --prerelease makes uv refuse to run.
+  [azure-cli]="azure@${MISE_AZURE_CLI_VERSION:-2.92.0}"
   [poetry]="poetry@${MISE_POETRY_VERSION:-2.5.1}"
 )
 tools=()
