@@ -104,7 +104,7 @@ declare -A SPECS=(
   [python]="python@${MISE_PYTHON_VERSION:-3.12.16}"  # bump: python@3.12
   [ruby]="ruby@${MISE_RUBY_VERSION:-3.3.13}"  # bump: ruby@3.3
   [java]="java@${MISE_JAVA_VERSION:-temurin-21.0.13+9.0.LTS}"  # bump: java@temurin-21
-  [go]="go@${MISE_GO_VERSION:-1.27.3}"
+  [go]="go@${MISE_GO_VERSION:-1.27.3}"  # bump: go@1.27
   [deno]="deno@${MISE_DENO_VERSION:-2.9.8}"
   [bun]="bun@${MISE_BUN_VERSION:-1.4.4}"
 )
