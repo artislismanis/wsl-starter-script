@@ -13,12 +13,12 @@ source "$(dirname "${BASH_SOURCE[0]}")/../lib/idempotent.sh"
 require_user
 
 # ---- atuin ------------------------------------------------------------------
-# --non-interactive is atuin's own flag (skips shell-history import and sync
-# account setup prompts). --no-modify-path leaves PATH wiring to the rc-file
-# block we write below.
+# The bare release installer, not setup.atuin.sh: that one now runs `atuin
+# setup`, which adds its own rc hooks and turns on the daemon and agent capture.
+# ATUIN_NO_MODIFY_PATH leaves PATH wiring to the rc-file block below.
 if ! command_exists atuin; then
-  log "Installing atuin (non-interactive)"
-  retry_run 3 "curl --proto '=https' --tlsv1.2 -LsSf https://setup.atuin.sh | sh -s -- --no-modify-path --non-interactive"
+  log "Installing atuin"
+  retry_run 3 "curl --proto '=https' --tlsv1.2 -LsSf https://github.com/atuinsh/atuin/releases/latest/download/atuin-installer.sh | ATUIN_NO_MODIFY_PATH=1 sh"
 else
   skip "atuin already installed"
 fi
