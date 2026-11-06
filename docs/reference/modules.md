@@ -31,7 +31,7 @@ claude/
   mcp.example.json      commented MCP servers to copy into projects
 ```
 
-`[root]` modules run before reopen; `[user]` modules after. The dispatcher refuses mismatched invocations and auto-escalates via `sudo env …` when needed.
+Modules run in layer order (each declares `# LAYER=`; `./install.sh --list` shows it), not file order. See [tool-groups.md § Layers](../explanation/tool-groups.md#layers). `[root]` modules run before reopen; `[user]` modules after. The dispatcher refuses mismatched invocations and auto-escalates via `sudo env …` when needed.
 
 For per-module package details — what's installed, what it replaces, why it's there — see [tools.md](tools.md).
 

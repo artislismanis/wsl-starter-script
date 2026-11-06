@@ -30,8 +30,8 @@ wsl-starter-script
   ./install.sh --preset NAME         Saved selection: wsl, dev, ai, full.
   ./install.sh --print-plan          With any of the above: show the plan, change nothing.
   ./install.sh --logins              Log in to the installed tools and set git identity. Re-runnable.
-  ./install.sh --module NAME         Run one module (e.g. 20-cli-modern).
-  ./install.sh --list                List available modules.
+  ./install.sh --module NAME[,NAME]  Run modules by name, in the order given (e.g. 20-cli-modern).
+  ./install.sh --list                List modules in install order, with their layer.
   ./install.sh --rollback [NAME]     Print rollback recipe (one module, or all in
                                      reverse install order). Output is shell-pasteable;
                                      review before running. Source-of-truth lives in
@@ -54,14 +54,36 @@ explicitly. See docs/explanation/tool-groups.md.
 USAGE
 }
 
+# Install order: each module's '# LAYER=' header, then its name. Root layers
+# (1-4) come before user layers (5-8); cleanup is last. Rollback walks it backwards.
+declare -A LAYER_NAMES=(
+  [1]="OS update" [2]="OS config" [3]="System packages" [4]="System services"
+  [5]="User shell" [6]="User toolchain" [7]="User apps" [8]="Accounts" [9]="Cleanup"
+)
+
+_module_layer() { sed -n 's/^# LAYER=//p' "$MODULES_DIR/$1.sh" | head -1; }
+
+# Module names on stdin, in install order (or reverse with -r).
+_layer_order() {
+  local m r="${1:-}"
+  r="${r#-}"
+  while IFS= read -r m; do
+    if [ -n "$m" ]; then printf '%s %s\n' "$(_module_layer "$m")" "$m"; fi
+  done | sort -k1,1n"$r" -k2"$r" | cut -d' ' -f2
+}
+
+_all_modules() { for f in "$MODULES_DIR"/*.sh; do basename "$f" .sh; done; }
+
 list_modules() {
-  for f in "$MODULES_DIR"/*.sh; do
-    name="$(basename "$f" .sh)"
+  local name f desc root tag layer
+  while IFS= read -r name; do
+    f="$MODULES_DIR/$name.sh"
     desc="$(grep -m1 '^# DESCRIPTION=' "$f" | cut -d= -f2- || true)"
     root="$(grep -m1 '^# REQUIRES_ROOT=' "$f" | cut -d= -f2 || echo 0)"
+    layer="$(_module_layer "$name")"
     tag="[user]"; [ "$root" = "1" ] && tag="[root]"
-    printf "  %-18s %s %s\n" "$name" "$tag" "$desc"
-  done
+    printf "  %-18s %s %-17s %s\n" "$name" "$tag" "${LAYER_NAMES[$layer]}" "$desc"
+  done < <(_all_modules | _layer_order)
 }
 
 module_requires_root() {
@@ -71,8 +93,7 @@ module_requires_root() {
 # print_rollback [module-name]
 #   Read each module's '# ROLLBACK=<line>' headers and print them verbatim,
 #   wrapped with a module separator. With no arg, walk every module in reverse
-#   install order (so user-phase + container modules unwind before the base
-#   distro setup). Output is shell-pasteable but never executed: rolling back
+#   layer order (so user layers unwind before the base distro setup). Output is shell-pasteable but never executed: rolling back
 #   a system mutation is the operator's call, not the dispatcher's.
 print_rollback() {
   local target="${1:-}"
@@ -82,9 +103,8 @@ print_rollback() {
     [ -f "$f" ] || die "Unknown module: $target (see --list)"
     files=("$f")
   else
-    # Reverse install order: walk numeric prefixes from highest to lowest so
-    # 99-cleanup → 50-claude → 40-mise → ... → 00-wsl-base.
-    while IFS= read -r f; do files+=("$f"); done < <(printf '%s\n' "$MODULES_DIR"/*.sh | sort -r)
+    local m
+    while IFS= read -r m; do files+=("$MODULES_DIR/$m.sh"); done < <(_all_modules | _layer_order -r)
   fi
   cat <<'PREAMBLE'
 #!/usr/bin/env bash
@@ -181,40 +201,30 @@ run_module() {
   fi
 }
 
-BASE_MODULES=(00-wsl-base)
-CORE_MODULES=(10-apt-core)
-DEV_ROOT_MODULES=(20-cli-modern)
-DEV_USER_MODULES=(30-shell-zsh 31-shell-history 40-mise)
-DOCKER_MODULES=(25-docker-engine)
-PODMAN_MODULES=(26-podman)
-CLAUDE_MODULES=(50-claude-code)
-TAILSCALE_MODULES=(28-tailscale)
-WORKFLOW_MODULES=(52-workflow-tools)
-HERDR_MODULES=(54-herdr)
-WORKBENCH_MODULES=(55-workbench)
-LOGINS_MODULES=(60-logins)
 # 27-wsl-network is fired once at the bottom of the script (see the gate after
-# the case block) when a container-runtime module ran AND actually installed.
+# the run loop) when a container-runtime module ran AND actually installed.
 # Combining --docker --podman in one invocation runs it once via RAN_MODULES.
 
 # ----- plan -------------------------------------------------------------------
-# Every group flag, preset and the guided list become one SELECTED list. Install
-# order comes from GROUP_ORDER. What a group pulls in comes from its modules'
-# NEEDS / PROVIDES headers: commands, so a tool that's already there adds nothing.
-# See docs/explanation/tool-groups.md.
+# Every group flag, preset and the guided list become one SELECTED list of
+# groups: what to install. What a group pulls in comes from its modules' NEEDS /
+# PROVIDES headers: commands, so a tool that's already there adds nothing. The
+# selected groups' modules then run in layer order (_layer_order). GROUP_ORDER
+# only orders the tick list and the plan. See docs/explanation/tool-groups.md.
 GROUP_ORDER=(base core dev stack workflow docker podman tailscale claude herdr workbench logins cleanup)
 declare -A GROUP_MODULES=(
-  [base]="${BASE_MODULES[*]}"
-  [core]="${CORE_MODULES[*]}"
-  [dev]="${DEV_ROOT_MODULES[*]} ${DEV_USER_MODULES[*]}"
-  [docker]="${DOCKER_MODULES[*]}"
-  [podman]="${PODMAN_MODULES[*]}"
-  [tailscale]="${TAILSCALE_MODULES[*]}"
-  [workflow]="${WORKFLOW_MODULES[*]}"
-  [claude]="${CLAUDE_MODULES[*]}"
-  [herdr]="${HERDR_MODULES[*]}"
-  [workbench]="${WORKBENCH_MODULES[*]}"
-  [logins]="${LOGINS_MODULES[*]}"
+  [base]="00-wsl-base"
+  [core]="10-apt-core"
+  [dev]="20-cli-modern 30-shell-zsh 31-shell-history 40-mise"
+  [docker]="25-docker-engine"
+  [podman]="26-podman"
+  [tailscale]="28-tailscale"
+  [workflow]="52-workflow-tools"
+  [claude]="50-claude-code"
+  [herdr]="54-herdr"
+  [workbench]="55-workbench"
+  [logins]="60-logins"
+  [cleanup]="99-cleanup"
 )
 declare -A GROUP_LABELS=(
   [base]="WSL base (systemd, user, hostname, DNS)"
@@ -290,6 +300,10 @@ resolve_plan() {
   done
   SELECTED=("${sorted[@]}")
   if _selected stack && [ -z "${MISE_TOOLS:-}" ]; then export MISE_TOOLS="$STACK_TOOLS"; fi
+  PLAN_MODULES=()
+  while IFS= read -r m; do PLAN_MODULES+=("$m"); done < <(
+    for g in "${SELECTED[@]}"; do printf '%s\n' ${GROUP_MODULES[$g]:-}; done | sort -u | _layer_order
+  )
 }
 
 # All distros share one VM and network namespace, so another distro's daemon
@@ -311,6 +325,7 @@ show_plan() {
   for g in "${SELECTED[@]}"; do log "  $g: ${GROUP_MODULES[$g]:-${GROUP_LABELS[$g]:-$g}}"; done
   for note in "${PLAN_NOTES[@]}"; do log "  added $note"; done
   if [ -n "${MISE_TOOLS:-}" ]; then log "  MISE_TOOLS=$MISE_TOOLS"; fi
+  log "  order: ${PLAN_MODULES[*]}"
   _warn_vm_services
 }
 
@@ -379,13 +394,13 @@ interactive_menu() {
   esac
 }
 
-# ----- group runners ----------------------------------------------------------
-# Each runs one logical group. User-phase modules are silently deferred when
-# the group is invoked as root; they surface in the handoff banner at the end.
+# ----- run --------------------------------------------------------------------
+# One rule for every module, in layer order: a user module waits for the
+# handoff when this runs as root, and a system service waits for the reopen
+# when base has only just enabled systemd. Waiting modules surface in the
+# handoff banner at the end.
 DEFERRED=()
 REOPEN_REQUIRED=0
-
-_run_each() { for m in "$@"; do run_module "$m"; done; }
 
 # Fall through (run-now) when base wasn't part of this invocation, so a
 # standalone --docker on an unconfigured distro still hits the module's own
@@ -396,86 +411,18 @@ _runtime_needs_defer() {
   return 1
 }
 
-run_group() {
-  case "$1" in
-    base)    _run_each "${BASE_MODULES[@]}" ;;
-    core)    _run_each "${CORE_MODULES[@]}" ;;
-    dev)
-      # When invoked as root, defer the entire dev group (root + user phase) to
-      # the post-handoff child so the root-phase modules run exactly once — the
-      # RAN_MODULES dedupe can't span the sudo-handoff process boundary.
-      # Standalone non-root --dev runs both phases inline (run_module
-      # auto-escalates the root modules via sudo).
-      if is_root; then
-        DEFERRED+=("--dev")
-      else
-        _run_each "${DEV_ROOT_MODULES[@]}"
-        _run_each "${DEV_USER_MODULES[@]}"
-      fi
-      ;;
-    docker)
-      if _runtime_needs_defer; then
-        log "Deferring docker until after the WSL reopen — base just enabled systemd."
-        DEFERRED+=("--docker"); REOPEN_REQUIRED=1
-      else
-        _run_each "${DOCKER_MODULES[@]}"
-      fi
-      ;;
-    podman)
-      if _runtime_needs_defer; then
-        log "Deferring podman until after the WSL reopen — base just enabled systemd."
-        DEFERRED+=("--podman"); REOPEN_REQUIRED=1
-      else
-        _run_each "${PODMAN_MODULES[@]}"
-      fi
-      ;;
-    claude)
-      if is_root; then
-        DEFERRED+=("--claude")
-      else
-        _run_each "${CLAUDE_MODULES[@]}"
-      fi
-      ;;
-    tailscale)
-      if _runtime_needs_defer; then
-        log "Deferring tailscale until after the WSL reopen — base just enabled systemd."
-        DEFERRED+=("--tailscale"); REOPEN_REQUIRED=1
-      else
-        _run_each "${TAILSCALE_MODULES[@]}"
-      fi
-      ;;
-    stack) ;;
-    workflow)
-      if is_root; then
-        DEFERRED+=("--workflow")
-      else
-        _run_each "${WORKFLOW_MODULES[@]}"
-      fi
-      ;;
-    herdr)
-      if is_root; then
-        DEFERRED+=("--herdr")
-      else
-        _run_each "${HERDR_MODULES[@]}"
-      fi
-      ;;
-    workbench)
-      if is_root; then
-        DEFERRED+=("--workbench")
-      else
-        _run_each "${WORKBENCH_MODULES[@]}"
-      fi
-      ;;
-    logins)
-      if is_root; then
-        DEFERRED+=("--logins")
-      else
-        _run_each "${LOGINS_MODULES[@]}"
-      fi
-      ;;
-    cleanup) run_module 99-cleanup ;;
-    *) die "Unknown group: $1" ;;
-  esac
+run_plan() {
+  local m
+  for m in "${PLAN_MODULES[@]}"; do
+    if is_root && ! module_requires_root "$m"; then
+      DEFERRED+=("$m")
+    elif [ "$(_module_layer "$m")" = 4 ] && _runtime_needs_defer; then
+      log "Deferring $m until after the WSL reopen: base just enabled systemd."
+      DEFERRED+=("$m"); REOPEN_REQUIRED=1
+    else
+      run_module "$m"
+    fi
+  done
 }
 
 MODE=""
@@ -546,21 +493,20 @@ elif [ "$MODE" = groups ]; then
   resolve_plan
   show_plan
 elif [ "$MODE" = single ]; then
-  case "$SINGLE" in
-    25-docker-engine) _warn_vm_service Docker docker0 docker ;;
-    28-tailscale)     _warn_vm_service Tailscale tailscale0 tailscaled ;;
-  esac
+  [ -n "$SINGLE" ] || die "--module needs a name. See --list."
+  IFS=',' read -r -a SINGLE_MODULES <<<"$SINGLE"
+  for m in "${SINGLE_MODULES[@]}"; do
+    case "$m" in
+      25-docker-engine) _warn_vm_service Docker docker0 docker ;;
+      28-tailscale)     _warn_vm_service Tailscale tailscale0 tailscaled ;;
+    esac
+  done
 fi
 [ "$PRINT_PLAN" = 0 ] || exit 0
 
 case "$MODE" in
-  groups)
-    for g in "${SELECTED[@]}"; do run_group "$g"; done
-    ;;
-  single)
-    [ -n "$SINGLE" ] || die "--module needs a name. See --list."
-    run_module "$SINGLE"
-    ;;
+  groups) run_plan ;;
+  single) for m in "${SINGLE_MODULES[@]}"; do run_module "$m"; done ;;
 esac
 
 # Auto-fire 27 only when this invocation ran a runtime module AND that module
@@ -607,7 +553,7 @@ if is_root && [ ${#DEFERRED[@]} -gt 0 ]; then
     # mise/atuin wiring). FORWARD_ASSIGNS is %q-quoted so [*] join is shell-safe;
     # see _sudo_with_forwards for the argv-vs-string split.
     _collect_forward_assigns
-    sudo -iu "$TARGET_USER" bash -lc "cd $(printf '%q' "$TARGET_REPO") && env ${FORWARD_ASSIGNS[*]} ./install.sh ${DEFERRED[*]}"
+    sudo -iu "$TARGET_USER" bash -lc "cd $(printf '%q' "$TARGET_REPO") && env ${FORWARD_ASSIGNS[*]} ./install.sh --module $(IFS=,; echo "${DEFERRED[*]}")"
     echo
     warn "In-session handoff complete. You're still root in *this* shell, though."
     warn "Finish up from Windows PowerShell so the distro default user takes effect:"
@@ -619,7 +565,7 @@ if is_root && [ ${#DEFERRED[@]} -gt 0 ]; then
     fi
     warn "From Windows PowerShell:  wsl --terminate ${WSL_DISTRO_NAME:-<your-distro>}"
     warn "Reopen the distro (it will log you in as the user 00-wsl-base just created), then:"
-    warn "  cd ~/$(basename "$REPO_ROOT") && ./install.sh ${DEFERRED[*]}"
+    warn "  cd ~/$(basename "$REPO_ROOT") && ./install.sh --module $(IFS=,; echo "${DEFERRED[*]}")"
     warn "(00-wsl-base copies this repo into the new user's \$HOME so it's already there.)"
   fi
 fi

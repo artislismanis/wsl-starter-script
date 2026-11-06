@@ -10,7 +10,7 @@ Three questions get separate answers, because mixing them produces bad defaults:
 | Who gets it? | Which presets include it | wt is in `ai` and `full` |
 | How does it install? | apt, mise or a pinned binary | wt is a pinned binary, because herdr calls it outside your shell |
 
-Install order is none of these. It comes from each module's `# NEEDS=` header: root modules first, then user modules, each sorted by dependency.
+Install order is none of these. It comes from each module's `# LAYER=` header (see [Layers](#layers) below). `# NEEDS=` only decides what else gets selected.
 
 ## Placing a tool
 
@@ -58,6 +58,24 @@ Logins aren't a group: they run last, for whatever got installed.
 | Stack-specific | | | | Yes |
 
 A preset is a saved selection, not a tier: the interactive list starts from it and you can change anything. Podman is in no preset, because it's the alternative to Docker.
+
+## Layers
+
+Groups decide what gets installed; layers decide when. Every module declares one, and the installer runs the selected modules layer by layer, then by name. Rollback walks the same order backwards.
+
+| Layer | Name | Runs as | Modules |
+|---|---|---|---|
+| 1 | OS update | root | |
+| 2 | OS config | root | `00-wsl-base` |
+| 3 | System packages | root | `10-apt-core`, `20-cli-modern` |
+| 4 | System services | root | `25-docker-engine`, `26-podman`, `27-wsl-network`, `28-tailscale` |
+| 5 | User shell | user | `30-shell-zsh`, `31-shell-history` |
+| 6 | User toolchain | user | `40-mise` |
+| 7 | User apps | user | `50-claude-code`, `52-workflow-tools`, `54-herdr`, `55-workbench` |
+| 8 | Accounts | user | `60-logins` |
+| 9 | Cleanup | root | `99-cleanup` |
+
+Started as root, the installer runs layers 1-4 and hands layers 5-8 to your new user by module name. System services wait for the reopen when `00-wsl-base` has only just enabled systemd.
 
 ## Other distros in the VM
 

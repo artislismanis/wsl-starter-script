@@ -18,8 +18,8 @@
 --workbench           herdr-workbench config, plus any tools it needs. In the ai and full presets.
 --logins              Log in to the installed tools and set git identity. Re-runnable.
                       Under --non-interactive it only reports.
---module NAME         Run one module (see --list).
---list                List modules with descriptions.
+--module NAME[,NAME]  Run modules by name, in the order given (see --list).
+--list                List modules in install order, with their layer.
 --non-interactive     Read answers from env vars (see env-vars.md).
 --dry-run             Print what would happen, make no changes.
 --rollback [NAME]     Emit a shell-pasteable unwind recipe — see ../how-to/rollback.md.

@@ -68,3 +68,13 @@ load helpers
   run ./install.sh --rollback 40-mise
   ! echo "$output" | grep -q 'wsl-starter:fzf'
 }
+
+@test "rollback (no target) is the exact reverse of install order" {
+  cd "$REPO_ROOT"
+  run ./install.sh --list
+  local install rollback
+  install="$(echo "$output" | awk '{print $1}' | tac | tr '\n' ' ')"
+  run ./install.sh --rollback
+  rollback="$(echo "$output" | sed -n 's/^# ===== \(.*\)\.sh =====$/\1/p' | tr '\n' ' ')"
+  [ "$install" = "$rollback" ]
+}

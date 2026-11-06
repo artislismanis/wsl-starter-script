@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # REQUIRES_ROOT=0
+# LAYER=7
 # DESCRIPTION=Workbench: herdr-workbench config at a pinned commit
 # NEEDS=herdr wt hunk gh fzf wl-copy jq node
 # ROLLBACK=# Its own recipe strips its block from ~/.config/worktrunk/config.toml and removes its hooks.

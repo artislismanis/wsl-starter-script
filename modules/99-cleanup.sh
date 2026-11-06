@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # REQUIRES_ROOT=1
+# LAYER=9
 # DESCRIPTION=apt autoremove + next-steps banner
 # ROLLBACK=# Nothing to roll back (autoremove + clean only — no state mutations of our own).
 set -euo pipefail

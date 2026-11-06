@@ -127,3 +127,26 @@ menu() { PATH="${PATH//$REAL_HOME\/.local\/bin:/}" run bash -c "printf '$1' | ./
   menu '9\n'
   [ "$status" -ne 0 ]
 }
+
+@test "modules run in layer order: OS, packages, services, then user layers" {
+  plan --preset full --podman
+  local order
+  order="$(echo "$output" | sed -n 's/.*  order: //p')"
+  [ "$order" = "10-apt-core 20-cli-modern 25-docker-engine 26-podman 28-tailscale 30-shell-zsh 31-shell-history 40-mise 50-claude-code 52-workflow-tools 54-herdr 55-workbench 60-logins" ]
+}
+
+@test "every module declares a known layer" {
+  local m l
+  for m in modules/*.sh; do
+    l="$(sed -n 's/^# LAYER=//p' "$m")"
+    [[ "$l" =~ ^[1-9]$ ]] || { echo "$m: LAYER='$l'"; return 1; }
+  done
+}
+
+@test "--module takes a comma-separated list" {
+  stub ip 0; stub systemctl 3
+  plan --module 25-docker-engine,28-tailscale
+  [ "$status" -eq 0 ]
+  echo "$stderr" | grep -q 'Docker: docker0 exists'
+  echo "$stderr" | grep -q 'Tailscale: tailscale0 exists'
+}

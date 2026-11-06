@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # REQUIRES_ROOT=1
+# LAYER=4
 # DESCRIPTION=Docker Engine (rootful daemon under systemd). Needs systemd from module 00.
 # ROLLBACK=# Set TARGET=<user> to the account the install targeted (DOCKER_USER at install
 # ROLLBACK=# time, or SUDO_USER if you ran the installer with sudo). The group removal and

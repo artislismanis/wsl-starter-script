@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # REQUIRES_ROOT=0
+# LAYER=8
 # DESCRIPTION=Logins for the installed tools (gh, git identity, claude, atuin, az, databricks, tailscale); re-runnable
 # ROLLBACK=git config --global --unset user.name || true
 # ROLLBACK=git config --global --unset user.email || true

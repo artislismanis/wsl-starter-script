@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # REQUIRES_ROOT=0
+# LAYER=6
 # DESCRIPTION=mise (unified version manager) + optional runtimes + uv + CLI/cloud tools
 # PROVIDES=mise node
 # ROLLBACK=# Per runtime first (clean removal of toolchains): mise uninstall <node|python|ruby|java|go|deno|bun>

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # REQUIRES_ROOT=0
+# LAYER=5
 # DESCRIPTION=atuin (shell history) + zoxide (smart cd), wired into bash and zsh
 # ROLLBACK=rm -rf "$HOME/.atuin" "$HOME/.local/share/atuin" "$HOME/.bash-preexec.sh" "$HOME/.local/share/zoxide"
 # ROLLBACK=# Upstream installers may also drop binaries directly into ~/.local/bin/; clean them too:

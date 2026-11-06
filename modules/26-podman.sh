@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # REQUIRES_ROOT=1
+# LAYER=4
 # DESCRIPTION=Podman (rootless, daemonless container runtime) + docker CLI shim.
 # ROLLBACK=sudo rm -f /etc/containers/nodocker
 # ROLLBACK=# /etc/containers may have been created by this module — 'sudo rmdir /etc/containers' if empty.

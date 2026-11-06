@@ -1,6 +1,6 @@
 ---
 name: new-module
-description: Scaffold a new modules/NN-name.sh following the project's module contract (REQUIRES_ROOT/DESCRIPTION/ROLLBACK headers, required lib sources, privilege guard). Use when the user asks to add/create a new module.
+description: Scaffold a new modules/NN-name.sh following the project's module contract (REQUIRES_ROOT/LAYER/DESCRIPTION/ROLLBACK headers, required lib sources, privilege guard). Use when the user asks to add/create a new module.
 disable-model-invocation: true
 ---
 
@@ -12,10 +12,24 @@ Every file under `modules/` follows the same contract so the dispatcher in `inst
 
 Ask the user (or parse from `$ARGUMENTS`) for:
 
-1. **Numeric prefix** — two digits defining execution order (e.g. `25`, `45`). See existing prefixes below; pick a slot that fits the phase.
-2. **Name** — kebab-case slug (e.g. `rust-toolchain`).
-3. **Privilege** — `root` or `user`.
-4. **Description** — one short line for `--list` output.
+1. **Layer** — decides install order (then module name within a layer). Root layers 1-4 run before user layers 5-8:
+
+   | Layer | Name | Runs as |
+   |---|---|---|
+   | 1 | OS update | root |
+   | 2 | OS config | root |
+   | 3 | System packages | root |
+   | 4 | System services (wait for the reopen when base just enabled systemd) | root |
+   | 5 | User shell | user |
+   | 6 | User toolchain | user |
+   | 7 | User apps | user |
+   | 8 | Accounts | user |
+   | 9 | Cleanup | root |
+
+2. **Numeric prefix** — two digits, a name slot only; the layer sets the order. Pick a free slot in the range that matches the layer (map below).
+3. **Name** — kebab-case slug (e.g. `rust-toolchain`).
+4. **Privilege** — `root` or `user`. Must match the layer's column above.
+5. **Description** — one short line for `--list` output.
 
 Current numeric map (do not collide):
 
@@ -35,6 +49,7 @@ Current numeric map (do not collide):
 1. Compute `FILE="modules/<prefix>-<name>.sh"` — fail if it already exists.
 2. Write the file from the template in `template.sh` (in this skill directory), substituting:
    - `__REQUIRES_ROOT__` → `1` for root, `0` for user
+   - `__LAYER__`        → the layer number
    - `__DESCRIPTION__`  → the one-line description
    - `__GUARD__`        → `require_root` or `require_user`
 3. `chmod +x` the new file.
@@ -56,14 +71,8 @@ The full helper table lives in **CLAUDE.md § Idempotency discipline** — point
 
 ## If the user wants the module wired into a group
 
-After creating the file, ask whether to add it to one of the arrays in `install.sh`:
-- `BASE_MODULES` — root-phase boot setup (`--base`)
-- `DEV_ROOT_MODULES` — root-phase dev tooling (`--dev` as root)
-- `DEV_USER_MODULES` — user-phase dev tooling (`--dev` as the target user)
-- `DOCKER_MODULES` — Docker Engine (`--docker`)
-- `PODMAN_MODULES` — Podman (`--podman`)
-- `CLAUDE_MODULES` — Claude Code (`--claude`)
+After creating the file, ask which group in `GROUP_MODULES` (in `install.sh`) it belongs to, per `docs/explanation/tool-groups.md`. The group decides *whether* it's selected; its `LAYER` decides *when* it runs, so no ordering edit is needed.
 
-99-cleanup is invoked directly by `install.sh` (no array). `27-wsl-network` is auto-fired at the bottom of `install.sh` whenever a runtime module ran in this invocation (`RAN_MODULES[25-docker-engine]` or `RAN_MODULES[26-podman]`) **and** that module dropped `$RUNTIME_STAMP` (`/run/wsl-starter.container-runtime`, defined in `lib/common.sh`). The stamp gate distinguishes "install actually happened" from `DOCKER_MODE=skip`. There's no separate array for it.
+`27-wsl-network` is auto-fired at the bottom of `install.sh` whenever a runtime module ran in this invocation (`RAN_MODULES[25-docker-engine]` or `RAN_MODULES[26-podman]`) **and** that module dropped `$RUNTIME_STAMP` (`/run/wsl-starter.container-runtime`, defined in `lib/common.sh`). The stamp gate distinguishes "install actually happened" from `DOCKER_MODE=skip`. There's no separate array for it.
 
-Presets and the named flags only execute what's listed in these arrays; `--module NAME` and the interactive "single module" picker work regardless.
+Presets and the named flags only execute what's listed in `GROUP_MODULES`; `--module NAME` and the interactive "single module" picker work regardless.
