@@ -132,7 +132,7 @@ menu() { PATH="${PATH//$REAL_HOME\/.local\/bin:/}" run bash -c "printf '$1' | ./
   plan --preset full --podman
   local order
   order="$(echo "$output" | sed -n 's/.*  order: //p')"
-  [ "$order" = "10-apt-core 20-cli-modern 25-docker-engine 26-podman 28-tailscale 30-shell-zsh 31-shell-history 40-mise 50-claude-code 52-workflow-tools 54-herdr 55-workbench 60-logins" ]
+  [ "$order" = "10-apt-core 20-cli-modern 25-docker-engine 26-podman 28-tailscale 30-shell-zsh 31-shell-history 32-git-config 40-mise 50-claude-code 52-workflow-tools 54-herdr 55-workbench 60-logins" ]
 }
 
 @test "every module declares a known layer" {

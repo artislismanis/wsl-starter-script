@@ -7,14 +7,14 @@ load helpers
   cd "$REPO_ROOT"
   run ./install.sh --rollback
   [ "$status" -eq 0 ]
-  # First section header should be 99-cleanup, last should be 00-wsl-base.
+  # First section header should be 99-cleanup, last should be 05-os-update (layer 1).
   local first last
   # Filter to module-section headers only — the cross-cutting tail has its own
   # `===== Cross-cutting (run once at the end) =====` line which we ignore.
   first="$(echo "$output" | grep '^# =====' | grep '\.sh =====' | head -1)"
   last="$(echo "$output"  | grep '^# =====' | grep '\.sh =====' | tail -1)"
   echo "$first" | grep -q '99-cleanup.sh'
-  echo "$last"  | grep -q '00-wsl-base.sh'
+  echo "$last"  | grep -q '05-os-update.sh'
 }
 
 @test "rollback (no target) appends cross-cutting tail" {

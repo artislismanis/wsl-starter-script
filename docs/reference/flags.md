@@ -1,8 +1,8 @@
 # Flags
 
 ```
---base                Root-phase only (modules 00, 10).
---dev                 cli-modern + zsh + history + mise. (apt-core is in --base.)
+--base                Root-phase only (modules 05, 00, 10).
+--dev                 cli-modern + zsh + history + git defaults + mise. (apt-core is in --base.)
 --docker              Docker Engine. WSL network defenses
                       (27-wsl-network) auto-fire when a runtime actually installs;
                       DOCKER_MODE=skip suppresses both.

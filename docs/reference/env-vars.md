@@ -8,7 +8,7 @@ Under `--non-interactive` the installer reads answers from these env vars instea
 | `WSL_PASSWORD`            | Password for that user |
 | `WSL_HOSTNAME`            | Hostname in `/etc/wsl.conf` |
 | `WSL_DNS`                 | Space-separated nameservers (empty = keep existing) |
-| `WSL_APT_UPGRADE`         | `1`/`yes` runs `apt upgrade` during `--base`; `0`/`no` skips; unset prompts (default-yes, so `--non-interactive` upgrades) |
+| `WSL_APT_UPGRADE`         | `1`/`yes` runs `apt upgrade` in `05-os-update` (part of `--base`); `0`/`no` skips; unset prompts (default-yes, so `--non-interactive` upgrades) |
 | `WSL_ISOLATE`             | `1`/`yes` disables Windows interop and `/mnt/*` automount; `0`/`no` keeps both; unset prompts (default-yes, so `--non-interactive` isolates) |
 | `MISE_LANGUAGES`          | CSV of runtimes to install, e.g. `node,python,go` |
 | `MISE_<LANG>_VERSION`     | Override a runtime's pinned version — see defaults below |
