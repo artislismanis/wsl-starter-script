@@ -7,6 +7,7 @@
 # ROLLBACK=# Marker-specific rc-block strip (so single-module --rollback is complete; the
 # ROLLBACK=#   cross-cutting tail at the end of the all-modules form covers it too).
 # ROLLBACK=sed -i '/# >>> wsl-starter:atuin-zoxide >>>/,/# <<< wsl-starter:atuin-zoxide <<</d' "$HOME/.bashrc" "$HOME/.zshrc" 2>/dev/null || true
+# ROLLBACK=sed -i '/# >>> wsl-starter:fzf >>>/,/# <<< wsl-starter:fzf <<</d' "$HOME/.bashrc" "$HOME/.zshrc" 2>/dev/null || true
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/idempotent.sh"
