@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # REQUIRES_ROOT=1
 # LAYER=4
-# DESCRIPTION=Tailscale (private network for SSH and phone access). Needs systemd from module 00.
+# DESCRIPTION=Tailscale (private network for SSH and phone access); starts after the reopen if systemd isn't up yet
 # ROLLBACK=# Forget this machine on the tailnet first (also remove it in the admin console):
 # ROLLBACK=sudo tailscale logout 2>/dev/null || true
 # ROLLBACK=sudo systemctl disable --now tailscaled 2>/dev/null || true
@@ -12,8 +12,10 @@ source "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/idempotent.sh"
 require_root
 
-is_systemd || \
-  die "systemd is not running. Run 00-wsl-base.sh, then 'wsl --terminate ${WSL_DISTRO_NAME:-<your-distro>}' from Windows, reopen, and re-run this module."
+# Before the first reopen systemd isn't PID 1 yet (00-wsl-base only just set
+# [boot] systemd=true): install and enable now, and systemd starts the service
+# on the reopen. So the in-session handoff never has to wait for a restart.
+# SYSTEMD_OFFLINE makes systemctl edit unit symlinks without talking to PID 1.
 
 # Upstream's own repo rather than its install.sh: same signed-repo pattern as
 # docker/gh. The armored <codename>.gpg suits apt_add_signed_repo's dearmor.
@@ -24,7 +26,10 @@ apt_add_signed_repo "tailscale" \
 
 apt_install tailscale
 
-if systemctl is-enabled --quiet tailscaled 2>/dev/null && systemctl is-active --quiet tailscaled 2>/dev/null; then
+if ! is_systemd; then
+  run "SYSTEMD_OFFLINE=1 systemctl enable tailscaled"
+  warn "tailscaled starts after the reopen; join your tailnet then."
+elif systemctl is-enabled --quiet tailscaled 2>/dev/null && systemctl is-active --quiet tailscaled 2>/dev/null; then
   skip "tailscaled already enabled and running"
 else
   run "systemctl enable --now tailscaled"

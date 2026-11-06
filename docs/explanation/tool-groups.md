@@ -75,7 +75,7 @@ Groups decide what gets installed; layers decide when. Every module declares one
 | 8 | Accounts | user | `60-logins` |
 | 9 | Cleanup | root | `99-cleanup` |
 
-Started as root, the installer runs layers 1-4 and hands layers 5-8 to your new user by module name. System services wait for the reopen when `00-wsl-base` has only just enabled systemd.
+Started as root, the installer runs layers 1-4 and hands layers 5-8 to your new user by module name. When `00-wsl-base` has only just enabled systemd, system services are installed and enabled but not started; systemd starts them on the reopen, so nothing waits for a restart.
 
 ## Other distros in the VM
 

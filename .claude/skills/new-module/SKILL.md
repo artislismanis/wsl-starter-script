@@ -19,7 +19,7 @@ Ask the user (or parse from `$ARGUMENTS`) for:
    | 1 | OS update | root |
    | 2 | OS config | root |
    | 3 | System packages | root |
-   | 4 | System services (wait for the reopen when base just enabled systemd) | root |
+   | 4 | System services (must install before systemd is PID 1: enable, don't start) | root |
    | 5 | User shell | user |
    | 6 | User toolchain | user |
    | 7 | User apps | user |

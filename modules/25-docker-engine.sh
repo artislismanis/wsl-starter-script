@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # REQUIRES_ROOT=1
 # LAYER=4
-# DESCRIPTION=Docker Engine (rootful daemon under systemd). Needs systemd from module 00.
+# DESCRIPTION=Docker Engine (rootful daemon under systemd; starts after the reopen if systemd isn't up yet)
 # ROLLBACK=# Set TARGET=<user> to the account the install targeted (DOCKER_USER at install
 # ROLLBACK=# time, or SUDO_USER if you ran the installer with sudo). The group removal and
 # ROLLBACK=# rootless lines below operate on $TARGET, NOT your current shell user: paste
@@ -37,8 +37,10 @@ require_root
 # Bail early if systemd isn't PID 1 — Docker depends on systemd units.
 # 00-wsl-base flips systemd=true in /etc/wsl.conf; the user must
 # `wsl --terminate` and reopen before this module can succeed.
-is_systemd || \
-  die "systemd is not running. Run 00-wsl-base.sh, then 'wsl --terminate ${WSL_DISTRO_NAME:-<your-distro>}' from Windows, reopen, and re-run this module."
+# Before the first reopen systemd isn't PID 1 yet (00-wsl-base only just set
+# [boot] systemd=true): install and enable now, and systemd starts the service
+# on the reopen. So the in-session handoff never has to wait for a restart.
+# SYSTEMD_OFFLINE makes systemctl edit unit symlinks without talking to PID 1.
 
 # ---- Mode selection ---------------------------------------------------------
 MODE="${DOCKER_MODE:-}"
@@ -115,8 +117,12 @@ write_file_once /etc/docker/daemon.json <<'JSON'
 }
 JSON
 
-log "Enabling docker.service"
-run "systemctl enable --now docker.service"
-run "systemctl enable --now containerd.service"
+if is_systemd; then
+  log "Enabling docker.service"
+  run "systemctl enable --now docker.service containerd.service"
+else
+  log "Enabling docker.service; systemd starts it after the reopen"
+  run "SYSTEMD_OFFLINE=1 systemctl enable docker.service containerd.service"
+fi
 mark_runtime_installed
 ok "Docker installed. $TARGET_USER must log out and back in (or 'wsl --terminate ${WSL_DISTRO_NAME:-<your-distro>}') for group membership to take effect."

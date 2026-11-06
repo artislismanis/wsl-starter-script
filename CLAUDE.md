@@ -99,7 +99,7 @@ Only `claude/settings.json.tmpl` contains a substitution marker (`__PERMISSION_M
 
 ## Privilege split
 
-Root layers (1-4) run before user layers (5-8). Invoked as root, `run_plan` runs the root modules and defers user modules to the handoff by name (`./install.sh --module a,b,c`); layer-4 services also wait for the reopen when base has only just enabled systemd. The dispatcher refuses mismatched invocations.
+Root layers (1-4) run before user layers (5-8). Invoked as root, `run_plan` runs the root modules and defers user modules to the handoff by name (`./install.sh --module a,b,c`); layer-4 services never wait: before systemd is PID 1 they install and enable (`SYSTEMD_OFFLINE=1 systemctl enable`), and systemd starts them on the reopen. The dispatcher refuses mismatched invocations.
 
 When `install.sh` (running as non-root) hits a root module, it auto-escalates via the `_sudo_with_forwards` helper, which calls `sudo env "${FORWARD_ASSIGNS[@]}" bash <module>`. `FORWARD_ASSIGNS` is built by `_collect_forward_assigns`, which sweeps every set env var matching `^(WSL|DOCKER|PODMAN|MISE|CLAUDE|ZSH)_` plus `NON_INTERACTIVE` and `DRY_RUN`, minus a blocklist of system/SDK vars (`WSL_INTEROP`, `WSL_STARTER_*` (bootstrap-only), Docker CLI internals, `CLAUDE_CODE_*`). The same sweep runs for the in-session `sudo -iu <user>` handoff at the end of root-phase (which uses `[*]` instead of `[@]` because it builds a single `bash -lc` shell-string — see the comment on `_sudo_with_forwards` for the array-vs-string distinction). The authoritative blocklist lives in `_collect_forward_assigns` in `install.sh` — don't duplicate it here, just point at the source. Do not use plain `sudo -E` — it depends on sudoers `env_keep` and silently drops most tunables.
 

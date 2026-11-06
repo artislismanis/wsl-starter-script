@@ -85,7 +85,12 @@ _login Databricks "$DATABRICKS" "[ -s '$HOME/.databrickscfg' ]" "'$DATABRICKS' a
 
 # --ssh lets tailnet devices (e.g. a phone) SSH in without running sshd.
 TAILSCALE="$(_bin tailscale /usr/bin/tailscale)"
-_login Tailscale "$TAILSCALE" "'$TAILSCALE' status" "sudo '$TAILSCALE' up --ssh"
+if [ -n "$TAILSCALE" ] && ! is_systemd; then
+  # Installed before the first reopen: tailscaled isn't running until then.
+  TODO+=("Tailscale (after the reopen): sudo tailscale up --ssh")
+else
+  _login Tailscale "$TAILSCALE" "'$TAILSCALE' status" "sudo '$TAILSCALE' up --ssh"
+fi
 
 if [ ${#TODO[@]} -eq 0 ]; then
   ok "Everything installed is logged in."

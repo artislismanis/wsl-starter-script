@@ -396,29 +396,16 @@ interactive_menu() {
 
 # ----- run --------------------------------------------------------------------
 # One rule for every module, in layer order: a user module waits for the
-# handoff when this runs as root, and a system service waits for the reopen
-# when base has only just enabled systemd. Waiting modules surface in the
-# handoff banner at the end.
+# handoff when this runs as root. System services don't wait for systemd: they
+# install and enable now, and systemd starts them after the reopen. Waiting
+# modules surface in the handoff banner at the end.
 DEFERRED=()
-REOPEN_REQUIRED=0
-
-# Fall through (run-now) when base wasn't part of this invocation, so a
-# standalone --docker on an unconfigured distro still hits the module's own
-# die message instead of deferring to a reopen that has no new user to land as.
-_runtime_needs_defer() {
-  is_systemd && return 1
-  [ -n "${RAN_MODULES[00-wsl-base]:-}" ] && return 0
-  return 1
-}
 
 run_plan() {
   local m
   for m in "${PLAN_MODULES[@]}"; do
     if is_root && ! module_requires_root "$m"; then
       DEFERRED+=("$m")
-    elif [ "$(_module_layer "$m")" = 4 ] && _runtime_needs_defer; then
-      log "Deferring $m until after the WSL reopen: base just enabled systemd."
-      DEFERRED+=("$m"); REOPEN_REQUIRED=1
     else
       run_module "$m"
     fi
@@ -546,7 +533,7 @@ if is_root && [ ${#DEFERRED[@]} -gt 0 ]; then
     CAN_CONTINUE=1
   fi
 
-  if [ "$CAN_CONTINUE" = "1" ] && [ "$REOPEN_REQUIRED" = "0" ] \
+  if [ "$CAN_CONTINUE" = "1" ] \
      && confirm "Continue as '$TARGET_USER' now in this WSL session (skips reopen for ${DEFERRED[*]})?" y; then
     log "Handing off to $TARGET_USER via sudo -iu"
     # sudo -i + bash -lc → login shell, rc files re-sourced (picks up mid-run
@@ -559,10 +546,6 @@ if is_root && [ ${#DEFERRED[@]} -gt 0 ]; then
     warn "Finish up from Windows PowerShell so the distro default user takes effect:"
     warn "  wsl --terminate ${WSL_DISTRO_NAME:-<your-distro>}"
   else
-    if [ "$REOPEN_REQUIRED" = "1" ]; then
-      warn "In-session handoff isn't an option: docker/podman were queued but"
-      warn "systemd was just enabled and only becomes PID 1 after a WSL restart."
-    fi
     warn "From Windows PowerShell:  wsl --terminate ${WSL_DISTRO_NAME:-<your-distro>}"
     warn "Reopen the distro (it will log you in as the user 00-wsl-base just created), then:"
     warn "  cd ~/$(basename "$REPO_ROOT") && ./install.sh --module $(IFS=,; echo "${DEFERRED[*]}")"

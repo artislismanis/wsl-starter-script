@@ -83,6 +83,7 @@ jobs:
           - docker-skip        # Tier 2 (DOCKER_MODE=skip suppresses 27)
           - podman             # Tier 2 (mid-install shutdown)
           - tailscale          # Tier 2 (mid-install shutdown)
+          - services-pre-reboot  # Tier 3 (docker + tailscale before the first reopen)
           - workbench          # Tier 2
           - wsl-network        # Tier 2 (mid-install shutdown)
           - privilege-guards   # Tier 2
