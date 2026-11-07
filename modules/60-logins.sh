@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # REQUIRES_ROOT=0
 # LAYER=8
-# DESCRIPTION=Logins for the installed tools (gh, git identity, claude, atuin, az, databricks, tailscale); re-runnable
+# DESCRIPTION=Logins for the installed tools (gh, git identity, claude, atuin, az, databricks, tailscale) and what's left to set up; re-runnable
 # ROLLBACK=git config --global --unset user.name || true
 # ROLLBACK=git config --global --unset user.email || true
 # ROLLBACK=# Logins live in each tool's own store; log out with: gh auth logout, claude auth logout, atuin logout, az logout, databricks auth logout (or edit ~/.databrickscfg), sudo tailscale logout.
@@ -92,9 +92,20 @@ else
   _login Tailscale "$TAILSCALE" "'$TAILSCALE' status" "sudo '$TAILSCALE' up --ssh"
 fi
 
+# ---- herdr-workbench --------------------------------------------------------
+# Not logins, but the last setup steps, so they're listed with them.
+WB_BIN="$HOME/.config/herdr/bin"
+if [ -x "$WB_BIN/win-bridge" ] && ! "$WB_BIN/win-bridge" status >/dev/null 2>&1; then
+  TODO+=("Windows links, toasts and keeping WSL running: ~/.config/herdr/bin/win-bridge setup, then paste what it prints into PowerShell")
+fi
+# Same lookup as workshop itself, which ignores XDG_CONFIG_HOME.
+if [ -x "$HOME/.local/bin/workshop" ] && [ ! -f "${WORKSHOP_CONFIG:-$HOME/.config/workshop/config.toml}" ]; then
+  TODO+=("workshop: /workshop-config in a Claude session, then workshop doctor")
+fi
+
 if [ ${#TODO[@]} -eq 0 ]; then
-  ok "Everything installed is logged in."
+  ok "Everything installed is set up."
 else
-  ok "Logins checked. Still to do (or re-run ./install.sh --logins):"
+  ok "Logins checked. Still to do (re-run ./install.sh --logins to see what's left):"
   for t in "${TODO[@]}"; do echo "    $t"; done
 fi

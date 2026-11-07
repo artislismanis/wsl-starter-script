@@ -130,12 +130,17 @@ if [ -f "$ZSHRC" ]; then
   fi
 fi
 
-if confirm "Make zsh the default shell?" y; then
-  zsh_path="$(command -v zsh)"
-  current_shell="$(getent passwd "$USER" | cut -d: -f7)"
-  if [ "$current_shell" = "$zsh_path" ]; then
-    skip "zsh is already the login shell for $USER"
-  elif [ "$NON_INTERACTIVE" = "1" ] && ! sudo -n true >/dev/null 2>&1; then
+# 20-cli-modern normally set this already, as root; this is the fallback.
+zsh_path="$(command -v zsh)"
+current_shell="$(getent passwd "$USER" | cut -d: -f7)"
+if [ "$current_shell" = "$zsh_path" ]; then
+  skip "zsh is already the login shell for $USER"
+elif case "${ZSH_DEFAULT_SHELL:-unset}" in
+       0|no|false) false ;;
+       1|yes|true) true ;;
+       *)          confirm "Make zsh the default shell?" y ;;
+     esac; then
+  if [ "$NON_INTERACTIVE" = "1" ] && ! sudo -n true >/dev/null 2>&1; then
     # Under --non-interactive sudo can't prompt, so a chsh that needs auth
     # would die with "no tty present". Detect and skip cleanly. Interactive
     # runs fall through to plain `sudo chsh` which can prompt as normal.

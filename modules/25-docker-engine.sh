@@ -66,17 +66,7 @@ esac
 # 00-wsl-base created earlier this session, kept on tmpfs) → WSL_USER (env
 # hint). Only prompt when none of those name a real non-root account — typical
 # for `bash modules/25-docker-engine.sh` from a root shell with no SUDO_USER.
-HANDOFF_USER=""
-if [ -r /run/wsl-starter-handoff ]; then
-  HANDOFF_USER="$(awk -F= '$1=="USER"{print $2; exit}' /run/wsl-starter-handoff)"
-fi
-TARGET_USER=""
-for _candidate in "${DOCKER_USER:-}" "${SUDO_USER:-}" "$HANDOFF_USER" "${WSL_USER:-}"; do
-  if [ -n "$_candidate" ] && [ "$_candidate" != "root" ] && id "$_candidate" >/dev/null 2>&1; then
-    TARGET_USER="$_candidate"
-    break
-  fi
-done
+TARGET_USER="$(target_user "${DOCKER_USER:-}")"
 if [ -z "$TARGET_USER" ]; then
   TARGET_USER="$(ask "Non-root user to grant Docker access to")"
 fi
@@ -117,7 +107,10 @@ write_file_once /etc/docker/daemon.json <<'JSON'
 }
 JSON
 
-if is_systemd; then
+if is_systemd && systemctl is-enabled --quiet docker.service 2>/dev/null \
+   && systemctl is-active --quiet docker.service 2>/dev/null; then
+  skip "docker.service already enabled and running"
+elif is_systemd; then
   log "Enabling docker.service"
   run "systemctl enable --now docker.service containerd.service"
 else
