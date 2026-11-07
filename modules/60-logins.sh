@@ -12,6 +12,9 @@ require_user
 
 # Plain bash: maybe no `mise activate`, so find each tool on PATH, then in its
 # fixed install dir or mise.
+# Right after the handoff ~/.local/bin isn't on PATH yet, so gh and claude
+# miss the workbench's xdg-open, which sends their login links to Windows.
+export PATH="$HOME/.local/bin:$PATH"
 MISE="$(command -v mise || echo "$HOME/.local/bin/mise")"
 _bin() {
   command -v "$1" 2>/dev/null && return 0
@@ -108,4 +111,8 @@ if [ ${#TODO[@]} -eq 0 ]; then
 else
   ok "Logins checked. Still to do (re-run ./install.sh --logins to see what's left):"
   for t in "${TODO[@]}"; do echo "    $t"; done
+fi
+# Isolation leaves Windows drives unmounted; say how to bring in one folder.
+if [ ! -d /mnt/c/Windows ]; then
+  log "Need a Windows folder in WSL? See $REPO_ROOT/docs/how-to/windows-folders.md (mount one folder, not the drive)."
 fi

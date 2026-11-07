@@ -10,6 +10,7 @@
 - [Installing Docker](how-to/docker.md) — rootful daemon, companion module
 - [Rolling back](how-to/rollback.md) — `--rollback` recipe and carve-outs
 - [Running tests locally](how-to/testing.md) — Tier 1 (bats) and Tier 2/3 (PowerShell + Goss)
+- [Using a Windows folder](how-to/windows-folders.md) — with `/mnt/c` off: one folder, this session or every boot
 - [Windows-side configuration](how-to/wsl-host.md) — `.wslconfig`, auto-start at login, mirrored-mode recovery
 
 ## Reference
