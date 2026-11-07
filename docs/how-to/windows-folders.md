@@ -23,17 +23,16 @@ It's gone after `wsl --terminate`. `sudo umount /mnt/shared` removes it sooner.
 
 ## One folder, every boot
 
-Add a line to `/etc/fstab`:
+Open `/etc/fstab` with `sudoedit /etc/fstab` and add a line:
 
 ```
-C:\134Users\134<you>\134Shared  /mnt/shared  drvfs  metadata,uid=1000,gid=1000,nofail  0  0
+C:\Users\<you>\Shared  /mnt/shared  drvfs  metadata,uid=1000,gid=1000,nofail  0  0
 ```
 
-`\134` is a backslash: fstab reads a bare `\` as the start of an escape. `nofail` keeps boot going if the folder is missing. Then:
+Use an editor rather than `echo ... | sudo tee`: zsh's `echo` turns `\U` and `\a` into escape codes, even inside single quotes. `nofail` keeps boot going if the folder is missing. Then create the mount point and reopen the distro (`wsl --terminate <distro>` from Windows):
 
 ```bash
 sudo mkdir -p /mnt/shared
-sudo systemctl daemon-reload && sudo mount /mnt/shared
 ```
 
 The installer sets `mountFsTab=false`, so WSL itself skips `/etc/fstab`; systemd mounts the line at boot instead.
