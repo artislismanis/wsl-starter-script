@@ -18,6 +18,7 @@ Under `--non-interactive` the installer reads answers from these env vars instea
 | `DOCKER_USER`             | Target user — added to the `docker` group. Resolution: `DOCKER_USER` → `SUDO_USER` → `/run/wsl-starter-handoff` (user `00-wsl-base` created earlier in this WSL session) → `WSL_USER`; only prompts if none of those name a real non-root account. |
 | `PODMAN_COMPOSE`          | `1` (default) installs `podman-compose`, `0` skips |
 | `PODMAN_DOCKER_SHIM`      | `1` (default) installs `podman-docker` shim if `docker-ce-cli` isn't present |
+| `ZSH_DEFAULT_SHELL`       | `1`/`yes` makes zsh the login shell (set as root by `20-cli-modern`, so no password prompt later); `0`/`no` leaves it; unset prompts (default yes) |
 | `ZSH_THEME`               | Override the oh-my-zsh theme |
 | `ZSH_PLUGINS`             | Replace the full `plugins=(...)` line in `~/.zshrc`. Empty/unset = keep the default `(git docker kubectl ... )` list. |
 | `CLAUDE_PERMISSION_MODE`  | `auto` (default) / `acceptEdits` / `default` / `plan` |

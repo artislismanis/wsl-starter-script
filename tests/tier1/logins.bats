@@ -61,3 +61,21 @@ EOF
   echo "$output" | grep -q 'git identity: Already Set <set@example.invalid>'
   ! echo "$output" | grep -q '\$ git config'
 }
+
+@test "workbench setup steps are listed until they're done" {
+  cd "$REPO_ROOT"
+  mkdir -p "$HOME/.config/herdr/bin" "$HOME/.local/bin"
+  printf '#!/bin/sh\nexit 1\n' > "$HOME/.config/herdr/bin/win-bridge"
+  printf '#!/bin/sh\n' > "$HOME/.local/bin/workshop"
+  chmod +x "$HOME/.config/herdr/bin/win-bridge" "$HOME/.local/bin/workshop"
+  run ./install.sh --logins --non-interactive --dry-run
+  echo "$output" | grep -q 'win-bridge setup, then paste'
+  echo "$output" | grep -q '/workshop-config in a Claude session'
+
+  printf '#!/bin/sh\nexit 0\n' > "$HOME/.config/herdr/bin/win-bridge"
+  mkdir -p "$HOME/.config/workshop"
+  : > "$HOME/.config/workshop/config.toml"
+  run ./install.sh --logins --non-interactive --dry-run
+  ! echo "$output" | grep -q 'win-bridge setup'
+  ! echo "$output" | grep -q 'workshop-config'
+}

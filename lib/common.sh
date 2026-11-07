@@ -138,6 +138,23 @@ is_wsl() { grep -qi microsoft /proc/version 2>/dev/null; }
 # genuinely PID 1.
 is_systemd() { [ -d /run/systemd/system ]; }
 
+# target_user [override] — the non-root account a root module acts for. First
+# hit wins: the override (e.g. DOCKER_USER), SUDO_USER, the USER= that
+# 00-wsl-base left in /run/wsl-starter-handoff, then WSL_USER. Prints nothing
+# when none of those names a real non-root account.
+target_user() {
+  local c handoff=""
+  if [ -r /run/wsl-starter-handoff ]; then
+    handoff="$(awk -F= '$1=="USER"{print $2; exit}' /run/wsl-starter-handoff)"
+  fi
+  for c in "${1:-}" "${SUDO_USER:-}" "$handoff" "${WSL_USER:-}"; do
+    if [ -n "$c" ] && [ "$c" != root ] && id "$c" >/dev/null 2>&1; then
+      printf '%s\n' "$c"
+      return 0
+    fi
+  done
+}
+
 REPO_ROOT="${REPO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 export REPO_ROOT
 
