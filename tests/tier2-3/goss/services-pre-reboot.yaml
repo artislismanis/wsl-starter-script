@@ -1,0 +1,28 @@
+# Docker and Tailscale installed before the first reopen: systemd started both
+# on the reopen, and tester's docker group membership took effect.
+
+command:
+  docker-info:
+    exec: 'docker info'
+    exit-status: 0
+
+  docker-active:
+    exec: 'systemctl is-active docker'
+    exit-status: 0
+    stdout: ["active"]
+
+  tailscaled-enabled:
+    exec: 'systemctl is-enabled tailscaled'
+    exit-status: 0
+    stdout: ["enabled"]
+
+  tailscaled-active:
+    exec: 'systemctl is-active tailscaled'
+    exit-status: 0
+    stdout: ["active"]
+
+  # 27 fired after 25 even without systemd as PID 1; its unit is live now.
+  rshared-root-active:
+    exec: 'systemctl is-active wsl-rshared-root'
+    exit-status: 0
+    stdout: ["active"]

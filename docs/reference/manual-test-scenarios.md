@@ -470,17 +470,11 @@ cd /root/wsl-starter-script
 sudo ./install.sh --preset full
 ```
 
-Answer yes at the docker prompt so this scenario also exercises the deferred-runtime path.
+Answer yes at the docker prompt so this scenario also exercises services installed before the first reopen.
 
-Expect the dispatcher to log `Deferring docker until after the WSL reopen — base just enabled systemd.` and then skip the in-session handoff offer (since docker needs PID 1 systemd, which a `sudo -iu` handoff can't provide). The post-root banner names the full deferred set, e.g. `./install.sh --dev --docker --claude`.
+Expect Docker and Tailscale to install and log that they start after the reopen, then the in-session handoff offer. Answer y: the user modules run as the new user in the same session. Finish with `wsl --terminate <distro>` from Windows and reopen; you land as the new user with nothing left to run.
 
-Follow the on-screen guidance to `wsl --shutdown`, reopen as the new user, `cd ~/wsl-starter-script`, and run the printed command:
-
-```bash
-./install.sh --dev --docker --claude
-```
-
-**Pass criteria:** at the end, `claude --version`, `mise ls`, `rg --version`, `eza --version`, `gh --version`, `zsh --version`, `atuin --version`, `zoxide --version`, and `docker info` all succeed in a fresh shell; `~/.claude/` contains the three generated files; `docker` never failed with `systemd is not running` during the run.
+**Pass criteria:** at the end, `claude --version`, `mise ls`, `rg --version`, `eza --version`, `gh --version`, `zsh --version`, `atuin --version`, `zoxide --version`, and `docker info` all succeed in a fresh shell; `~/.claude/` contains the three generated files; `systemctl is-active docker tailscaled` reports both active after the reopen; `./install.sh --logins` lists Tailscale as to-do until then.
 
 ---
 

@@ -14,7 +14,7 @@
                       after a successful install.
 --claude              Claude Code + user-global config.
 --tailscale           Tailscale (private network for SSH and phone access). In the full preset.
-                      Waits for the reopen after --base, like --docker.
+                      Starts after the reopen when installed right after --base, like --docker.
 --workbench           herdr-workbench config, plus any tools it needs. In the ai and full presets.
 --logins              Log in to the installed tools and set git identity. Re-runnable.
                       Under --non-interactive it only reports.
