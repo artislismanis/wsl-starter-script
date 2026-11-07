@@ -11,7 +11,6 @@
 # ROLLBACK=[ "$(git config --global --get interactive.diffFilter)" = "delta --color-only" ] && git config --global --unset interactive.diffFilter
 # ROLLBACK=# Older installs: git-spice's gs alias block.
 # ROLLBACK=sed -i '/# >>> wsl-starter:git-spice >>>/,/# <<< wsl-starter:git-spice <<</d' "$HOME/.bashrc" "$HOME/.zshrc" 2>/dev/null || true
-# ROLLBACK=sed -i '/# >>> wsl-starter:fzf >>>/,/# <<< wsl-starter:fzf <<</d' "$HOME/.bashrc" "$HOME/.zshrc" 2>/dev/null || true
 # ROLLBACK=sed -i '/# >>> wsl-starter:pip >>>/,/# <<< wsl-starter:pip <<</d' "$HOME/.config/pip/pip.conf" 2>/dev/null || true
 # ROLLBACK=rm -rf "$HOME/.local/bin/mise" "$HOME/.local/share/mise" "$HOME/.config/mise"
 # ROLLBACK=# uv from Astral's installer (installs before uv moved to mise): we passed

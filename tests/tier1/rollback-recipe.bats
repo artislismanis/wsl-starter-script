@@ -60,3 +60,11 @@ load helpers
   # Should exit 0 and produce the recipe (or print help and exit 0).
   [ "$status" -eq 0 ]
 }
+
+@test "rollback <module> strips the rc blocks that module writes" {
+  cd "$REPO_ROOT"
+  run ./install.sh --rollback 31-shell-history
+  echo "$output" | grep -q 'wsl-starter:fzf'
+  run ./install.sh --rollback 40-mise
+  ! echo "$output" | grep -q 'wsl-starter:fzf'
+}
