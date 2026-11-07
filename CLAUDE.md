@@ -10,7 +10,7 @@ The user-facing tree (modules with `[root]/[user]` tags, `claude/*.tmpl` rendere
 - `lib/common.sh` — `log/ok/skip/warn/die`, `ask/confirm/ask_secret`, `run`, `retry_run` (`run` + linear backoff, for upstream fetches that fail transiently), `require_root/user`, `is_root` (predicate; for branching, doesn't exit), `truthy`, `is_wsl`, `mark_runtime_installed` (drops `$RUNTIME_STAMP`).
 - `lib/idempotent.sh` — `command_exists`, `pkg_installed`, `apt_install`, `apt_update_once`, `apt_add_signed_repo`, `apt_hold_unattended`, `ensure_block`, `ensure_block_per_shell`, `replace_ini_section`, `write_file_once`, `write_if_drift`, `copy_if_drift`.
 - `bootstrap.sh` — remote one-liner entry point. Inlines its own colour helpers (the libs aren't on disk yet at clone time), installs `git`/`curl`/`ca-certificates` if missing, clones (or `git pull --ff-only`s) the repo, then `exec`s `install.sh`. Edit this file if you change clone-time prerequisites or the default clone path.
-- `modules/NN-name.sh` — one installer unit; declares `REQUIRES_ROOT` + `DESCRIPTION` headers the dispatcher reads.
+- `modules/NN-name.sh` — one installer unit; declares `REQUIRES_ROOT`, `LAYER` and `DESCRIPTION` headers the dispatcher reads.
 - `claude/*.tmpl` (and `claude/mcp.example.json`) — source files materialised into `~/.claude/` by `modules/50-claude-code.sh`. **Not** consumed by this repo itself — edit the source, not the rendered copy. (`mcp.example.json` keeps its name unchanged because it's copied verbatim with no substitution.)
 - `.claude/` — tooling for Claude working on *this* repo (hooks, skills).
 - `docs/` — user-facing documentation under `tutorials/`, `how-to/`, `reference/`, `explanation/`. Key files: `docs/reference/manual-test-scenarios.md` (authoritative manual E2E spec), `docs/reference/tools.md` (per-package rundown), `docs/how-to/wsl-host.md` (Windows-side companion — not consumed by any module). Start at [docs/README.md](docs/README.md) for the full index.
@@ -19,9 +19,9 @@ The user-facing tree (modules with `[root]/[user]` tags, `claude/*.tmpl` rendere
 
 ## Module contract (every file in `modules/`)
 
-- Header block (top of file, all required): `# REQUIRES_ROOT=0|1`; `# DESCRIPTION=<one short sentence>`; one or more `# ROLLBACK=<line>` headers — see "Rollback parity" below; required whenever the module performs any state-changing write. Modules with no writes declare a single `# ROLLBACK=# Nothing to roll back ...` comment line so the lint passes.
+- Header block (top of file, all required): `# REQUIRES_ROOT=0|1`; `# LAYER=1-9` (install order; layers are named in `LAYER_NAMES` in `install.sh`); `# DESCRIPTION=<one short sentence>`; one or more `# ROLLBACK=<line>` headers — see "Rollback parity" below; required whenever the module performs any state-changing write. Modules with no writes declare a single `# ROLLBACK=# Nothing to roll back ...` comment line so the lint passes.
 - Body bootstrap (first four non-comment lines after the header block, in order): `set -euo pipefail`; `source "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"`; `source "$(dirname "${BASH_SOURCE[0]}")/../lib/idempotent.sh"`; `require_root` or `require_user` matching the header. The `$(dirname …)` prefix is required — the dispatcher runs `bash <path>` from arbitrary CWDs, so a bare `../lib/...` would miss.
-- Dispatcher parses the headers to enforce privilege and populate `--list`.
+- Dispatcher parses the headers to enforce privilege, order the run (by layer, then name; rollback is the exact reverse) and populate `--list`.
 - Scaffold new modules via `/new-module` (skill in `.claude/skills/new-module/`) so the contract stays intact.
 
 ## Idempotency discipline
@@ -99,7 +99,7 @@ Only `claude/settings.json.tmpl` contains a substitution marker (`__PERMISSION_M
 
 ## Privilege split
 
-Root modules run before reopen; user modules after. The dispatcher refuses mismatched invocations.
+Root layers (1-4) run before user layers (5-8). Invoked as root, `run_plan` runs the root modules and defers user modules to the handoff by name (`./install.sh --module a,b,c`); layer-4 services also wait for the reopen when base has only just enabled systemd. The dispatcher refuses mismatched invocations.
 
 When `install.sh` (running as non-root) hits a root module, it auto-escalates via the `_sudo_with_forwards` helper, which calls `sudo env "${FORWARD_ASSIGNS[@]}" bash <module>`. `FORWARD_ASSIGNS` is built by `_collect_forward_assigns`, which sweeps every set env var matching `^(WSL|DOCKER|PODMAN|MISE|CLAUDE|ZSH)_` plus `NON_INTERACTIVE` and `DRY_RUN`, minus a blocklist of system/SDK vars (`WSL_INTEROP`, `WSL_STARTER_*` (bootstrap-only), Docker CLI internals, `CLAUDE_CODE_*`). The same sweep runs for the in-session `sudo -iu <user>` handoff at the end of root-phase (which uses `[*]` instead of `[@]` because it builds a single `bash -lc` shell-string — see the comment on `_sudo_with_forwards` for the array-vs-string distinction). The authoritative blocklist lives in `_collect_forward_assigns` in `install.sh` — don't duplicate it here, just point at the source. Do not use plain `sudo -E` — it depends on sudoers `env_keep` and silently drops most tunables.
 

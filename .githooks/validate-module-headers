@@ -2,6 +2,7 @@
 # Validate that every modules/*.sh file passed in $@ has the headers the
 # dispatcher reads:
 #   # REQUIRES_ROOT=0|1   — dispatcher's privilege gate
+#   # LAYER=1-9           — install order (see LAYER_NAMES in install.sh)
 #   # DESCRIPTION=...     — --list output
 #   # ROLLBACK=<line>     — at least one, when the module has write-sites
 #                           (--rollback dispatcher emits these verbatim)
@@ -29,6 +30,10 @@ for f in "$@"; do
 
   if ! grep -qE '^# REQUIRES_ROOT=[01]$' "$f"; then
     echo "$f: missing or malformed '# REQUIRES_ROOT=0|1' header (dispatcher silently treats this as user-phase)." >&2
+    fail=1
+  fi
+  if ! grep -qE '^# LAYER=[1-9]$' "$f"; then
+    echo "$f: missing or malformed '# LAYER=1-9' header (the dispatcher orders modules by it; see LAYER_NAMES in install.sh)." >&2
     fail=1
   fi
   if ! grep -qE '^# DESCRIPTION=.+' "$f"; then

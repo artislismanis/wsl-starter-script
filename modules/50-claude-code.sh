@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # REQUIRES_ROOT=0
+# LAYER=7
 # DESCRIPTION=Claude Code CLI + user-global settings + statusline + my-claude plugin (optional)
 # NEEDS=jq
 # PROVIDES=claude

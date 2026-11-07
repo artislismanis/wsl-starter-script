@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # REQUIRES_ROOT=__REQUIRES_ROOT__
+# LAYER=__LAYER__
 # DESCRIPTION=__DESCRIPTION__
 # ROLLBACK=# Nothing to roll back yet — replace this with one '# ROLLBACK=<line>' per write-site you introduce.
 set -euo pipefail

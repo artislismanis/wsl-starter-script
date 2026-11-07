@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # REQUIRES_ROOT=0
+# LAYER=5
 # DESCRIPTION=oh-my-zsh + plugins (autosuggestions, syntax-highlighting); needs zsh from 20-cli-modern
 # NEEDS=zsh
 # ROLLBACK=sudo chsh -s /bin/bash "$USER"

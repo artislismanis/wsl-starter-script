@@ -56,7 +56,8 @@ Flag hand-rolled patterns that have a helper:
 - Flag any write-site (file path, systemd unit, rc-block marker, apt repo, hold file, symlink) without a corresponding header line.
 
 ### 6. Group wiring (informational)
-- If the module belongs in a preset, check that `install.sh`'s `BASE_MODULES` / `DEV_ROOT_MODULES` / `DEV_USER_MODULES` / `DOCKER_MODULES` / `PODMAN_MODULES` / `CLAUDE_MODULES` array has been updated. Standalone modules invokable only via `--module` need no array entry.
+- If the module belongs in a preset, check that it's listed under a group in `install.sh`'s `GROUP_MODULES`. Standalone modules invokable only via `--module` need no entry.
+- Check `# LAYER=` matches what the module does (see `LAYER_NAMES` in `install.sh`) and its privilege: layers 1-4 and 9 are root, 5-8 are user.
 
 ## Reporting format
 

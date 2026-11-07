@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # REQUIRES_ROOT=1
+# LAYER=3
 # DESCRIPTION=Modern CLI (zsh, ripgrep, fd, bat, delta, fzf, eza, gh, wl-clipboard)
 # PROVIDES=zsh rg fd bat delta fzf eza gh wl-copy
 # ROLLBACK=sudo rm -f /usr/local/bin/fd /usr/local/bin/bat

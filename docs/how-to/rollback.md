@@ -1,7 +1,7 @@
 # Rolling back
 
 ```sh
-./install.sh --rollback                    # all modules in reverse install order
+./install.sh --rollback                    # all modules in reverse layer order
 ./install.sh --rollback 25-docker-engine   # one module
 ```
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # REQUIRES_ROOT=0
+# LAYER=7
 # DESCRIPTION=Workflow tools: worktrunk + hunk as pinned release binaries, gh-stack + its agent skill
 # NEEDS=gh
 # PROVIDES=wt hunk

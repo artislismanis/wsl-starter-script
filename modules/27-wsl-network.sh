@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # REQUIRES_ROOT=1
+# LAYER=4
 # DESCRIPTION=WSL network defenses for container hosts (wsl-port-check + rshared mount).
 # ROLLBACK=sudo systemctl disable --now wsl-rshared-root.service 2>/dev/null || true
 # ROLLBACK=sudo rm -f /etc/systemd/system/wsl-rshared-root.service

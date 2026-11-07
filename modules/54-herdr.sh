@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # REQUIRES_ROOT=0
+# LAYER=7
 # DESCRIPTION=herdr as a pinned release binary
 # PROVIDES=herdr
 # ROLLBACK=rm -f "$HOME/.local/bin/herdr"

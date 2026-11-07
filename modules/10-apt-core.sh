@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # REQUIRES_ROOT=1
+# LAYER=3
 # DESCRIPTION=Core apt packages (build-essential, git, tmux, locales, ...)
 # PROVIDES=jq socat
 # ROLLBACK=# Re-comment en_US.UTF-8 in /etc/locale.gen, regenerate, reset default:

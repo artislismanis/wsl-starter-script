@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # REQUIRES_ROOT=1
+# LAYER=4
 # DESCRIPTION=Tailscale (private network for SSH and phone access). Needs systemd from module 00.
 # ROLLBACK=# Forget this machine on the tailnet first (also remove it in the admin console):
 # ROLLBACK=sudo tailscale logout 2>/dev/null || true
