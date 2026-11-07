@@ -7,9 +7,6 @@
 # ROLLBACK=# Per tool: mise uninstall <uv|lazygit|yq|pre-commit|glow|terraform|databricks-cli|azure|poetry> (older installs also zellij, fzf, github:abhinav/git-spice)
 # ROLLBACK=# azure-devops az extension (leave the rest of ~/.azure: it holds az login state):
 # ROLLBACK=rm -rf "$HOME/.azure/cliextensions/azure-devops"
-# ROLLBACK=# delta git wiring (only unset if still pointing at delta; we never overwrite an existing pager):
-# ROLLBACK=[ "$(git config --global --get core.pager)" = delta ] && git config --global --unset core.pager
-# ROLLBACK=[ "$(git config --global --get interactive.diffFilter)" = "delta --color-only" ] && git config --global --unset interactive.diffFilter
 # ROLLBACK=# Older installs: git-spice's gs alias block.
 # ROLLBACK=sed -i '/# >>> wsl-starter:git-spice >>>/,/# <<< wsl-starter:git-spice <<</d' "$HOME/.bashrc" "$HOME/.zshrc" 2>/dev/null || true
 # ROLLBACK=sed -i '/# >>> wsl-starter:pip >>>/,/# <<< wsl-starter:pip <<</d' "$HOME/.config/pip/pip.conf" 2>/dev/null || true
@@ -189,20 +186,5 @@ done
 run "mkdir -p '$HOME/.config/pip'"
 replace_ini_section "wsl-starter:pip" "$HOME/.config/pip/pip.conf" global "[global]
 require-virtualenv = true"
-
-# ---- delta git wiring -------------------------------------------------------
-# delta comes from apt (20-cli-modern), not mise: git runs it from processes
-# that never ran `mise activate` (wsl -- git, IDEs). Dry-run assumes 20 ran.
-if [ "$DRY_RUN" = "1" ] || command_exists delta; then
-  # Only fill unset keys so an operator's own pager setup wins.
-  for kv in "core.pager=delta" "interactive.diffFilter=delta --color-only"; do
-    key="${kv%%=*}" val="${kv#*=}"
-    if [ -n "$(git config --global --get "$key" || true)" ]; then
-      skip "git $key already set"
-    else
-      run "git config --global $key '$val'"
-    fi
-  done
-fi
 
 ok "mise configured. Open a new shell so 'mise activate' is in effect."

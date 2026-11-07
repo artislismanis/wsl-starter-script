@@ -9,6 +9,7 @@ lib/idempotent.sh       apt guards, repo/hold helpers, ensure_block family,
                         copy_if_drift
 modules/
   00-wsl-base.sh        [root] systemd, user, hostname, DNS, interop, automount
+  05-os-update.sh       [root] apt update + upgrade (runs first: layer 1)
   10-apt-core.sh        [root] build-essential, git, tmux, locales, ...
   20-cli-modern.sh      [root] zsh, ripgrep, fd, bat, delta, fzf, eza, gh, wl-clipboard
   25-docker-engine.sh   [root] Docker Engine, optional
@@ -17,6 +18,7 @@ modules/
   28-tailscale.sh       [root] Tailscale client + tailscaled, optional
   30-shell-zsh.sh       [user] oh-my-zsh + plugins (zsh installed by 20)
   31-shell-history.sh   [user] atuin + zoxide (bash & zsh)
+  32-git-config.sh      [user] delta as git's pager (only where unset)
   40-mise.sh            [user] mise + selected runtimes + uv + tools (lazygit, yq, ...)
   files/                artefacts modules install (wsl-port-check)
   50-claude-code.sh     [user] claude-code + ~/.claude/ templates + my-claude plugin

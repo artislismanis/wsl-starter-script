@@ -19,5 +19,5 @@ sudo_or_skip() {
   run sudo -n -E env NON_INTERACTIVE=1 ./install.sh --dev --dry-run --non-interactive
   [ "$(echo "$output" | grep -c '━━ 20-cli-modern ━━' || true)" -eq 1 ]
   ! echo "$output" | grep -q '━━ 30-shell-zsh ━━'
-  echo "$output" | grep -q -- '--module 30-shell-zsh,31-shell-history,40-mise'
+  echo "$output" | grep -q -- '--module 30-shell-zsh,31-shell-history,32-git-config,40-mise'
 }

@@ -16,7 +16,7 @@ usage() {
 wsl-starter-script
 
   ./install.sh                       Interactive menu.
-  ./install.sh --base                Root-phase only: 00-wsl-base + 10-apt-core.
+  ./install.sh --base                Root-phase only: 05-os-update + 00-wsl-base + 10-apt-core.
   ./install.sh --dev                 cli-modern (root, auto-escalates) + zsh + history + mise.
                                      If invoked as root the user-phase is deferred to the
                                      post-handoff/reopen user run.
@@ -213,9 +213,9 @@ run_module() {
 # only orders the tick list and the plan. See docs/explanation/tool-groups.md.
 GROUP_ORDER=(base core dev stack workflow docker podman tailscale claude herdr workbench logins cleanup)
 declare -A GROUP_MODULES=(
-  [base]="00-wsl-base"
+  [base]="05-os-update 00-wsl-base"
   [core]="10-apt-core"
-  [dev]="20-cli-modern 30-shell-zsh 31-shell-history 40-mise"
+  [dev]="20-cli-modern 30-shell-zsh 31-shell-history 32-git-config 40-mise"
   [docker]="25-docker-engine"
   [podman]="26-podman"
   [tailscale]="28-tailscale"
@@ -227,7 +227,7 @@ declare -A GROUP_MODULES=(
   [cleanup]="99-cleanup"
 )
 declare -A GROUP_LABELS=(
-  [base]="WSL base (systemd, user, hostname, DNS)"
+  [base]="OS update and WSL base (systemd, user, hostname, DNS)"
   [core]="Core apt packages"
   [dev]="Terminal and basic dev (zsh, CLI tools, gh, mise, languages)"
   [stack]="Stack-specific tools (terraform, azure-cli, databricks, poetry)"

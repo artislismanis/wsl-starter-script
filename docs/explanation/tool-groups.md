@@ -35,7 +35,7 @@ Being useful on its own doesn't put a tool in a preset. Rule 4 is about labellin
 
 | Group | Tools | Notes |
 |---|---|---|
-| Base | `00-wsl-base`, `10-apt-core` | Always. `git`, `curl`, `tmux` and `python3` already come with the Ubuntu image |
+| Base | `05-os-update`, `00-wsl-base`, `10-apt-core` | Always. `git`, `curl`, `tmux` and `python3` already come with the Ubuntu image |
 | Terminal | zsh, shell history, `ripgrep`, `fd`, `bat`, `eza`, `delta`, `fzf`, `yq`, `glow`, `wl-clipboard` | `wl-clipboard` is the clipboard when interop is off. `fzf` comes from apt so it's on PATH without mise |
 | Basic dev | `gh`, mise, uv, Python, Node, `lazygit`, `pre-commit` | mise and uv install most other tools |
 | Workflow | wt (worktrees), gh-stack (stacked PRs), hunk (code review) | hunk is over 100 MB; the review loop is its reason. Document review comes through the workbench's annotate plugin, which brings its own `plannotator-tui` |
@@ -65,11 +65,11 @@ Groups decide what gets installed; layers decide when. Every module declares one
 
 | Layer | Name | Runs as | Modules |
 |---|---|---|---|
-| 1 | OS update | root | |
+| 1 | OS update | root | `05-os-update` |
 | 2 | OS config | root | `00-wsl-base` |
 | 3 | System packages | root | `10-apt-core`, `20-cli-modern` |
 | 4 | System services | root | `25-docker-engine`, `26-podman`, `27-wsl-network`, `28-tailscale` |
-| 5 | User shell | user | `30-shell-zsh`, `31-shell-history` |
+| 5 | User shell | user | `30-shell-zsh`, `31-shell-history`, `32-git-config` |
 | 6 | User toolchain | user | `40-mise` |
 | 7 | User apps | user | `50-claude-code`, `52-workflow-tools`, `54-herdr`, `55-workbench` |
 | 8 | Accounts | user | `60-logins` |

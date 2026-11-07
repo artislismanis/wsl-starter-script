@@ -16,7 +16,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/../lib/idempotent.sh"
 require_root
 is_wsl || warn "This doesn't look like WSL — continuing anyway."
 
-# WSL_ISOLATE: same tri-state as WSL_APT_UPGRADE. Default yes: no Windows
+# WSL_ISOLATE: same tri-state as WSL_APT_UPGRADE (05-os-update). Default yes: no Windows
 # binaries from Linux, no /mnt/c. Checked before apt so a bad value fails fast.
 DO_ISOLATE=0
 case "${WSL_ISOLATE:-unset}" in
@@ -35,20 +35,6 @@ _user_re='^[a-z_][a-z0-9_-]{0,30}\$?$'
 if [ -n "${WSL_USER:-}" ] && ! [[ "$WSL_USER" =~ $_user_re ]]; then
   die "WSL_USER='$WSL_USER' is invalid — must match useradd NAME_REGEX (lowercase, _, -; start with letter/underscore; <=32 chars)."
 fi
-
-# WSL_APT_UPGRADE: 1/yes/true = upgrade, 0/no/false = skip, unset OR empty = ask
-# (default yes). Use ${VAR:-unset} (with the colon) so a set-but-empty value
-# falls through to the prompt rather than silently no-op'ing — empty is
-# typically a YAML/CI artefact ("WSL_APT_UPGRADE: ""), not a deliberate "skip".
-DO_UPGRADE=0
-case "${WSL_APT_UPGRADE:-unset}" in
-  1|yes|true) DO_UPGRADE=1 ;;
-  0|no|false) DO_UPGRADE=0 ;;
-  unset)      confirm "Run 'apt upgrade' now? (slow on a fresh image)" y && DO_UPGRADE=1 ;;
-  *)          die "WSL_APT_UPGRADE must be one of: 1/yes/true, 0/no/false, or unset (got: ${WSL_APT_UPGRADE})" ;;
-esac
-apt_update_once
-[ "$DO_UPGRADE" = "1" ] && run "DEBIAN_FRONTEND=noninteractive apt-get upgrade -y"
 
 apt_install sudo systemd
 
