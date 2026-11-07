@@ -165,6 +165,19 @@ _collect_forward_assigns() {
       FORWARD_ASSIGNS+=("$v=$(printf '%q' "${!v}")")
     fi
   done < <(compgen -v)
+  # The clipboard for gh and claude logins after the handoff. sudo resets
+  # XDG_RUNTIME_DIR, and the user's own must stay (systemd --user needs it),
+  # so pass the Wayland socket as an absolute path, which needs neither. Root
+  # may have no XDG_RUNTIME_DIR, so WSLg's own runtime dir is the fallback.
+  local wl="${WAYLAND_DISPLAY:-}" dir
+  if [ -n "$wl" ] && [ "${wl:0:1}" != / ]; then
+    for dir in "${XDG_RUNTIME_DIR:-}" "${WSLG_RUNTIME_DIR:-/mnt/wslg/runtime-dir}"; do
+      if [ -n "$dir" ] && [ -S "$dir/$wl" ]; then wl="$dir/$wl"; break; fi
+    done
+  fi
+  if [ -n "$wl" ] && [ -S "$wl" ]; then
+    FORWARD_ASSIGNS+=("WAYLAND_DISPLAY=$(printf '%q' "$(readlink -f "$wl")")")
+  fi
 }
 
 # _sudo_with_forwards <bash-args...> — argv-style sudo+env+bash.

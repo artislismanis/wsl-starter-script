@@ -79,3 +79,10 @@ EOF
   ! echo "$output" | grep -q 'win-bridge setup'
   ! echo "$output" | grep -q 'workshop-config'
 }
+
+@test "points at the Windows-folder guide when drives aren't mounted" {
+  [ ! -d /mnt/c/Windows ] || skip "/mnt/c is mounted here"
+  cd "$REPO_ROOT"
+  run ./install.sh --logins --non-interactive --dry-run
+  echo "$output" | grep -q 'docs/how-to/windows-folders.md'
+}
