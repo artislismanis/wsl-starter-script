@@ -48,7 +48,7 @@ WSL stops a distro a while after its last terminal closes, and `vmIdleTimeout=-1
 If the workbench is installed (module `55-workbench`), let it write the PowerShell for you, with your distro's name filled in. In WSL, run:
 
 ```bash
-~/.config/herdr/bin/win-bridge setup
+win-bridge setup
 ```
 
 Paste what it prints into PowerShell on Windows. It sets up two things:

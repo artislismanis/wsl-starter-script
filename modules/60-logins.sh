@@ -99,7 +99,7 @@ fi
 # Not logins, but the last setup steps, so they're listed with them.
 WB_BIN="$HOME/.config/herdr/bin"
 if [ -x "$WB_BIN/win-bridge" ] && ! "$WB_BIN/win-bridge" status >/dev/null 2>&1; then
-  TODO+=("Windows links, toasts and keeping WSL running: ~/.config/herdr/bin/win-bridge setup, then paste what it prints into PowerShell")
+  TODO+=("Windows links, toasts and keeping WSL running: win-bridge setup, then paste what it prints into PowerShell")
 fi
 # Same lookup as workshop itself, which ignores XDG_CONFIG_HOME.
 if [ -x "$HOME/.local/bin/workshop" ] && [ ! -f "${WORKSHOP_CONFIG:-$HOME/.config/workshop/config.toml}" ]; then
