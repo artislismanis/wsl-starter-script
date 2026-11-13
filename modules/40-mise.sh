@@ -46,8 +46,8 @@ declare -A TOOL_SPECS=(
   [yq]="yq@${MISE_YQ_VERSION:-4.54.1}"
   [pre-commit]="pre-commit@${MISE_PRE_COMMIT_VERSION:-4.7.0}"
   [glow]="glow@${MISE_GLOW_VERSION:-3.0.0}"
-  [terraform]="terraform@${MISE_TERRAFORM_VERSION:-1.17.1}"
-  [databricks]="databricks-cli@${MISE_DATABRICKS_VERSION:-1.24.0}"
+  [terraform]="terraform@${MISE_TERRAFORM_VERSION:-1.14.3}"  # bump: terraform@1.14.3 (held: matches the data infra CI)
+  [databricks]="databricks-cli@${MISE_DATABRICKS_VERSION:-1.26.0}"  # bump: databricks-cli@1.26.0 (held: move with CI)
   # mise's registry already passes uv `--with pip` (for `az extension add`) and
   # `--prerelease allow`; uvx_args repeating --prerelease makes uv refuse to run.
   [azure-cli]="azure@${MISE_AZURE_CLI_VERSION:-2.92.0}"
@@ -97,11 +97,11 @@ ensure_block "wsl-starter:mise-shims" "$HOME/.profile" "$SHIMS_PATH"
 # MISE_LANGUAGES env var overrides the prompts (comma-separated).
 # Per-language version overrides via env: MISE_<LANG>_VERSION (e.g. MISE_NODE_VERSION=22).
 declare -A SPECS=(
-  [node]="node@${MISE_NODE_VERSION:-24.22.2}"  # bump: node@lts
-  [python]="python@${MISE_PYTHON_VERSION:-3.12.16}"  # bump: python@3.12
+  [node]="node@${MISE_NODE_VERSION:-26.13.1}"  # bump: node@26 (the active LTS; mise's lts alias still says 24)
+  [python]="python@${MISE_PYTHON_VERSION:-3.12.3}"  # bump: python@3.12.3 (held: matches the Databricks runtimes)
   [ruby]="ruby@${MISE_RUBY_VERSION:-3.3.13}"  # bump: ruby@3.3
   [java]="java@${MISE_JAVA_VERSION:-temurin-21.0.13+9.0.LTS}"  # bump: java@temurin-21
-  [go]="go@${MISE_GO_VERSION:-1.27.3}"  # bump: go@1.27
+  [go]="go@${MISE_GO_VERSION:-1.27.4}"  # bump: go@1.27
   [deno]="deno@${MISE_DENO_VERSION:-2.9.8}"
   [bun]="bun@${MISE_BUN_VERSION:-1.4.4}"
 )
@@ -138,7 +138,7 @@ done
 # uv — project-local Python env manager (complements mise-managed python).
 # No venv activation on cd: commands go through `uv run`, which always picks
 # the project's own .venv (an activated one goes stale across worktrees).
-UV_SPEC="uv@${MISE_UV_VERSION:-0.13.7}"
+UV_SPEC="uv@${MISE_UV_VERSION:-0.13.8}"
 if confirm "Install uv (fast Python project/env manager, ${UV_SPEC})?" y; then
   log "mise use -g $UV_SPEC"
   run "\"$MISE_BIN\" use -g $UV_SPEC"
