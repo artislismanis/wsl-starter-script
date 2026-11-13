@@ -98,7 +98,7 @@ ensure_block "wsl-starter:mise-shims" "$HOME/.profile" "$SHIMS_PATH"
 # Per-language version overrides via env: MISE_<LANG>_VERSION (e.g. MISE_NODE_VERSION=22).
 declare -A SPECS=(
   [node]="node@${MISE_NODE_VERSION:-26.13.1}"  # bump: node@26 (the active LTS; mise's lts alias still says 24)
-  [python]="python@${MISE_PYTHON_VERSION:-3.12.3}"  # bump: python@3.12.3 (held: matches the Databricks runtimes)
+  [python]="python@${MISE_PYTHON_VERSION:-3.12.16}"  # bump: python@3.12 (held on 3.12 for the Databricks runtimes; 3.12.3 itself has no attestations, so pin it per project with .python-version)
   [ruby]="ruby@${MISE_RUBY_VERSION:-3.3.13}"  # bump: ruby@3.3
   [java]="java@${MISE_JAVA_VERSION:-temurin-21.0.13+9.0.LTS}"  # bump: java@temurin-21
   [go]="go@${MISE_GO_VERSION:-1.27.4}"  # bump: go@1.27
