@@ -79,6 +79,16 @@ export PATH="$HOME/.local/bin:$PATH"
 
 # mise only records checksums for global tools when this file exists.
 write_file_once "$HOME/.config/mise/mise.lock" </dev/null
+# Lock only this box's platform (linux-x64, or linux-arm64 on Windows on ARM).
+# Otherwise mise locks 7 platforms, downloading every other OS's release asset
+# on each `mise use` and warning whenever GitHub fails one of them.
+if ! grep -qs '^lockfile_platforms' "$HOME/.config/mise/config.toml"; then
+  case "$(dpkg --print-architecture)" in
+    arm64) mise_platform=linux-arm64 ;;
+    *)     mise_platform=linux-x64 ;;
+  esac
+  run "\"$MISE_BIN\" settings set lockfile_platforms $mise_platform"
+fi
 
 ensure_block_per_shell "wsl-starter:mise" "$HOME" \
   'export PATH="$HOME/.local/bin:$PATH"
