@@ -42,8 +42,8 @@ done < <(compgen -v | grep -E '^MISE_[A-Z_]+_VERSION$' || true)
 # Tools: MISE_TOOLS (comma-separated) overrides the prompts further down.
 # Parsed here so a typo fails fast, same as the version checks above.
 declare -A TOOL_SPECS=(
-  [lazygit]="lazygit@${MISE_LAZYGIT_VERSION:-0.66.2}"
-  [yq]="yq@${MISE_YQ_VERSION:-4.54.1}"
+  [lazygit]="lazygit@${MISE_LAZYGIT_VERSION:-0.66.3}"
+  [yq]="yq@${MISE_YQ_VERSION:-4.54.3}"
   [pre-commit]="pre-commit@${MISE_PRE_COMMIT_VERSION:-4.7.0}"
   [glow]="glow@${MISE_GLOW_VERSION:-3.0.0}"
   [terraform]="terraform@${MISE_TERRAFORM_VERSION:-1.14.3}"  # bump: terraform@1.14.3 (held: matches the data infra CI)
@@ -65,7 +65,7 @@ fi
 
 if ! command_exists mise; then
   log "Installing mise"
-  run "curl -fsSL https://mise.run | MISE_VERSION=v${MISE_SELF_VERSION:-2026.11.0} sh"  # bump: aqua:jdx/mise
+  run "curl -fsSL https://mise.run | MISE_VERSION=v${MISE_SELF_VERSION:-2026.11.8} sh"  # bump: aqua:jdx/mise
 else
   skip "mise already installed"
 fi

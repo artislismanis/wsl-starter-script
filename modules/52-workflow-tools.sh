@@ -18,10 +18,10 @@ require_user
 # git hooks don't always start from a shell that ran `mise activate`.
 # .github/bump-pins.sh moves each pin to upstream's latest and recomputes its
 # sha256; reviewing the upstream diff and merging that PR is the approval.
-WT_VERSION=0.81.0  # bump: github:max-sixty/worktrunk worktrunk-x86_64-unknown-linux-musl.tar.xz
-WT_SHA256=0c253f216985ce9cd7b202a11606b5ce6aa934b1019fd1fbb9b7ce2b47b1c74a
-HUNK_VERSION=0.24.1  # bump: github:modem-dev/hunk hunkdiff-linux-x64.tar.gz
-HUNK_SHA256=4b8c98f8d97745499916cc1e1d2f27ffd258c6d6358dd4532f61e41c5eb19692
+WT_VERSION=0.82.0  # bump: github:max-sixty/worktrunk worktrunk-x86_64-unknown-linux-musl.tar.xz
+WT_SHA256=d1e38cf36d8c14ef0682a6d6617f8a512b1a971feb3dfa437419d00136e19a3e
+HUNK_VERSION=0.25.0  # bump: github:modem-dev/hunk hunkdiff-linux-x64.tar.gz
+HUNK_SHA256=fc3301151a9b35400b0223d73041cea85fb18972d6dc5c97a2bbdc427fad2afe
 GH_STACK_VERSION=0.3.0  # bump: github:github/gh-stack linux-amd64
 GH_STACK_SHA256=957e822cfa7e435cd84a297cd96c419b58e51e3ac58be249762c24bd9e45099b
 
