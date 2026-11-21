@@ -12,7 +12,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/idempotent.sh"
 require_user
 
-WORKBENCH_COMMIT=6fc489249ac17691e626014db5359cca6463bb97  # bump: git:artislismanis/herdr-workbench
+WORKBENCH_COMMIT=bb6e0b85e91cc197e704098463ad94d8833ad100  # bump: git:artislismanis/herdr-workbench
 
 BIN="$HOME/.local/bin"
 WB_DIR="$HOME/.local/share/herdr-workbench"
