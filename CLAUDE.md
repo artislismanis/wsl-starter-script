@@ -95,7 +95,7 @@ Don't end a function or for-loop body with `[ test ] && cmd`. When `test` fails,
 
 `claude/*.tmpl` are source files that `modules/50-claude-code.sh` materialises into `$HOME/.claude/`. The suffix means "copy to destination at install time" — not "intermediate scaffolding". Edit the `.tmpl`, not the rendered file under `~/.claude/` (a project PreToolUse hook will refuse the latter).
 
-Only `claude/settings.json.tmpl` contains a substitution marker (`__PERMISSION_MODE__`). The other `.tmpl` files and `mcp.example.json` are copied literally.
+Only `claude/settings.json.tmpl` contains substitution markers (`__PERMISSION_MODE__` and `__CLAUDE_TMPDIR__`). The other `.tmpl` files and `mcp.example.json` are copied literally.
 
 ## Privilege split
 
