@@ -15,6 +15,7 @@
 # ROLLBACK=rm -f "${XDG_STATE_HOME:-$HOME/.local/state}/claude-usage.json"
 # ROLLBACK=rmdir --ignore-fail-on-non-empty "$HOME/.claude/scripts" 2>/dev/null || true
 # ROLLBACK=rm -f "$HOME/.claude/settings.json" "$HOME/.claude/mcp.example.json"
+# ROLLBACK=rm -rf "$HOME/.cache/claude-tmp"
 # ROLLBACK=# Legacy rc block from before the MCP server fetched its own token; re-runs strip it too.
 # ROLLBACK=sed -i '/# >>> wsl-starter:claude-github-token >>>/,/# <<< wsl-starter:claude-github-token <<</d' "$HOME/.bashrc" "$HOME/.zshrc" 2>/dev/null || true
 set -euo pipefail
@@ -80,7 +81,11 @@ done
 # settings.json is the only template that needs substitution; the rest are
 # copied byte-for-byte. write_file_once preserves operator edits (skip-if-exists),
 # handles dry-run, and creates parent dirs.
-write_file_once "$SETTINGS"     < <(sed "s/__PERMISSION_MODE__/$PERM_MODE/" "$REPO_ROOT/claude/settings.json.tmpl")
+# Ubuntu mounts /tmp in RAM, and agents build whole test environments in
+# their scratch folders, so Claude's temp tree lives on disk instead.
+CLAUDE_TMPDIR="$HOME/.cache/claude-tmp"
+run "mkdir -p '$CLAUDE_TMPDIR'"
+write_file_once "$SETTINGS"     < <(sed -e "s/__PERMISSION_MODE__/$PERM_MODE/" -e "s|__CLAUDE_TMPDIR__|$CLAUDE_TMPDIR|" "$REPO_ROOT/claude/settings.json.tmpl")
 # 4th-positional `0755` for mode; owner left default since this module runs as
 # the target user, so the file is already user-owned.
 write_file_once "$STATUSLINE" "$USER" 0755 < "$REPO_ROOT/claude/statusline.sh.tmpl"
