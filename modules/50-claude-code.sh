@@ -16,6 +16,8 @@
 # ROLLBACK=rmdir --ignore-fail-on-non-empty "$HOME/.claude/scripts" 2>/dev/null || true
 # ROLLBACK=rm -f "$HOME/.claude/settings.json" "$HOME/.claude/mcp.example.json"
 # ROLLBACK=rm -rf "$HOME/.cache/claude-tmp"
+# ROLLBACK=rm -f "$HOME/.config/user-tmpfiles.d/claude-tmp.conf"
+# ROLLBACK=systemctl --user disable systemd-tmpfiles-clean.timer 2>/dev/null || true
 # ROLLBACK=# Legacy rc block from before the MCP server fetched its own token; re-runs strip it too.
 # ROLLBACK=sed -i '/# >>> wsl-starter:claude-github-token >>>/,/# <<< wsl-starter:claude-github-token <<</d' "$HOME/.bashrc" "$HOME/.zshrc" 2>/dev/null || true
 set -euo pipefail
@@ -85,6 +87,11 @@ done
 # their scratch folders, so Claude's temp tree lives on disk instead.
 CLAUDE_TMPDIR="$HOME/.cache/claude-tmp"
 run "mkdir -p '$CLAUDE_TMPDIR'"
+# The folder is on disk, so nothing empties it on a reboot. A file untouched for a week goes.
+write_file_once "$HOME/.config/user-tmpfiles.d/claude-tmp.conf" < <(printf 'e %s - - - 7d\n' "$CLAUDE_TMPDIR")
+if is_systemd; then
+  run "systemctl --user enable systemd-tmpfiles-clean.timer || true"  # needs the user bus, which a first install may not have yet
+fi
 write_file_once "$SETTINGS"     < <(sed -e "s/__PERMISSION_MODE__/$PERM_MODE/" -e "s|__CLAUDE_TMPDIR__|$CLAUDE_TMPDIR|" "$REPO_ROOT/claude/settings.json.tmpl")
 # 4th-positional `0755` for mode; owner left default since this module runs as
 # the target user, so the file is already user-owned.
